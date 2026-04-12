@@ -1,11 +1,28 @@
-// Schemas Zod para users — TODO: implementar em STORY-009 (Sprint 3)
+// Schemas Zod para users — S009, S010 (Sprint 3)
+
 import { z } from 'zod';
 
-export const createUsersSchema = z.object({
-  // TODO: definir campos em STORY-009 (Sprint 3)
+export const ROLE_HIERARCHY: Record<string, number> = {
+  SUPER_ADMIN: 5,
+  ADMIN_MATRIZ: 4,
+  GERENTE_FILIAL: 3,
+  ATENDENTE: 2,
+  PROFESSOR: 1,
+};
+
+export const createUserSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
+  email: z.string().email('Email inválido'),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE', 'PROFESSOR']),
+  filialIds: z.array(z.string().uuid()).min(1, 'Ao menos uma filial é obrigatória'),
 });
 
-export const updateUsersSchema = createUsersSchema.partial();
+export const updateUserSchema = z.object({
+  nome: z.string().min(3).max(100).optional(),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE', 'PROFESSOR']).optional(),
+  filialIds: z.array(z.string().uuid()).optional(),
+  ativo: z.boolean().optional(),
+});
 
-export type CreateUsersInput = z.infer<typeof createUsersSchema>;
-export type UpdateUsersInput = z.infer<typeof updateUsersSchema>;
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;

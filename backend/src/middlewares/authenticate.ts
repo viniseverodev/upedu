@@ -53,9 +53,12 @@ export async function authenticate(
     throw new UnauthorizedError('Token inválido ou expirado');
   }
 
-  // Verificar blacklist no Redis (logout ou desativação de usuário)
-  const blacklisted = await redis.get(`blacklist:jwt:${payload.jti}`);
-  if (blacklisted) {
+  // Verificar blacklist no Redis — token individual (logout) ou usuário inteiro (desativação S010)
+  const [tokenBlacklisted, userBlacklisted] = await Promise.all([
+    redis.get(`blacklist:jwt:${payload.jti}`),
+    redis.get(`blacklist:user:${payload.sub}`),
+  ]);
+  if (tokenBlacklisted || userBlacklisted) {
     throw new UnauthorizedError('Token revogado');
   }
 

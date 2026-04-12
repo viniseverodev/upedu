@@ -49,7 +49,23 @@ export const updateFilialSchema = z.object({
   ativo: z.boolean().optional(),
 });
 
+export const createUserSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
+  email: z.string().email('Email inválido'),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE', 'PROFESSOR']),
+  filialIds: z.array(z.string()).min(1, 'Selecione ao menos uma filial'),
+});
+
+export const updateUserSchema = z.object({
+  nome: z.string().min(3).max(100).optional(),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE', 'PROFESSOR']).optional(),
+  filialIds: z.array(z.string()).optional(),
+  ativo: z.boolean().optional(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateAlunoInput = z.infer<typeof createAlunoSchema>;
 export type CreateFilialInput = z.infer<typeof createFilialSchema>;
 export type UpdateFilialInput = z.infer<typeof updateFilialSchema>;
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
