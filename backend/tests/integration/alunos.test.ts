@@ -184,7 +184,10 @@ describe('POST /api/v1/alunos', () => {
     });
 
     expect(res.statusCode).toBe(422);
-    expect(res.json().message).toContain('Consentimento');
+    const body = res.json();
+    expect(
+      body.details.some((d: { message: string }) => d.message.includes('Consentimento'))
+    ).toBe(true);
   });
 
   it('retorna 422 sem campos obrigatórios', async () => {
