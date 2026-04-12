@@ -32,5 +32,24 @@ export const createAlunoSchema = z.object({
   }),
 });
 
+export const createFilialSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
+  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
+  diaVencimento: z.coerce.number().int().min(1).max(28).default(10),
+  valorMensalidadeIntegral: z.coerce.number().positive('Valor deve ser positivo'),
+  valorMensalidadeMeioTurno: z.coerce.number().positive('Valor deve ser positivo'),
+});
+
+export const updateFilialSchema = z.object({
+  nome: z.string().min(3).max(100).optional(),
+  cnpj: z.string().min(14).max(18).optional(),
+  diaVencimento: z.coerce.number().int().min(1).max(28).optional(),
+  valorMensalidadeIntegral: z.coerce.number().positive().optional(),
+  valorMensalidadeMeioTurno: z.coerce.number().positive().optional(),
+  ativo: z.boolean().optional(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateAlunoInput = z.infer<typeof createAlunoSchema>;
+export type CreateFilialInput = z.infer<typeof createFilialSchema>;
+export type UpdateFilialInput = z.infer<typeof updateFilialSchema>;
