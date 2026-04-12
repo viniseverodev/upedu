@@ -70,6 +70,7 @@ export default function EditarUsuarioPage() {
   const callerRole = useRole() ?? 'ADMIN_MATRIZ';
   const [serverError, setServerError] = useState<string | null>(null);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [pendingData, setPendingData] = useState<UpdateUserInput | null>(null);
 
   const availableRoles = ROLES_BY_LEVEL[callerRole] ?? ROLES_BY_LEVEL['ADMIN_MATRIZ'];
 
@@ -138,6 +139,7 @@ export default function EditarUsuarioPage() {
           onSubmit={handleSubmit((d) => {
             setServerError(null);
             if (d.ativo === false && user?.ativo === true) {
+              setPendingData(d);
               setShowDeactivateConfirm(true);
               return;
             }
@@ -203,7 +205,7 @@ export default function EditarUsuarioPage() {
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => { setShowDeactivateConfirm(false); mutation.mutate({ ativo: false }); }}
+                  onClick={() => { setShowDeactivateConfirm(false); mutation.mutate(pendingData ?? { ativo: false }); }}
                   className="rounded bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
                 >
                   Confirmar desativação
