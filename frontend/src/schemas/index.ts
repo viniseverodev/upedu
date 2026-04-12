@@ -30,6 +30,7 @@ export const createAlunoSchema = z.object({
   consentimentoResponsavel: z.literal(true, {
     errorMap: () => ({ message: 'Consentimento parental obrigatório (LGPD Art. 14)' }),
   }),
+  status: z.enum(['PRE_MATRICULA', 'LISTA_ESPERA']).default('PRE_MATRICULA'),
 });
 
 export const createFilialSchema = z.object({
