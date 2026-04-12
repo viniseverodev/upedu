@@ -49,6 +49,14 @@ export const updateFilialSchema = z.object({
   ativo: z.boolean().optional(),
 });
 
+export const updateAlunoSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(150).optional(),
+  dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)').optional(),
+  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']).optional(),
+  observacoes: z.string().max(500).optional(),
+  status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA']).optional(),
+});
+
 export const createUserSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
   email: z.string().email('Email inválido'),
@@ -69,3 +77,4 @@ export type CreateFilialInput = z.infer<typeof createFilialSchema>;
 export type UpdateFilialInput = z.infer<typeof updateFilialSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type UpdateAlunoInput = z.infer<typeof updateAlunoSchema>;

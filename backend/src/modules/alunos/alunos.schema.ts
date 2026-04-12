@@ -1,11 +1,30 @@
-// Schemas Zod para alunos — TODO: implementar em STORY-012 (Sprint 3)
+// Schemas Zod — Alunos (S012-S015)
+
 import { z } from 'zod';
 
-export const createAlunosSchema = z.object({
-  // TODO: definir campos em STORY-012 (Sprint 3)
+export const createAlunoSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(150),
+  dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)'),
+  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  observacoes: z.string().max(500).optional(),
+  consentimentoResponsavel: z.literal(true, {
+    errorMap: () => ({ message: 'Consentimento parental obrigatório (LGPD Art. 14)' }),
+  }),
+  status: z.enum(['PRE_MATRICULA', 'LISTA_ESPERA']).default('PRE_MATRICULA'),
 });
 
-export const updateAlunosSchema = createAlunosSchema.partial();
+export const updateAlunoSchema = z.object({
+  nome: z.string().min(3).max(150).optional(),
+  dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']).optional(),
+  observacoes: z.string().max(500).optional(),
+  status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA']).optional(),
+});
 
-export type CreateAlunosInput = z.infer<typeof createAlunosSchema>;
-export type UpdateAlunosInput = z.infer<typeof updateAlunosSchema>;
+export const transferirAlunoSchema = z.object({
+  filialDestinoId: z.string().uuid('ID de filial inválido'),
+});
+
+export type CreateAlunoInput = z.infer<typeof createAlunoSchema>;
+export type UpdateAlunoInput = z.infer<typeof updateAlunoSchema>;
+export type TransferirAlunoInput = z.infer<typeof transferirAlunoSchema>;
