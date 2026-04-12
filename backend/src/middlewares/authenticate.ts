@@ -1,17 +1,27 @@
 // Middleware de autenticação — ADR-004 (JWT híbrido + Redis blacklist)
-// Ordem no stack: 1º na cadeia (rate-limit → authenticate → filial-context → authorize)
+// S001: verificação de token JWT + blacklist Redis
+// S004: bloqueia rotas protegidas quando primeiroAcesso=true
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { redis } from '../config/redis';
 import { env } from '../config/env';
-import { UnauthorizedError } from '../shared/errors/AppError';
+import { ForbiddenError, UnauthorizedError } from '../shared/errors/AppError';
 
 export interface JwtPayload {
-  sub: string;       // userId
-  jti: string;       // token ID (para blacklist)
+  sub: string;          // userId
+  jti: string;          // token ID (para blacklist)
   role: string;
   orgId: string;
+  primeiroAcesso: boolean;
+  iat: number;
+  exp: number;
+}
+
+// Payload do refresh token (JWT assinado com JWT_REFRESH_SECRET)
+export interface RefreshTokenPayload {
+  sub: string;  // userId
+  jti: string;  // jti único hasheado no banco
   iat: number;
   exp: number;
 }
@@ -21,6 +31,9 @@ declare module 'fastify' {
     user: JwtPayload;
   }
 }
+
+// Rotas de auth são públicas — não aplicar o guard de primeiro acesso
+const AUTH_PATHS = ['/api/v1/auth/'];
 
 export async function authenticate(
   request: FastifyRequest,
@@ -47,4 +60,14 @@ export async function authenticate(
   }
 
   request.user = payload;
+
+  // S004 — Guard de primeiro acesso: bloquear rotas protegidas até troca de senha
+  if (payload.primeiroAcesso) {
+    const isAuthRoute = AUTH_PATHS.some((p) => request.url.startsWith(p));
+    if (!isAuthRoute) {
+      throw new ForbiddenError(
+        'Troca de senha obrigatória. Acesse /primeiro-acesso para continuar.'
+      );
+    }
+  }
 }

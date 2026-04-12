@@ -1,6 +1,9 @@
 // AuthRepository — queries Prisma para autenticação
-// TODO: completar revokeRefreshTokenByRaw em STORY-003
+// S001: findByEmail, saveRefreshToken
+// S002: revokeRefreshTokenByRaw (logout)
+// S003: findActiveTokensByUser, revokeTokenById (refresh com rotação + detecção de roubo)
 
+import bcrypt from 'bcrypt';
 import { prisma } from '../../config/database';
 
 export class AuthRepository {
@@ -11,14 +14,54 @@ export class AuthRepository {
     });
   }
 
+  async findById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: { filiais: { select: { filialId: true } } },
+    });
+  }
+
   async saveRefreshToken(userId: string, tokenHash: string) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     return prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
   }
 
-  async revokeRefreshTokenByRaw(_userId: string, _rawToken: string) {
-    // TODO: buscar tokens ativos, comparar bcrypt, setar revokedAt
-    // Implementar em STORY-003 com detecção de roubo
+  // Busca todos os refresh tokens ativos (não revogados, não expirados) de um usuário.
+  // Usado pelo refresh para comparar bcrypt e detectar reutilização de token revogado.
+  async findActiveTokensByUser(userId: string) {
+    return prisma.refreshToken.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+  }
+
+  // Busca TODOS os tokens (incluindo revogados) de um usuário — usado na detecção de roubo.
+  async findAllTokensByUser(userId: string) {
+    return prisma.refreshToken.findMany({ where: { userId } });
+  }
+
+  async revokeTokenById(id: string) {
+    return prisma.refreshToken.update({
+      where: { id },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  // Para logout: encontra o token ativo correspondente ao rawJti e o revoga.
+  // rawJti é o campo jti extraído do JWT do refresh token.
+  async revokeRefreshTokenByJti(userId: string, jti: string) {
+    const activeTokens = await this.findActiveTokensByUser(userId);
+    for (const token of activeTokens) {
+      const match = await bcrypt.compare(jti, token.tokenHash);
+      if (match) {
+        await this.revokeTokenById(token.id);
+        return true;
+      }
+    }
+    return false;
   }
 
   async revokeAllUserTokens(userId: string) {

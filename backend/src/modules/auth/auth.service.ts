@@ -1,22 +1,26 @@
 // AuthService — lógica de negócio de autenticação
-// TODO: implementar completamente em STORY-001/002/003/004 (Sprint 1-2)
+// S001: login com rate limiting, bcrypt, JWT, audit log
+// S002: logout com blacklist do access token + revogação do refresh token
+// S003: refresh com rotação obrigatória + detecção de roubo de token
+// S004: changePassword com atualização de primeiroAcesso
 
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRepository } from './auth.repository';
-import { redis, REDIS_TTL } from '../../config/redis';
+import { redis } from '../../config/redis';
 import { env } from '../../config/env';
 import { createAuditLog } from '../../middlewares/audit';
 import { UnauthorizedError } from '../../shared/errors/AppError';
 import type { LoginInput } from './auth.schema';
-import type { JwtPayload } from '../../middlewares/authenticate';
+import type { JwtPayload, RefreshTokenPayload } from '../../middlewares/authenticate';
 
 const BCRYPT_COST = 12;
 
 export class AuthService {
   private repo = new AuthRepository();
 
+  // S001 — Login com email e senha
   async login(input: LoginInput, ip: string) {
     const user = await this.repo.findByEmail(input.email);
 
@@ -27,6 +31,14 @@ export class AuthService {
       : await bcrypt.compare(input.password, dummyHash).then(() => false);
 
     if (!user || !isValid) {
+      await createAuditLog({
+        userId: user?.id ?? 'unknown',
+        action: 'LOGIN',
+        entityType: 'User',
+        entityId: user?.id ?? 'unknown',
+        ipAddress: ip,
+        newValues: { success: false, reason: 'invalid_credentials' },
+      }).catch(() => {}); // não bloquear resposta se audit falhar
       throw new UnauthorizedError('Credenciais inválidas');
     }
 
@@ -34,15 +46,28 @@ export class AuthService {
       throw new UnauthorizedError('Usuário inativo. Contate o administrador.');
     }
 
+    // Access token — stateless, 15min
     const jti = uuidv4();
     const accessToken = jwt.sign(
-      { sub: user.id, jti, role: user.role, orgId: user.organizationId },
+      {
+        sub: user.id,
+        jti,
+        role: user.role,
+        orgId: user.organizationId,
+        primeiroAcesso: user.primeiroAcesso,
+      },
       env.JWT_SECRET,
       { expiresIn: env.JWT_EXPIRES_IN as any }
     );
 
-    const refreshTokenRaw = uuidv4();
-    const refreshTokenHash = await bcrypt.hash(refreshTokenRaw, BCRYPT_COST);
+    // Refresh token — JWT assinado com chave separada, jti hasheado no banco
+    const jtiRefresh = uuidv4();
+    const refreshTokenRaw = jwt.sign(
+      { sub: user.id, jti: jtiRefresh },
+      env.JWT_REFRESH_SECRET,
+      { expiresIn: env.JWT_REFRESH_EXPIRES_IN as any }
+    );
+    const refreshTokenHash = await bcrypt.hash(jtiRefresh, BCRYPT_COST);
     await this.repo.saveRefreshToken(user.id, refreshTokenHash);
 
     await createAuditLog({
@@ -51,25 +76,39 @@ export class AuthService {
       entityType: 'User',
       entityId: user.id,
       ipAddress: ip,
+      newValues: { success: true },
     });
 
     return {
       accessToken,
       refreshToken: refreshTokenRaw,
-      user: { id: user.id, nome: user.nome, role: user.role, filiais: user.filiais },
+      user: {
+        id: user.id,
+        nome: user.nome,
+        role: user.role,
+        filiais: user.filiais,
+      },
       requiresPasswordChange: user.primeiroAcesso,
     };
   }
 
-  async logout(userPayload: JwtPayload, refreshToken?: string) {
-    await redis.setex(
-      `blacklist:jwt:${userPayload.jti}`,
-      REDIS_TTL.ACCESS_TOKEN_BLACKLIST,
-      '1'
-    );
-    if (refreshToken) {
-      await this.repo.revokeRefreshTokenByRaw(userPayload.sub, refreshToken);
+  // S002 — Logout com invalidação do access token e revogação do refresh token
+  async logout(userPayload: JwtPayload, rawRefreshToken?: string) {
+    // Blacklist do access token no Redis (TTL = tempo restante do token)
+    const now = Math.floor(Date.now() / 1000);
+    const ttl = Math.max(userPayload.exp - now, 1);
+    await redis.setex(`blacklist:jwt:${userPayload.jti}`, ttl, '1');
+
+    // Revogar o refresh token se fornecido
+    if (rawRefreshToken) {
+      try {
+        const decoded = jwt.verify(rawRefreshToken, env.JWT_REFRESH_SECRET) as RefreshTokenPayload;
+        await this.repo.revokeRefreshTokenByJti(decoded.sub, decoded.jti);
+      } catch {
+        // Token inválido ou expirado — já está inoperante, não bloquear o logout
+      }
     }
+
     await createAuditLog({
       userId: userPayload.sub,
       action: 'LOGOUT',
@@ -78,13 +117,91 @@ export class AuthService {
     });
   }
 
-  async refresh(_rawToken?: string): Promise<{ accessToken: string; refreshToken: string }> {
-    // TODO: STORY-003 — validar cookie, rotacionar token, detectar roubo
-    throw new Error('TODO: implementar em STORY-003 (Sprint 1)');
+  // S003 — Refresh token com rotação obrigatória e detecção de roubo
+  async refresh(rawRefreshToken?: string): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!rawRefreshToken) {
+      throw new UnauthorizedError('Refresh token não encontrado');
+    }
+
+    // 1. Verificar assinatura e expiração do JWT do refresh token
+    let decoded: RefreshTokenPayload;
+    try {
+      decoded = jwt.verify(rawRefreshToken, env.JWT_REFRESH_SECRET) as RefreshTokenPayload;
+    } catch {
+      throw new UnauthorizedError('Refresh token inválido ou expirado');
+    }
+
+    const { sub: userId, jti: jtiRefresh } = decoded;
+
+    // 2. Buscar token ativo correspondente ao jti
+    const activeTokens = await this.repo.findActiveTokensByUser(userId);
+    let matchedToken = null;
+    for (const token of activeTokens) {
+      const match = await bcrypt.compare(jtiRefresh, token.tokenHash);
+      if (match) {
+        matchedToken = token;
+        break;
+      }
+    }
+
+    // 3. Detecção de roubo: token JWT válido mas não encontrado como ativo
+    //    Significa que o token já foi usado/revogado — possível roubo de sessão
+    if (!matchedToken) {
+      await this.repo.revokeAllUserTokens(userId);
+      await createAuditLog({
+        userId,
+        action: 'SUSPICIOUS_TOKEN_REUSE',
+        entityType: 'User',
+        entityId: userId,
+      });
+      throw new UnauthorizedError('Sessão inválida. Faça login novamente.');
+    }
+
+    // 4. Revogar token atual (rotação obrigatória)
+    await this.repo.revokeTokenById(matchedToken.id);
+
+    // 5. Buscar dados atuais do usuário para o novo access token
+    const user = await this.repo.findById(userId);
+    if (!user || !user.ativo) {
+      throw new UnauthorizedError('Usuário inativo ou não encontrado');
+    }
+
+    // 6. Gerar novo par de tokens
+    const jti = uuidv4();
+    const accessToken = jwt.sign(
+      {
+        sub: user.id,
+        jti,
+        role: user.role,
+        orgId: user.organizationId,
+        primeiroAcesso: user.primeiroAcesso,
+      },
+      env.JWT_SECRET,
+      { expiresIn: env.JWT_EXPIRES_IN as any }
+    );
+
+    const newJtiRefresh = uuidv4();
+    const newRefreshTokenRaw = jwt.sign(
+      { sub: user.id, jti: newJtiRefresh },
+      env.JWT_REFRESH_SECRET,
+      { expiresIn: env.JWT_REFRESH_EXPIRES_IN as any }
+    );
+    const newRefreshTokenHash = await bcrypt.hash(newJtiRefresh, BCRYPT_COST);
+    await this.repo.saveRefreshToken(user.id, newRefreshTokenHash);
+
+    return { accessToken, refreshToken: newRefreshTokenRaw };
   }
 
+  // S004 — Troca de senha no primeiro acesso
   async changePassword(userId: string, newPassword: string) {
     const hash = await bcrypt.hash(newPassword, BCRYPT_COST);
     await this.repo.updatePassword(userId, hash);
+    await createAuditLog({
+      userId,
+      action: 'UPDATE',
+      entityType: 'User',
+      entityId: userId,
+      newValues: { action: 'password_changed', primeiroAcesso: false },
+    });
   }
 }
