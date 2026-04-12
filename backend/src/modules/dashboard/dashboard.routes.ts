@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 import { DashboardController } from './dashboard.controller';
 
-export async function dashboardRoutes(app: FastifyInstance) {
+export async function dashboardRoutes(_app: FastifyInstance) {
   const _controller = new DashboardController();
   // TODO: registrar rotas em STORY-030 (Sprint 6)
 }

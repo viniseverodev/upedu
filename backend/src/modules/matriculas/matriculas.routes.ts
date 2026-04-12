@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 import { MatriculasController } from './matriculas.controller';
 
-export async function matriculasRoutes(app: FastifyInstance) {
+export async function matriculasRoutes(_app: FastifyInstance) {
   const _controller = new MatriculasController();
   // TODO: registrar rotas em STORY-020 (Sprint 4)
 }

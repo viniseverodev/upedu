@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 import { AuditController } from './audit.controller';
 
-export async function auditRoutes(app: FastifyInstance) {
+export async function auditRoutes(_app: FastifyInstance) {
   const _controller = new AuditController();
   // TODO: registrar rotas em STORY-034 (Sprint 3)
 }
