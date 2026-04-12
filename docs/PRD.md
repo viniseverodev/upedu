@@ -307,7 +307,7 @@
 
 ---
 
-## 9. Roadmap — 3 Fases
+## 9. Roadmap — 3 Fasesg
 
 ### Release 1 — MVP Core (Semanas 1-8)
 Autenticação, filiais, usuários, alunos (LGPD), responsáveis (criptografia), matrículas (snapshot)

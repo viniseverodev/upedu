@@ -29,7 +29,7 @@ beforeAll(async () => {
 
   // Criar organização e usuário de teste
   await prisma.organization.create({
-    data: { id: ORG_ID, nome: 'Org Teste', cnpj: `${Date.now()}`.padStart(14, '0'), email: 'org@teste.com' },
+    data: { id: ORG_ID, nome: 'Org Teste', cnpj: ORG_ID.replace(/-/g, '').slice(0, 14), email: 'org@teste.com' },
   });
 
   const passwordHash = await bcrypt.hash(USER_PASSWORD, 4);

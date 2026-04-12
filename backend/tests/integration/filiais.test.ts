@@ -25,7 +25,7 @@ beforeAll(async () => {
   await app.ready();
 
   await prisma.organization.create({
-    data: { id: ORG_ID, nome: 'Org Filiais Teste', cnpj: `${Date.now()}`.padStart(14, '0'), email: 'org@filiais.com' },
+    data: { id: ORG_ID, nome: 'Org Filiais Teste', cnpj: ORG_ID.replace(/-/g, '').slice(0, 14), email: 'org@filiais.com' },
   });
 
   const hash = await bcrypt.hash('Senha123', 4);
