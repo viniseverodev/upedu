@@ -1,0 +1,291 @@
+// prisma/schema.prisma
+// UpEdu — Fonte da verdade do modelo de dados
+// ADR-002: Prisma ORM | ADR-003: PostgreSQL 15
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN_MATRIZ
+  GERENTE_FILIAL
+  ATENDENTE
+  PROFESSOR
+}
+
+enum AlunoStatus {
+  PRE_MATRICULA
+  ATIVO
+  INATIVO
+  LISTA_ESPERA
+  TRANSFERIDO
+}
+
+enum Turno {
+  INTEGRAL
+  MEIO_TURNO
+}
+
+enum MatriculaStatus {
+  ATIVA
+  ENCERRADA
+  CANCELADA
+}
+
+enum MensalidadeStatus {
+  PENDENTE
+  PAGO
+  INADIMPLENTE
+  CANCELADA
+}
+
+enum TransacaoTipo {
+  ENTRADA
+  SAIDA
+}
+
+enum CategoriaFinanceiraTipo {
+  RECEITA
+  DESPESA
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  nome      String
+  cnpj      String   @unique
+  email     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  filiais Filial[]
+  users   User[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String
+  nome           String
+  email          String
+  passwordHash   String
+  role           UserRole
+  ativo          Boolean   @default(true)
+  primeiroAcesso Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization  Organization   @relation(fields: [organizationId], references: [id])
+  filiais       UserFilial[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@unique([email, organizationId])
+  @@index([email, organizationId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Filial {
+  id                        String   @id @default(uuid())
+  organizationId            String
+  nome                      String
+  cnpj                      String
+  diaVencimento             Int      @default(10)
+  valorMensalidadeIntegral  Decimal  @db.Decimal(10, 2)
+  valorMensalidadeMeioTurno Decimal  @db.Decimal(10, 2)
+  ativo                     Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id])
+  usuarios     UserFilial[]
+  alunos       Aluno[]
+  matriculas   Matricula[]
+  mensalidades Mensalidade[]
+  transacoes   Transacao[]
+  categorias   CategoriaFinanceira[]
+  auditLogs    AuditLog[]
+
+  @@unique([cnpj, organizationId])
+  @@map("filiais")
+}
+
+model UserFilial {
+  userId   String
+  filialId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  filial Filial @relation(fields: [filialId], references: [id])
+
+  @@id([userId, filialId])
+  @@map("users_filiais")
+}
+
+model Responsavel {
+  id        String    @id @default(uuid())
+  nome      String
+  cpfEnc    Bytes?
+  rgEnc     Bytes?
+  telefone  String?
+  email     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  alunos AlunoResponsavel[]
+
+  @@map("responsaveis")
+}
+
+model Aluno {
+  id                       String      @id @default(uuid())
+  filialId                 String
+  nome                     String
+  dataNascimento           DateTime
+  status                   AlunoStatus @default(PRE_MATRICULA)
+  turno                    Turno
+  observacoes              String?
+  consentimentoResponsavel Boolean     @default(false)
+  consentimentoTimestamp   DateTime?
+  anonimizadoEm            DateTime?
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  deletedAt                DateTime?
+
+  filial       Filial             @relation(fields: [filialId], references: [id])
+  responsaveis AlunoResponsavel[]
+  matriculas   Matricula[]
+  mensalidades Mensalidade[]
+
+  @@index([filialId, status])
+  @@map("alunos")
+}
+
+model AlunoResponsavel {
+  alunoId                 String
+  responsavelId           String
+  parentesco              String
+  isResponsavelFinanceiro Boolean @default(false)
+
+  aluno       Aluno       @relation(fields: [alunoId], references: [id])
+  responsavel Responsavel @relation(fields: [responsavelId], references: [id])
+
+  @@id([alunoId, responsavelId])
+  @@map("alunos_responsaveis")
+}
+
+model Matricula {
+  id               String          @id @default(uuid())
+  alunoId          String
+  filialId         String
+  status           MatriculaStatus @default(ATIVA)
+  turno            Turno
+  valorMensalidade Decimal         @db.Decimal(10, 2) // SNAPSHOT — imutável após criação
+  dataInicio       DateTime
+  dataFim          DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  aluno  Aluno  @relation(fields: [alunoId], references: [id])
+  filial Filial @relation(fields: [filialId], references: [id])
+
+  @@index([alunoId, status])
+  @@map("matriculas")
+}
+
+model Mensalidade {
+  id             String            @id @default(uuid())
+  alunoId        String
+  filialId       String
+  status         MensalidadeStatus @default(PENDENTE)
+  mesReferencia  Int
+  anoReferencia  Int
+  valorOriginal  Decimal           @db.Decimal(10, 2)
+  valorDesconto  Decimal           @default(0) @db.Decimal(10, 2)
+  valorJuros     Decimal           @default(0) @db.Decimal(10, 2)
+  valorPago      Decimal?          @db.Decimal(10, 2)
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  formaPagamento String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  aluno  Aluno  @relation(fields: [alunoId], references: [id])
+  filial Filial @relation(fields: [filialId], references: [id])
+
+  @@unique([alunoId, mesReferencia, anoReferencia]) // IDEMPOTÊNCIA
+  @@index([filialId, status, dataVencimento])
+  @@map("mensalidades")
+}
+
+model CategoriaFinanceira {
+  id        String                  @id @default(uuid())
+  filialId  String
+  nome      String
+  tipo      CategoriaFinanceiraTipo
+  createdAt DateTime                @default(now())
+
+  filial     Filial      @relation(fields: [filialId], references: [id])
+  transacoes Transacao[]
+
+  @@map("categorias_financeiras")
+}
+
+model Transacao {
+  id            String        @id @default(uuid())
+  filialId      String
+  categoriaId   String
+  tipo          TransacaoTipo
+  descricao     String
+  valor         Decimal       @db.Decimal(10, 2)
+  dataTransacao DateTime
+  createdAt     DateTime      @default(now())
+
+  filial    Filial              @relation(fields: [filialId], references: [id])
+  categoria CategoriaFinanceira @relation(fields: [categoriaId], references: [id])
+
+  @@index([filialId, dataTransacao])
+  @@map("transacoes")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement()) // BIGSERIAL — sem UUID para performance
+  userId     String
+  filialId   String?
+  action     String // CREATE | UPDATE | DELETE | LOGIN | LOGOUT | SUSPICIOUS_TOKEN_REUSE
+  entityType String // User | Aluno | Matricula | Mensalidade | etc.
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  // SEM updatedAt e SEM deletedAt — IMUTÁVEL por design
+
+  user   User    @relation(fields: [userId], references: [id])
+  filial Filial? @relation(fields: [filialId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

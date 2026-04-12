@@ -1,5 +1,11 @@
 
 
+# UpEdu project
+.next/
+dist/
+backend/dist/
+nginx/ssl/
+
 # Environment & Secrets (AIOX)
 .env
 .env.local

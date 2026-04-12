@@ -1,0 +1,19 @@
+// Rotas de autenticação — STORY-001/002/003/004 (Sprint 1-2)
+// POST /login           — público
+// POST /logout          — requer authenticate
+// POST /refresh         — público (usa cookie httpOnly)
+// POST /change-password — requer authenticate
+
+import type { FastifyInstance } from 'fastify';
+import { AuthController } from './auth.controller';
+import { rateLimitLogin } from '../../middlewares/rate-limit';
+import { authenticate } from '../../middlewares/authenticate';
+
+export async function authRoutes(app: FastifyInstance) {
+  const controller = new AuthController();
+
+  app.post('/login',           { preHandler: [rateLimitLogin] }, controller.login.bind(controller));
+  app.post('/logout',          { preHandler: [authenticate] },   controller.logout.bind(controller));
+  app.post('/refresh',         controller.refresh.bind(controller));
+  app.post('/change-password', { preHandler: [authenticate] },   controller.changePassword.bind(controller));
+}
