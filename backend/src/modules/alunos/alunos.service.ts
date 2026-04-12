@@ -6,11 +6,15 @@
 // S016: perfil completo
 // S017: exportação CSV
 
-import { AlunosRepository } from './alunos.repository';
-import { createAuditLog } from '../../middlewares/audit';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../shared/errors/AppError';
-import type { CreateAlunoInput, UpdateAlunoInput, TransferirAlunoInput } from './alunos.schema';
-import type { AlunoStatus } from '@prisma/client';
+import { AlunosRepository } from "./alunos.repository";
+import { createAuditLog } from "../../middlewares/audit";
+import { NotFoundError, ValidationError } from "../../shared/errors/AppError";
+import type {
+  CreateAlunoInput,
+  UpdateAlunoInput,
+  TransferirAlunoInput,
+} from "./alunos.schema";
+import type { AlunoStatus } from "@prisma/client";
 
 export class AlunosService {
   private repo = new AlunosRepository();
@@ -24,7 +28,7 @@ export class AlunosService {
   async findById(id: string, filialId: string) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
-      throw new NotFoundError('Aluno');
+      throw new NotFoundError("Aluno");
     }
     return aluno;
   }
@@ -42,8 +46,8 @@ export class AlunosService {
 
     await createAuditLog({
       userId: creatorId,
-      action: 'CREATE',
-      entityType: 'Aluno',
+      action: "CREATE",
+      entityType: "Aluno",
       entityId: aluno.id,
       newValues: { nome: aluno.nome, status: aluno.status, filialId },
     });
@@ -52,29 +56,40 @@ export class AlunosService {
   }
 
   // S013 — Editar aluno com cascade ao inativar
-  async update(id: string, filialId: string, updaterId: string, data: UpdateAlunoInput) {
+  async update(
+    id: string,
+    filialId: string,
+    updaterId: string,
+    data: UpdateAlunoInput,
+  ) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
-      throw new NotFoundError('Aluno');
+      throw new NotFoundError("Aluno");
     }
 
-    const updateData: Parameters<AlunosRepository['update']>[1] = {};
+    const updateData: Parameters<AlunosRepository["update"]>[1] = {};
     if (data.nome !== undefined) updateData.nome = data.nome;
-    if (data.dataNascimento !== undefined) updateData.dataNascimento = new Date(data.dataNascimento);
+    if (data.dataNascimento !== undefined)
+      updateData.dataNascimento = new Date(data.dataNascimento);
     if (data.turno !== undefined) updateData.turno = data.turno;
-    if (data.observacoes !== undefined) updateData.observacoes = data.observacoes;
+    if (data.observacoes !== undefined)
+      updateData.observacoes = data.observacoes;
     if (data.status !== undefined) updateData.status = data.status;
 
     // Cascade atômica: encerra matrícula + cancela mensalidades + atualiza status em $transaction
-    if (data.status === 'INATIVO' && aluno.status !== 'INATIVO') {
+    if (data.status === "INATIVO" && aluno.status !== "INATIVO") {
       const [, , updated] = await this.repo.inativarComCascade(id, updateData);
       await createAuditLog({
         userId: updaterId,
-        action: 'UPDATE',
-        entityType: 'Aluno',
+        action: "UPDATE",
+        entityType: "Aluno",
         entityId: id,
-        oldValues: { nome: aluno.nome, status: aluno.status } as unknown as import('@prisma/client').Prisma.InputJsonValue,
-        newValues: data as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        oldValues: {
+          nome: aluno.nome,
+          status: aluno.status,
+        } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        newValues:
+          data as unknown as import("@prisma/client").Prisma.InputJsonValue,
       });
       return updated;
     }
@@ -83,11 +98,15 @@ export class AlunosService {
 
     await createAuditLog({
       userId: updaterId,
-      action: 'UPDATE',
-      entityType: 'Aluno',
+      action: "UPDATE",
+      entityType: "Aluno",
       entityId: id,
-      oldValues: { nome: aluno.nome, status: aluno.status } as unknown as import('@prisma/client').Prisma.InputJsonValue,
-      newValues: data as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      oldValues: {
+        nome: aluno.nome,
+        status: aluno.status,
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      newValues:
+        data as unknown as import("@prisma/client").Prisma.InputJsonValue,
     });
 
     return updated;
@@ -97,17 +116,20 @@ export class AlunosService {
   async softDelete(id: string, filialId: string, deleterId: string) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
-      throw new NotFoundError('Aluno');
+      throw new NotFoundError("Aluno");
     }
 
     await this.repo.softDelete(id);
 
     await createAuditLog({
       userId: deleterId,
-      action: 'DELETE',
-      entityType: 'Aluno',
+      action: "DELETE",
+      entityType: "Aluno",
       entityId: id,
-      oldValues: { nome: aluno.nome, status: aluno.status } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      oldValues: {
+        nome: aluno.nome,
+        status: aluno.status,
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
     });
   }
 
@@ -115,21 +137,25 @@ export class AlunosService {
   async promover(id: string, filialId: string, updaterId: string) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
-      throw new NotFoundError('Aluno');
+      throw new NotFoundError("Aluno");
     }
-    if (aluno.status !== 'LISTA_ESPERA') {
-      throw new ValidationError('Aluno não está na lista de espera');
+    if (aluno.status !== "LISTA_ESPERA") {
+      throw new ValidationError("Aluno não está na lista de espera");
     }
 
-    const updated = await this.repo.update(id, { status: 'PRE_MATRICULA' });
+    const updated = await this.repo.update(id, { status: "PRE_MATRICULA" });
 
     await createAuditLog({
       userId: updaterId,
-      action: 'UPDATE',
-      entityType: 'Aluno',
+      action: "UPDATE",
+      entityType: "Aluno",
       entityId: id,
-      oldValues: { status: 'LISTA_ESPERA' } as unknown as import('@prisma/client').Prisma.InputJsonValue,
-      newValues: { status: 'PRE_MATRICULA' } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      oldValues: {
+        status: "LISTA_ESPERA",
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      newValues: {
+        status: "PRE_MATRICULA",
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
     });
 
     return updated;
@@ -140,35 +166,47 @@ export class AlunosService {
     id: string,
     filialOrigemId: string,
     transferidorId: string,
-    data: TransferirAlunoInput
+    data: TransferirAlunoInput,
   ) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialOrigemId) {
-      throw new NotFoundError('Aluno');
+      throw new NotFoundError("Aluno");
     }
     if (data.filialDestinoId === filialOrigemId) {
-      throw new ValidationError('Filial de destino deve ser diferente da origem');
+      throw new ValidationError(
+        "Filial de destino deve ser diferente da origem",
+      );
     }
 
     const filialDestino = await this.repo.findFilial(data.filialDestinoId);
     if (!filialDestino) {
-      throw new NotFoundError('Filial destino');
+      throw new NotFoundError("Filial destino");
     }
 
     const valorMensalidade =
-      aluno.turno === 'INTEGRAL'
+      aluno.turno === "INTEGRAL"
         ? Number(filialDestino.valorMensalidadeIntegral)
         : Number(filialDestino.valorMensalidadeMeioTurno);
 
-    await this.repo.transferir(id, data.filialDestinoId, valorMensalidade, aluno.turno);
+    await this.repo.transferir(
+      id,
+      data.filialDestinoId,
+      valorMensalidade,
+      aluno.turno,
+    );
 
     await createAuditLog({
       userId: transferidorId,
-      action: 'UPDATE',
-      entityType: 'Aluno',
+      action: "UPDATE",
+      entityType: "Aluno",
       entityId: id,
-      oldValues: { filialId: filialOrigemId } as unknown as import('@prisma/client').Prisma.InputJsonValue,
-      newValues: { filialId: data.filialDestinoId, acao: 'TRANSFERENCIA' } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      oldValues: {
+        filialId: filialOrigemId,
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      newValues: {
+        filialId: data.filialDestinoId,
+        acao: "TRANSFERENCIA",
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
     });
 
     return this.repo.findById(id);
@@ -178,7 +216,14 @@ export class AlunosService {
   async exportCsv(filialId: string, status?: AlunoStatus): Promise<string> {
     const alunos = await this.repo.findAllByFilial(filialId, status);
 
-    const header = ['nome', 'dataNascimento', 'status', 'turno', 'responsavelNome', 'telefone'].join(',');
+    const header = [
+      "nome",
+      "dataNascimento",
+      "status",
+      "turno",
+      "responsavelNome",
+      "telefone",
+    ].join(",");
 
     const rows = alunos.map((a) => {
       const resp = a.responsaveis[0]?.responsavel;
@@ -187,11 +232,11 @@ export class AlunosService {
         a.dataNascimento.toISOString().slice(0, 10),
         a.status,
         a.turno,
-        `"${(resp?.nome ?? '').replace(/"/g, '""')}"`,
-        `"${(resp?.telefone ?? '').replace(/"/g, '""')}"`,
-      ].join(',');
+        `"${(resp?.nome ?? "").replace(/"/g, '""')}"`,
+        `"${(resp?.telefone ?? "").replace(/"/g, '""')}"`,
+      ].join(",");
     });
 
-    return [header, ...rows].join('\n');
+    return [header, ...rows].join("\n");
   }
 }
