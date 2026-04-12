@@ -37,9 +37,8 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function PrimeiroAcessoPage() {
   const router = useRouter();
-  const { logout, setAuth, user, isAuthenticated } = useAuthStore();
+  const { logout, setAuth, user } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [watchPassword, setWatchPassword] = useState('');
 
   const {
     register,
@@ -51,12 +50,16 @@ export default function PrimeiroAcessoPage() {
   });
 
   const changeMutation = useMutation({
-    mutationFn: (data: ChangePasswordInput) =>
-      api.post('/auth/change-password', { newPassword: data.newPassword, confirmPassword: data.confirmPassword }),
-    onSuccess: () => {
-      // Atualizar o store para remover o requiresPasswordChange
+    mutationFn: async (data: ChangePasswordInput) => {
+      await api.post('/auth/change-password', { newPassword: data.newPassword, confirmPassword: data.confirmPassword });
+      // Obter novo JWT com primeiroAcesso=false — o JWT anterior ainda tem primeiroAcesso=true
+      // e bloquearia todas as chamadas de API com 403 até expirar (15 min)
+      const refreshRes = await api.post<{ accessToken: string }>('/auth/refresh');
+      return refreshRes.data.accessToken;
+    },
+    onSuccess: (newAccessToken) => {
       if (user) {
-        setAuth(user, useAuthStore.getState().accessToken ?? '', false);
+        setAuth(user, newAccessToken, false);
       }
       router.push('/kpis');
     },
@@ -93,9 +96,7 @@ export default function PrimeiroAcessoPage() {
               id="newPassword"
               type="password"
               autoComplete="new-password"
-              {...register('newPassword', {
-                onChange: (e) => setWatchPassword(e.target.value),
-              })}
+              {...register('newPassword')}
               className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.newPassword ? 'border-red-400' : 'border-gray-300'
               }`}
