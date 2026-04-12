@@ -17,6 +17,12 @@ const USER_ID = uuidv4();
 const USER_EMAIL = `integration-${Date.now()}@upedu.com`;
 const USER_PASSWORD = 'Senha123';
 
+// Limpar rate limit antes de cada teste — app.inject usa 127.0.0.1 como IP
+// Sem isso, após 5 logins o rate limit bloqueia os testes seguintes com 429
+beforeEach(async () => {
+  await redis.del('rate:login:127.0.0.1');
+});
+
 beforeAll(async () => {
   app = await buildApp();
   await app.ready();
