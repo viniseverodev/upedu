@@ -2,6 +2,7 @@
 // Converte AppError e erros Zod em respostas JSON padronizadas
 
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
+import { ZodError } from 'zod';
 import { AppError } from './AppError';
 
 export function errorHandler(
@@ -18,12 +19,12 @@ export function errorHandler(
     return;
   }
 
-  // Erros de validação Zod (via fastify-type-provider-zod)
-  if ((error as FastifyError).statusCode === 400 && error.name === 'ZodError') {
+  // Erros de validação Zod — tanto via .parse() manual quanto via fastify-type-provider-zod
+  if (error instanceof ZodError) {
     reply.status(422).send({
       error: 'VALIDATION_ERROR',
       message: 'Dados inválidos',
-      details: (error as any).issues,
+      details: error.issues,
     });
     return;
   }

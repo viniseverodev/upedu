@@ -240,7 +240,7 @@ describe('PATCH /api/v1/filiais/:id', () => {
       method: 'PATCH',
       url: `/api/v1/filiais/${uuidv4()}`,
       headers: { authorization: `Bearer ${adminToken}` },
-      payload: { nome: 'X' },
+      payload: { nome: 'Filial Inexistente' },
     });
 
     expect(res.statusCode).toBe(404);
