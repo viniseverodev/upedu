@@ -1,11 +1,23 @@
-// Dashboard KPIs — S030
-// Cards com TanStack Query + Redis cache (TTL 5min no backend)
+// Dashboard KPIs — S030 + S031
+// S030: KPIs da filial ativa (cache Redis TTL 5min)
+// S031: Comparativo entre filiais (ADMIN_MATRIZ / SUPER_ADMIN)
 
 'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
+
+interface FilialKpi {
+  filialId: string;
+  filialNome: string;
+  alunos: { ativo: number; inativo: number; listaEspera: number };
+  matriculasAtivas: number;
+  receitaMes: number;
+  inadimplentes: number;
+  taxaOcupacao: number;
+}
 
 interface KpiData {
   alunos: {
@@ -30,11 +42,21 @@ export default function KpisPage() {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'ADMIN_MATRIZ' || user?.role === 'SUPER_ADMIN';
 
   const { data: kpis, isLoading, error } = useQuery<KpiData>({
     queryKey: ['dashboard', 'kpis', mes, ano],
     queryFn: () => api.get(`/dashboard/kpis?mes=${mes}&ano=${ano}`).then((r) => r.data),
     staleTime: 5 * 60 * 1000, // 5min — espelha TTL do cache Redis
+  });
+
+  // S031 — Comparativo entre filiais (só para ADMIN_MATRIZ / SUPER_ADMIN)
+  const { data: comparativo, isLoading: loadingComp } = useQuery<FilialKpi[]>({
+    queryKey: ['dashboard', 'comparativo', mes, ano],
+    queryFn: () => api.get(`/dashboard/kpis/comparativo?mes=${mes}&ano=${ano}`).then((r) => r.data),
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
   });
 
   return (
@@ -124,6 +146,51 @@ export default function KpisPage() {
             <h2 className="text-sm font-medium text-gray-700 mb-2">Matrículas Ativas</h2>
             <p className="text-3xl font-bold text-gray-900">{kpis.matriculasAtivas}</p>
           </div>
+        </div>
+      )}
+
+      {/* S031 — Comparativo entre filiais */}
+      {isAdmin && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Comparativo entre Filiais</h2>
+          {loadingComp ? (
+            <div className="text-center text-gray-400 py-8">Carregando comparativo...</div>
+          ) : comparativo && comparativo.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Filial</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Alunos Ativos</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Matrículas</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Receita do Mês</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Inadimplentes</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Ocupação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {comparativo.map((f) => (
+                    <tr key={f.filialId}>
+                      <td className="px-4 py-3 font-medium text-gray-900">{f.filialNome}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{f.alunos.ativo}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{f.matriculasAtivas}</td>
+                      <td className="px-4 py-3 text-right text-green-700 font-medium">
+                        {f.receitaMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-medium ${f.inadimplentes > 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                        {f.inadimplentes}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`font-medium ${f.taxaOcupacao >= 80 ? 'text-green-700' : f.taxaOcupacao >= 50 ? 'text-yellow-700' : 'text-red-700'}`}>
+                          {f.taxaOcupacao}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

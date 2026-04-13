@@ -14,6 +14,9 @@ export async function dashboardRoutes(app: FastifyInstance) {
     filialContext,
     authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL']),
   ];
+  // S031 — comparativo não usa filialContext (escopo de organização)
+  const adminOnly = [authenticate, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ'])];
 
   app.get('/kpis', { preHandler: gerenteOnly }, controller.kpis.bind(controller));
+  app.get('/kpis/comparativo', { preHandler: adminOnly }, controller.comparativo.bind(controller));
 }

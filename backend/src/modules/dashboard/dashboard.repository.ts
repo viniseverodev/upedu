@@ -51,4 +51,13 @@ export class DashboardRepository {
   async matriculasAtivas(filialId: string) {
     return prisma.matricula.count({ where: { filialId, status: 'ATIVA' } });
   }
+
+  // S031 — Lista filiais ativas de uma organização
+  async getFilialsByOrg(orgId: string) {
+    return prisma.filial.findMany({
+      where: { organizationId: orgId, ativo: true },
+      select: { id: true, nome: true },
+      orderBy: { nome: 'asc' },
+    });
+  }
 }

@@ -48,6 +48,24 @@ export class DashboardService {
     return kpis;
   }
 
+  // S031 — KPIs comparativos de todas as filiais da organização
+  async getComparativo(orgId: string, mes?: number, ano?: number) {
+    const now = new Date();
+    const m = mes ?? now.getMonth() + 1;
+    const a = ano ?? now.getFullYear();
+
+    const filiais = await this.repo.getFilialsByOrg(orgId);
+
+    const resultado = await Promise.all(
+      filiais.map(async (filial) => {
+        const kpis = await this.getKpis(filial.id, m, a);
+        return { filialId: filial.id, filialNome: filial.nome, ...kpis };
+      }),
+    );
+
+    return resultado;
+  }
+
   // Invalida cache de KPIs da filial (chamado após pagamento, etc.)
   static async invalidarCache(filialId: string, mes: number, ano: number) {
     const cacheKey = `kpis:filial:${filialId}:mes:${ano}-${String(mes).padStart(2, '0')}`;
