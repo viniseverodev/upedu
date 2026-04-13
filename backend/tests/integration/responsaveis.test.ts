@@ -235,7 +235,7 @@ describe('POST /api/v1/responsaveis', () => {
       },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422); // ZodError → 422 (ver error-handler.ts)
     const body = res.json();
     expect(body.details.some((d: { message: string }) =>
       d.message.toLowerCase().includes('cpf')
@@ -351,7 +351,7 @@ describe('GET /api/v1/responsaveis/:id/revelar-cpf', () => {
       url: `/api/v1/responsaveis/${semCpfId}/revelar-cpf`,
       headers: { authorization: `Bearer ${adminToken}` },
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422); // ValidationError → 422 (ver AppError.ts)
   });
 });
 
@@ -440,7 +440,7 @@ describe('POST /api/v1/alunos/:id/responsaveis', () => {
     expect(body.responsavelId).toBe(responsavelId);
   });
 
-  it('tenta vincular mesmo responsável duas vezes — retorna 400', async () => {
+  it('tenta vincular mesmo responsável duas vezes — retorna 422', async () => {
     const res = await app.inject({
       method: 'POST',
       url: `/api/v1/alunos/${alunoId}/responsaveis`,
@@ -452,7 +452,7 @@ describe('POST /api/v1/alunos/:id/responsaveis', () => {
       },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422); // ValidationError → 422 (ver AppError.ts)
     expect(res.json().message).toContain('já vinculado');
   });
 
@@ -472,7 +472,7 @@ describe('POST /api/v1/alunos/:id/responsaveis', () => {
     expect(res.json().isResponsavelFinanceiro).toBe(true);
   });
 
-  it('tenta vincular segundo responsável financeiro — retorna 400', async () => {
+  it('tenta vincular segundo responsável financeiro — retorna 422', async () => {
     // Cria um terceiro responsável
     const r3 = await app.inject({
       method: 'POST',
@@ -492,11 +492,13 @@ describe('POST /api/v1/alunos/:id/responsaveis', () => {
       },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(422); // ValidationError → 422 (ver AppError.ts)
     expect(res.json().message).toContain('responsável financeiro');
   });
 
-  it('aluno de outra filial — retorna 404', async () => {
+  it('aluno de outra filial — retorna 403', async () => {
+    // filialContext rejeita com 403 quando o usuário não tem acesso à filial informada
+    // O service nunca é chamado, então não há 404 do domínio
     const outraFilialId = uuidv4();
     const res = await app.inject({
       method: 'POST',
@@ -508,7 +510,7 @@ describe('POST /api/v1/alunos/:id/responsaveis', () => {
         isResponsavelFinanceiro: false,
       },
     });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(403);
   });
 });
 
