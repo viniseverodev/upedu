@@ -1,9 +1,73 @@
-// ResponsaveisController — handlers HTTP
-// TODO: implementar em STORY-018 (Sprint 4)
+// ResponsaveisController — handlers HTTP (S018/S019)
 
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { ResponsaveisService } from './responsaveis.service';
+import {
+  createResponsavelSchema,
+  updateResponsavelSchema,
+  vincularResponsavelSchema,
+} from './responsaveis.schema';
 
 export class ResponsaveisController {
   private service = new ResponsaveisService();
-  // TODO: implementar em STORY-018 (Sprint 4)
+
+  // GET /responsaveis — S018 (scoped por filial via filialContext)
+  async list(req: FastifyRequest, reply: FastifyReply) {
+    const result = await this.service.listByFilial(req.filialId);
+    return reply.send(result);
+  }
+
+  // POST /responsaveis — S018
+  async create(req: FastifyRequest, reply: FastifyReply) {
+    const data = createResponsavelSchema.parse(req.body);
+    const result = await this.service.create(req.user.sub, data);
+    return reply.status(201).send(result);
+  }
+
+  // GET /responsaveis/:id — S018
+  async findById(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+    const result = await this.service.findById(id);
+    return reply.send(result);
+  }
+
+  // GET /responsaveis/:id/revelar-cpf — S018
+  async revelarCpf(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+    const result = await this.service.revelarCpf(id, req.user.sub);
+    return reply.send(result);
+  }
+
+  // PATCH /responsaveis/:id — S018
+  async update(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+    const data = updateResponsavelSchema.parse(req.body);
+    const result = await this.service.update(id, req.user.sub, data);
+    return reply.send(result);
+  }
+
+  // POST /alunos/:id/responsaveis — S019
+  async vincular(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+    const data = vincularResponsavelSchema.parse(req.body);
+    const result = await this.service.vincular(
+      id,
+      req.filialId,
+      req.user.sub,
+      data,
+    );
+    return reply.status(201).send(result);
+  }
+
+  // DELETE /alunos/:alunoId/responsaveis/:responsavelId — S019
+  async desvincular(req: FastifyRequest, reply: FastifyReply) {
+    const { alunoId, responsavelId } = req.params as { alunoId: string; responsavelId: string };
+    await this.service.desvincular(
+      alunoId,
+      req.filialId,
+      responsavelId,
+      req.user.sub,
+    );
+    return reply.status(204).send();
+  }
 }
