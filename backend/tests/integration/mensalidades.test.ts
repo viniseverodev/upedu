@@ -110,7 +110,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.auditLog.deleteMany({ where: { entityType: { in: ['Mensalidade', 'Aluno'] } } });
+  await prisma.auditLog.deleteMany({ where: { userId: { in: [ATENDENTE_ID, GERENTE_ID] } } });
   await prisma.mensalidade.deleteMany({ where: { filialId: FILIAL_ID } });
   await prisma.matricula.deleteMany({ where: { filialId: FILIAL_ID } });
   await prisma.aluno.deleteMany({ where: { filialId: FILIAL_ID } });

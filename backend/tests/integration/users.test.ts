@@ -86,7 +86,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.auditLog.deleteMany({ where: { entityType: 'User', entityId: { in: [ADMIN_ID, GERENTE_ID] } } });
   await prisma.auditLog.deleteMany({ where: { userId: { in: [ADMIN_ID, GERENTE_ID] } } });
   await prisma.refreshToken.deleteMany({ where: { userId: { in: [ADMIN_ID, GERENTE_ID] } } });
   await prisma.userFilial.deleteMany({ where: { userId: { in: [ADMIN_ID, GERENTE_ID] } } });

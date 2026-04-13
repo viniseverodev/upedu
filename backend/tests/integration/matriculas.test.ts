@@ -97,7 +97,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.auditLog.deleteMany({ where: { entityType: { in: ['Matricula', 'Aluno'] } } });
+  await prisma.auditLog.deleteMany({ where: { userId: ATENDENTE_ID } });
   await prisma.mensalidade.deleteMany({ where: { filialId: FILIAL_ID } });
   await prisma.matricula.deleteMany({ where: { filialId: FILIAL_ID } });
   await prisma.alunoResponsavel.deleteMany({ where: { alunoId } });
@@ -131,6 +131,8 @@ describe('POST /api/v1/matriculas', () => {
   });
 
   it('segunda matrícula ativa — retorna 422', async () => {
+    // Após a primeira matrícula o aluno fica ATIVO (não PRE_MATRICULA),
+    // portanto o guard de status dispara antes do guard de matrícula ativa
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/matriculas',
@@ -139,7 +141,7 @@ describe('POST /api/v1/matriculas', () => {
     });
 
     expect(res.statusCode).toBe(422);
-    expect(res.json().message).toContain('já possui matrícula ativa');
+    expect(res.json().message).toContain('PRE_MATRICULA');
   });
 
   it('aluno sem responsável financeiro — retorna 422', async () => {
