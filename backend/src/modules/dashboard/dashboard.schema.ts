@@ -1,11 +1,8 @@
-// Schemas Zod para dashboard — TODO: implementar em STORY-030 (Sprint 6)
+// Schemas Zod para dashboard — S030
+
 import { z } from 'zod';
 
-export const createDashboardSchema = z.object({
-  // TODO: definir campos em STORY-030 (Sprint 6)
+export const kpisQuerySchema = z.object({
+  mes: z.string().regex(/^\d{1,2}$/).transform(Number).optional(),
+  ano: z.string().regex(/^\d{4}$/).transform(Number).optional(),
 });
-
-export const updateDashboardSchema = createDashboardSchema.partial();
-
-export type CreateDashboardInput = z.infer<typeof createDashboardSchema>;
-export type UpdateDashboardInput = z.infer<typeof updateDashboardSchema>;

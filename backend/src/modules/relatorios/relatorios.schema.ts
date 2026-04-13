@@ -1,11 +1,14 @@
-// Schemas Zod para relatorios — TODO: implementar em STORY-025 (Sprint 6)
+// Schemas Zod para relatórios — S025/S028
+
 import { z } from 'zod';
 
-export const createRelatoriosSchema = z.object({
-  // TODO: definir campos em STORY-025 (Sprint 6)
+export const inadimplenciaQuerySchema = z.object({
+  mes: z.string().regex(/^\d{1,2}$/).transform(Number),
+  ano: z.string().regex(/^\d{4}$/).transform(Number),
 });
 
-export const updateRelatoriosSchema = createRelatoriosSchema.partial();
-
-export type CreateRelatoriosInput = z.infer<typeof createRelatoriosSchema>;
-export type UpdateRelatoriosInput = z.infer<typeof updateRelatoriosSchema>;
+export const fluxoCaixaQuerySchema = z.object({
+  mes: z.string().regex(/^\d{1,2}$/).transform(Number),
+  ano: z.string().regex(/^\d{4}$/).transform(Number),
+  format: z.enum(['json', 'csv']).optional().default('json'),
+});

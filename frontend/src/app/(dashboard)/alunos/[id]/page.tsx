@@ -1,4 +1,4 @@
-// Perfil completo do aluno — S016/S019 (Sprint 4/5)
+// Perfil completo do aluno — S016/S019/S020/S022/S023 (Sprint 4/5/6)
 // Tabs: Dados Pessoais | Responsáveis | Financeiro | Histórico
 
 'use client';
@@ -11,7 +11,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 import api from '@/lib/api';
-import { vincularResponsavelSchema, type VincularResponsavelInput } from '@/schemas/index';
+import {
+  vincularResponsavelSchema,
+  createMatriculaSchema,
+  createMensalidadeSchema,
+  pagarMensalidadeSchema,
+  type VincularResponsavelInput,
+  type CreateMatriculaInput,
+  type CreateMensalidadeInput,
+  type PagarMensalidadeInput,
+} from '@/schemas/index';
 
 interface Responsavel {
   id: string;
@@ -82,6 +91,12 @@ export default function AlunoPerfilPage() {
   const [activeTab, setActiveTab] = useState<Tab>('dados');
   const [showVincularModal, setShowVincularModal] = useState(false);
   const [vincularError, setVincularError] = useState<string | null>(null);
+  const [showMatriculaModal, setShowMatriculaModal] = useState(false);
+  const [matriculaError, setMatriculaError] = useState<string | null>(null);
+  const [showMensalidadeModal, setShowMensalidadeModal] = useState(false);
+  const [mensalidadeError, setMensalidadeError] = useState<string | null>(null);
+  const [pagarId, setPagarId] = useState<string | null>(null);
+  const [pagarError, setPagarError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: aluno, isLoading } = useQuery<AlunoProfile>({
@@ -119,6 +134,80 @@ export default function AlunoPerfilPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aluno', id] }),
   });
 
+  // S020 — Criar matrícula
+  const {
+    register: registerMatricula,
+    handleSubmit: handleMatricula,
+    reset: resetMatricula,
+    formState: { errors: errorsMatricula },
+  } = useForm<CreateMatriculaInput>({
+    resolver: zodResolver(createMatriculaSchema),
+    defaultValues: { turno: 'INTEGRAL', dataInicio: new Date().toISOString().split('T')[0] },
+  });
+
+  const matriculaMutation = useMutation({
+    mutationFn: (data: CreateMatriculaInput) => api.post('/matriculas', { ...data, alunoId: id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      setShowMatriculaModal(false);
+      resetMatricula();
+      setMatriculaError(null);
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      setMatriculaError(error.response?.data?.message ?? 'Erro ao criar matrícula.');
+    },
+  });
+
+  // S022 — Gerar mensalidade
+  const now = new Date();
+  const {
+    register: registerMensalidade,
+    handleSubmit: handleMensalidade,
+    reset: resetMensalidade,
+    formState: { errors: errorsMensalidade },
+  } = useForm<CreateMensalidadeInput>({
+    resolver: zodResolver(createMensalidadeSchema),
+    defaultValues: { alunoId: id, mesReferencia: now.getMonth() + 1, anoReferencia: now.getFullYear() },
+  });
+
+  const mensalidadeMutation = useMutation({
+    mutationFn: (data: CreateMensalidadeInput) => api.post('/mensalidades', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      setShowMensalidadeModal(false);
+      resetMensalidade();
+      setMensalidadeError(null);
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      setMensalidadeError(error.response?.data?.message ?? 'Erro ao gerar mensalidade.');
+    },
+  });
+
+  // S023 — Pagar mensalidade
+  const {
+    register: registerPagar,
+    handleSubmit: handlePagar,
+    reset: resetPagar,
+    formState: { errors: errorsPagar },
+  } = useForm<PagarMensalidadeInput>({
+    resolver: zodResolver(pagarMensalidadeSchema),
+    defaultValues: { valorDesconto: 0, dataPagamento: new Date().toISOString().split('T')[0] },
+  });
+
+  const pagarMutation = useMutation({
+    mutationFn: ({ mensId, data }: { mensId: string; data: PagarMensalidadeInput }) =>
+      api.patch(`/mensalidades/${mensId}/pagar`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      setPagarId(null);
+      resetPagar();
+      setPagarError(null);
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      setPagarError(error.response?.data?.message ?? 'Erro ao registrar pagamento.');
+    },
+  });
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'dados', label: 'Dados Pessoais' },
     { key: 'responsaveis', label: 'Responsáveis' },
@@ -149,12 +238,22 @@ export default function AlunoPerfilPage() {
             </span>
           </div>
         </div>
-        <Link
-          href={`/alunos/${id}/editar`}
-          className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-        >
-          Editar
-        </Link>
+        <div className="flex gap-2">
+          {aluno.status === 'PRE_MATRICULA' && (
+            <button
+              onClick={() => { setShowMatriculaModal(true); setMatriculaError(null); }}
+              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              + Nova Matrícula
+            </button>
+          )}
+          <Link
+            href={`/alunos/${id}/editar`}
+            className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Editar
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -327,6 +426,15 @@ export default function AlunoPerfilPage() {
       {/* Tab: Financeiro */}
       {activeTab === 'financeiro' && (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => { setShowMensalidadeModal(true); setMensalidadeError(null); }}
+              className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+            >
+              + Gerar Mensalidade
+            </button>
+          </div>
+
           {aluno.mensalidades.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center text-gray-400">
               Nenhuma mensalidade registrada.
@@ -339,6 +447,7 @@ export default function AlunoPerfilPage() {
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Referência</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Valor</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -360,10 +469,179 @@ export default function AlunoPerfilPage() {
                           {m.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3">
+                        {(m.status === 'PENDENTE' || m.status === 'INADIMPLENTE') && (
+                          <button
+                            onClick={() => { setPagarId(m.id); setPagarError(null); resetPagar(); }}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            Registrar Pagamento
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Modal Gerar Mensalidade — S022 */}
+          {showMensalidadeModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md mx-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Gerar Mensalidade</h2>
+                <form
+                  onSubmit={handleMensalidade((d) => {
+                    setMensalidadeError(null);
+                    mensalidadeMutation.mutate({ ...d, alunoId: id });
+                  })}
+                  noValidate
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Mês</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={12}
+                        {...registerMensalidade('mesReferencia', { valueAsNumber: true })}
+                        className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsMensalidade.mesReferencia ? 'border-red-400' : 'border-gray-300'}`}
+                      />
+                      {errorsMensalidade.mesReferencia && (
+                        <p className="mt-1 text-xs text-red-600">{errorsMensalidade.mesReferencia.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Ano</label>
+                      <input
+                        type="number"
+                        min={2020}
+                        {...registerMensalidade('anoReferencia', { valueAsNumber: true })}
+                        className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsMensalidade.anoReferencia ? 'border-red-400' : 'border-gray-300'}`}
+                      />
+                      {errorsMensalidade.anoReferencia && (
+                        <p className="mt-1 text-xs text-red-600">{errorsMensalidade.anoReferencia.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {mensalidadeError && (
+                    <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{mensalidadeError}</div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={mensalidadeMutation.isPending}
+                      className="flex-1 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {mensalidadeMutation.isPending ? 'Gerando...' : 'Gerar Mensalidade'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowMensalidadeModal(false); resetMensalidade(); setMensalidadeError(null); }}
+                      className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Registrar Pagamento — S023 */}
+          {pagarId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md mx-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Registrar Pagamento</h2>
+                <form
+                  onSubmit={handlePagar((d) => {
+                    setPagarError(null);
+                    pagarMutation.mutate({ mensId: pagarId, data: d });
+                  })}
+                  noValidate
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Valor Pago (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      {...registerPagar('valorPago', { valueAsNumber: true })}
+                      className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsPagar.valorPago ? 'border-red-400' : 'border-gray-300'}`}
+                    />
+                    {errorsPagar.valorPago && (
+                      <p className="mt-1 text-xs text-red-600">{errorsPagar.valorPago.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Desconto (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...registerPagar('valorDesconto', { valueAsNumber: true })}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Forma de Pagamento</label>
+                    <select
+                      {...registerPagar('formaPagamento')}
+                      className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsPagar.formaPagamento ? 'border-red-400' : 'border-gray-300'}`}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="PIX">PIX</option>
+                      <option value="BOLETO">Boleto</option>
+                      <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                      <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                      <option value="DINHEIRO">Dinheiro</option>
+                    </select>
+                    {errorsPagar.formaPagamento && (
+                      <p className="mt-1 text-xs text-red-600">{errorsPagar.formaPagamento.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Data do Pagamento</label>
+                    <input
+                      type="date"
+                      {...registerPagar('dataPagamento')}
+                      className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsPagar.dataPagamento ? 'border-red-400' : 'border-gray-300'}`}
+                    />
+                    {errorsPagar.dataPagamento && (
+                      <p className="mt-1 text-xs text-red-600">{errorsPagar.dataPagamento.message}</p>
+                    )}
+                  </div>
+
+                  {pagarError && (
+                    <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{pagarError}</div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={pagarMutation.isPending}
+                      className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {pagarMutation.isPending ? 'Salvando...' : 'Registrar Pagamento'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPagarId(null); resetPagar(); setPagarError(null); }}
+                      className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </div>
@@ -399,6 +677,69 @@ export default function AlunoPerfilPage() {
               </div>
             ))
           )}
+        </div>
+      )}
+      {/* Modal Nova Matrícula — S020 */}
+      {showMatriculaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Nova Matrícula</h2>
+            <form
+              onSubmit={handleMatricula((d) => {
+                setMatriculaError(null);
+                matriculaMutation.mutate({ ...d, alunoId: id });
+              })}
+              noValidate
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Turno</label>
+                <select
+                  {...registerMatricula('turno')}
+                  className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsMatricula.turno ? 'border-red-400' : 'border-gray-300'}`}
+                >
+                  <option value="INTEGRAL">Integral</option>
+                  <option value="MEIO_TURNO">Meio Turno</option>
+                </select>
+                {errorsMatricula.turno && (
+                  <p className="mt-1 text-xs text-red-600">{errorsMatricula.turno.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Data de Início</label>
+                <input
+                  type="date"
+                  {...registerMatricula('dataInicio')}
+                  className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm ${errorsMatricula.dataInicio ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {errorsMatricula.dataInicio && (
+                  <p className="mt-1 text-xs text-red-600">{errorsMatricula.dataInicio.message}</p>
+                )}
+              </div>
+
+              {matriculaError && (
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{matriculaError}</div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={matriculaMutation.isPending}
+                  className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {matriculaMutation.isPending ? 'Matriculando...' : 'Confirmar Matrícula'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMatriculaModal(false); resetMatricula(); setMatriculaError(null); }}
+                  className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

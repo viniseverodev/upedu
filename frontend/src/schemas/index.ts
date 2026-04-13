@@ -113,6 +113,48 @@ export const vincularResponsavelSchema = z.object({
   isResponsavelFinanceiro: z.boolean().default(false),
 });
 
+// S020 — Criar matrícula
+export const createMatriculaSchema = z.object({
+  alunoId: z.string().uuid('ID do aluno inválido'),
+  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
+});
+
+// S022 — Criar mensalidade
+export const createMensalidadeSchema = z.object({
+  alunoId: z.string().uuid('ID do aluno inválido'),
+  mesReferencia: z.number().int().min(1).max(12),
+  anoReferencia: z.number().int().min(2020),
+});
+
+// S023 — Registrar pagamento
+export const pagarMensalidadeSchema = z.object({
+  valorPago: z.number().positive('Valor deve ser positivo'),
+  formaPagamento: z.string().min(1, 'Forma de pagamento obrigatória'),
+  dataPagamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
+  valorDesconto: z.number().min(0).default(0),
+});
+
+// S024 — Cancelar mensalidade
+export const cancelarMensalidadeSchema = z.object({
+  motivoCancelamento: z.string().min(3, 'Motivo obrigatório'),
+});
+
+// S027 — Criar categoria financeira
+export const createCategoriaSchema = z.object({
+  nome: z.string().min(2, 'Nome obrigatório'),
+  tipo: z.enum(['RECEITA', 'DESPESA']),
+});
+
+// S027 — Registrar transação
+export const createTransacaoSchema = z.object({
+  categoriaId: z.string().uuid('Categoria inválida'),
+  tipo: z.enum(['ENTRADA', 'SAIDA']),
+  descricao: z.string().min(3, 'Descrição obrigatória'),
+  valor: z.number().positive('Valor deve ser positivo'),
+  dataTransacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateAlunoInput = z.infer<typeof createAlunoSchema>;
 export type CreateFilialInput = z.infer<typeof createFilialSchema>;
@@ -123,3 +165,9 @@ export type UpdateAlunoInput = z.infer<typeof updateAlunoSchema>;
 export type CreateResponsavelInput = z.infer<typeof createResponsavelSchema>;
 export type UpdateResponsavelInput = z.infer<typeof updateResponsavelSchema>;
 export type VincularResponsavelInput = z.infer<typeof vincularResponsavelSchema>;
+export type CreateMatriculaInput = z.infer<typeof createMatriculaSchema>;
+export type CreateMensalidadeInput = z.infer<typeof createMensalidadeSchema>;
+export type PagarMensalidadeInput = z.infer<typeof pagarMensalidadeSchema>;
+export type CancelarMensalidadeInput = z.infer<typeof cancelarMensalidadeSchema>;
+export type CreateCategoriaInput = z.infer<typeof createCategoriaSchema>;
+export type CreateTransacaoInput = z.infer<typeof createTransacaoSchema>;

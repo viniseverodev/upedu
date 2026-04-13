@@ -1,11 +1,11 @@
-// Schemas Zod para matriculas — TODO: implementar em STORY-020 (Sprint 4)
+// Schemas Zod para matrículas — S020/S021
+
 import { z } from 'zod';
 
-export const createMatriculasSchema = z.object({
-  // TODO: definir campos em STORY-020 (Sprint 4)
+export const createMatriculaSchema = z.object({
+  alunoId: z.string().uuid('ID do aluno inválido'),
+  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)'),
 });
 
-export const updateMatriculasSchema = createMatriculasSchema.partial();
-
-export type CreateMatriculasInput = z.infer<typeof createMatriculasSchema>;
-export type UpdateMatriculasInput = z.infer<typeof updateMatriculasSchema>;
+export type CreateMatriculaInput = z.infer<typeof createMatriculaSchema>;

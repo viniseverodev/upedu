@@ -1,11 +1,10 @@
-// Schemas Zod para categorias — TODO: implementar em STORY-027 (Sprint 7)
+// Schemas Zod para categorias financeiras — S027
+
 import { z } from 'zod';
 
-export const createCategoriasSchema = z.object({
-  // TODO: definir campos em STORY-027 (Sprint 7)
+export const createCategoriaSchema = z.object({
+  nome: z.string().min(2, 'Nome é obrigatório'),
+  tipo: z.enum(['RECEITA', 'DESPESA']),
 });
 
-export const updateCategoriasSchema = createCategoriasSchema.partial();
-
-export type CreateCategoriasInput = z.infer<typeof createCategoriasSchema>;
-export type UpdateCategoriasInput = z.infer<typeof updateCategoriasSchema>;
+export type CreateCategoriaInput = z.infer<typeof createCategoriaSchema>;

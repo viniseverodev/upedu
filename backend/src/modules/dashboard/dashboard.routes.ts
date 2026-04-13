@@ -1,9 +1,19 @@
-// Rotas de dashboard — TODO: implementar em STORY-030 (Sprint 6)
+// Rotas de dashboard — S030
+// GET /dashboard/kpis?mes=&ano= — KPIs da filial (cache Redis 5min)
 
 import type { FastifyInstance } from 'fastify';
 import { DashboardController } from './dashboard.controller';
+import { authenticate } from '../../middlewares/authenticate';
+import { authorize } from '../../middlewares/authorize';
+import { filialContext } from '../../middlewares/filial-context';
 
-export async function dashboardRoutes(_app: FastifyInstance) {
-  const _controller = new DashboardController();
-  // TODO: registrar rotas em STORY-030 (Sprint 6)
+export async function dashboardRoutes(app: FastifyInstance) {
+  const controller = new DashboardController();
+  const gerenteOnly = [
+    authenticate,
+    filialContext,
+    authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL']),
+  ];
+
+  app.get('/kpis', { preHandler: gerenteOnly }, controller.kpis.bind(controller));
 }
