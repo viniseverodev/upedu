@@ -34,7 +34,7 @@ export class ResponsaveisService {
   }
 
   // S018 — Criar responsável com CPF/RG encriptados
-  async create(creatorId: string, data: CreateResponsavelInput): Promise<ResponsavelPublico> {
+  async create(creatorId: string, data: CreateResponsavelInput, ip?: string): Promise<ResponsavelPublico> {
     const createData: {
       nome: string;
       cpfEnc?: Buffer;
@@ -63,6 +63,7 @@ export class ResponsaveisService {
       entityType: 'Responsavel',
       entityId: responsavel.id,
       newValues: { nome: responsavel.nome } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return this.toPublico(responsavel);
@@ -76,7 +77,7 @@ export class ResponsaveisService {
   }
 
   // S018 — Revelar CPF completo + audit log (LGPD Art. 18)
-  async revelarCpf(id: string, requesterId: string): Promise<{ cpf: string }> {
+  async revelarCpf(id: string, requesterId: string, ip?: string): Promise<{ cpf: string }> {
     const responsavel = await this.repo.findById(id);
     if (!responsavel) throw new NotFoundError('Responsável');
     if (!responsavel.cpfEnc) throw new ValidationError('Responsável não possui CPF cadastrado');
@@ -90,6 +91,7 @@ export class ResponsaveisService {
       entityType: 'Responsavel',
       entityId: id,
       newValues: { acao: 'REVELAR_CPF' } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return { cpf: cpfFormatted };
@@ -100,6 +102,7 @@ export class ResponsaveisService {
     id: string,
     updaterId: string,
     data: UpdateResponsavelInput,
+    ip?: string,
   ): Promise<ResponsavelPublico> {
     const responsavel = await this.repo.findById(id);
     if (!responsavel) throw new NotFoundError('Responsável');
@@ -131,6 +134,7 @@ export class ResponsaveisService {
       entityId: id,
       oldValues: { nome: responsavel.nome } as unknown as import('@prisma/client').Prisma.InputJsonValue,
       newValues: { nome: updated.nome } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return this.toPublico(updated);
@@ -142,6 +146,7 @@ export class ResponsaveisService {
     filialId: string,
     linkerId: string,
     data: VincularResponsavelInput,
+    ip?: string,
   ) {
     // Verificar se aluno pertence à filial
     const aluno = await prisma.aluno.findUnique({ where: { id: alunoId } });
@@ -180,6 +185,7 @@ export class ResponsaveisService {
 
     await createAuditLog({
       userId: linkerId,
+      filialId,
       action: 'UPDATE',
       entityType: 'Aluno',
       entityId: alunoId,
@@ -188,13 +194,14 @@ export class ResponsaveisService {
         responsavelId: data.responsavelId,
         parentesco: data.parentesco,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return vinculo;
   }
 
   // S019 — Desvincular responsável de aluno
-  async desvincular(alunoId: string, filialId: string, responsavelId: string, unlinkerId: string) {
+  async desvincular(alunoId: string, filialId: string, responsavelId: string, unlinkerId: string, ip?: string) {
     // Verificar se aluno pertence à filial
     const aluno = await prisma.aluno.findUnique({ where: { id: alunoId } });
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
@@ -209,6 +216,7 @@ export class ResponsaveisService {
 
     await createAuditLog({
       userId: unlinkerId,
+      filialId,
       action: 'UPDATE',
       entityType: 'Aluno',
       entityId: alunoId,
@@ -216,6 +224,7 @@ export class ResponsaveisService {
         acao: 'DESVINCULAR_RESPONSAVEL',
         responsavelId,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
   }
 

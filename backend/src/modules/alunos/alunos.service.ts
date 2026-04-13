@@ -34,7 +34,7 @@ export class AlunosService {
   }
 
   // S012 — Criar aluno com conformidade LGPD
-  async create(filialId: string, creatorId: string, data: CreateAlunoInput) {
+  async create(filialId: string, creatorId: string, data: CreateAlunoInput, ip?: string) {
     const aluno = await this.repo.create(filialId, {
       nome: data.nome,
       dataNascimento: new Date(data.dataNascimento),
@@ -46,10 +46,12 @@ export class AlunosService {
 
     await createAuditLog({
       userId: creatorId,
+      filialId,
       action: "CREATE",
       entityType: "Aluno",
       entityId: aluno.id,
       newValues: { nome: aluno.nome, status: aluno.status, filialId },
+      ipAddress: ip,
     });
 
     return aluno;
@@ -61,6 +63,7 @@ export class AlunosService {
     filialId: string,
     updaterId: string,
     data: UpdateAlunoInput,
+    ip?: string,
   ) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
@@ -81,6 +84,7 @@ export class AlunosService {
       const [, , updated] = await this.repo.inativarComCascade(id, updateData);
       await createAuditLog({
         userId: updaterId,
+        filialId,
         action: "UPDATE",
         entityType: "Aluno",
         entityId: id,
@@ -90,6 +94,7 @@ export class AlunosService {
         } as unknown as import("@prisma/client").Prisma.InputJsonValue,
         newValues:
           data as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        ipAddress: ip,
       });
       return updated;
     }
@@ -98,6 +103,7 @@ export class AlunosService {
 
     await createAuditLog({
       userId: updaterId,
+      filialId,
       action: "UPDATE",
       entityType: "Aluno",
       entityId: id,
@@ -107,13 +113,14 @@ export class AlunosService {
       } as unknown as import("@prisma/client").Prisma.InputJsonValue,
       newValues:
         data as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return updated;
   }
 
   // S013 — Soft delete LGPD
-  async softDelete(id: string, filialId: string, deleterId: string) {
+  async softDelete(id: string, filialId: string, deleterId: string, ip?: string) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
       throw new NotFoundError("Aluno");
@@ -123,6 +130,7 @@ export class AlunosService {
 
     await createAuditLog({
       userId: deleterId,
+      filialId,
       action: "DELETE",
       entityType: "Aluno",
       entityId: id,
@@ -130,11 +138,12 @@ export class AlunosService {
         nome: aluno.nome,
         status: aluno.status,
       } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      ipAddress: ip,
     });
   }
 
   // S014 — Promover da lista de espera para PRE_MATRICULA
-  async promover(id: string, filialId: string, updaterId: string) {
+  async promover(id: string, filialId: string, updaterId: string, ip?: string) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
       throw new NotFoundError("Aluno");
@@ -147,6 +156,7 @@ export class AlunosService {
 
     await createAuditLog({
       userId: updaterId,
+      filialId,
       action: "UPDATE",
       entityType: "Aluno",
       entityId: id,
@@ -156,6 +166,7 @@ export class AlunosService {
       newValues: {
         status: "PRE_MATRICULA",
       } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return updated;
@@ -167,6 +178,7 @@ export class AlunosService {
     filialOrigemId: string,
     transferidorId: string,
     data: TransferirAlunoInput,
+    ip?: string,
   ) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialOrigemId) {
@@ -197,6 +209,7 @@ export class AlunosService {
 
     await createAuditLog({
       userId: transferidorId,
+      filialId: filialOrigemId,
       action: "UPDATE",
       entityType: "Aluno",
       entityId: id,
@@ -207,6 +220,7 @@ export class AlunosService {
         filialId: data.filialDestinoId,
         acao: "TRANSFERENCIA",
       } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return this.repo.findById(id);

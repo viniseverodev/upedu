@@ -12,7 +12,7 @@ export class MatriculasService {
   private repo = new MatriculasRepository();
 
   // S020 — Criar matrícula com snapshot de valor
-  async create(filialId: string, creatorId: string, data: CreateMatriculaInput) {
+  async create(filialId: string, creatorId: string, data: CreateMatriculaInput, ip?: string) {
     // Verificar aluno existe e pertence à filial
     const aluno = await prisma.aluno.findUnique({ where: { id: data.alunoId } });
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
@@ -69,6 +69,7 @@ export class MatriculasService {
 
     await createAuditLog({
       userId: creatorId,
+      filialId,
       action: 'CREATE',
       entityType: 'Matricula',
       entityId: matricula.id,
@@ -77,6 +78,7 @@ export class MatriculasService {
         turno: data.turno,
         valorMensalidade: valorSnapshot,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return {

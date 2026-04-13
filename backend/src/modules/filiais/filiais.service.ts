@@ -16,7 +16,7 @@ export class FiliaisService {
   private repo = new FiliaisRepository();
 
   // S006 — Criar nova filial
-  async create(organizationId: string, userId: string, data: CreateFilialInput) {
+  async create(organizationId: string, userId: string, data: CreateFilialInput, ip?: string) {
     const existing = await this.repo.findByCnpjAndOrg(data.cnpj, organizationId);
     if (existing) {
       throw new ConflictError('CNPJ já cadastrado nesta organização');
@@ -35,6 +35,7 @@ export class FiliaisService {
         cnpj: filial.cnpj,
         diaVencimento: filial.diaVencimento,
       },
+      ipAddress: ip,
     });
 
     return filial;
@@ -45,7 +46,8 @@ export class FiliaisService {
     id: string,
     organizationId: string,
     userId: string,
-    data: UpdateFilialInput
+    data: UpdateFilialInput,
+    ip?: string,
   ) {
     const filial = await this.repo.findById(id);
     if (!filial || filial.organizationId !== organizationId) {
@@ -78,6 +80,7 @@ export class FiliaisService {
       entityId: id,
       oldValues: { nome: filial.nome, ativo: filial.ativo },
       newValues: data as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return updated;

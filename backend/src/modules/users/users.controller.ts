@@ -18,7 +18,7 @@ export class UsersController {
   async create(request: FastifyRequest, reply: FastifyReply) {
     const body = createUserSchema.parse(request.body);
     const { sub: creatorId, orgId: organizationId, role: creatorRole } = request.user;
-    const result = await this.service.create(organizationId, creatorId, creatorRole, body);
+    const result = await this.service.create(organizationId, creatorId, creatorRole, body, request.ip);
     return reply.status(201).send(result);
   }
 
@@ -27,7 +27,7 @@ export class UsersController {
     const { id } = request.params as { id: string };
     const body = updateUserSchema.parse(request.body);
     const { sub: updaterId, orgId: organizationId, role: updaterRole } = request.user;
-    const user = await this.service.update(id, organizationId, updaterId, updaterRole, body);
+    const user = await this.service.update(id, organizationId, updaterId, updaterRole, body, request.ip);
     return reply.status(200).send(user);
   }
 }

@@ -25,7 +25,8 @@ export class UsersService {
     organizationId: string,
     creatorId: string,
     creatorRole: string,
-    data: CreateUserInput
+    data: CreateUserInput,
+    ip?: string,
   ) {
     // Guard: criador só pode atribuir roles ≤ à sua própria hierarquia
     if ((ROLE_HIERARCHY[data.role] ?? 0) > (ROLE_HIERARCHY[creatorRole] ?? 0)) {
@@ -49,6 +50,7 @@ export class UsersService {
       entityType: 'User',
       entityId: user.id,
       newValues: { nome: user.nome, email: user.email, role: user.role },
+      ipAddress: ip,
     });
 
     return { user, tempPassword };
@@ -65,7 +67,8 @@ export class UsersService {
     organizationId: string,
     updaterId: string,
     updaterRole: string,
-    data: UpdateUserInput
+    data: UpdateUserInput,
+    ip?: string,
   ) {
     const user = await this.repo.findById(id);
     if (!user || user.organizationId !== organizationId) {
@@ -103,6 +106,7 @@ export class UsersService {
       entityId: id,
       oldValues: { nome: user.nome, role: user.role, ativo: user.ativo },
       newValues: data as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return this.repo.findById(id);

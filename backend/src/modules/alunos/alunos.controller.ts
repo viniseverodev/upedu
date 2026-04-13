@@ -25,7 +25,7 @@ export class AlunosController {
   // S012 — POST /alunos
   async create(request: FastifyRequest, reply: FastifyReply) {
     const body = createAlunoSchema.parse(request.body);
-    const aluno = await this.service.create(request.filialId, request.user.sub, body);
+    const aluno = await this.service.create(request.filialId, request.user.sub, body, request.ip);
     return reply.status(201).send(aluno);
   }
 
@@ -33,21 +33,21 @@ export class AlunosController {
   async update(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const body = updateAlunoSchema.parse(request.body);
-    const aluno = await this.service.update(id, request.filialId, request.user.sub, body);
+    const aluno = await this.service.update(id, request.filialId, request.user.sub, body, request.ip);
     return reply.status(200).send(aluno);
   }
 
   // S013 — DELETE /alunos/:id (soft delete)
   async softDelete(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
-    await this.service.softDelete(id, request.filialId, request.user.sub);
+    await this.service.softDelete(id, request.filialId, request.user.sub, request.ip);
     return reply.status(204).send();
   }
 
   // S014 — PATCH /alunos/:id/promover
   async promover(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
-    const aluno = await this.service.promover(id, request.filialId, request.user.sub);
+    const aluno = await this.service.promover(id, request.filialId, request.user.sub, request.ip);
     return reply.status(200).send(aluno);
   }
 
@@ -55,7 +55,7 @@ export class AlunosController {
   async transferir(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const body = transferirAlunoSchema.parse(request.body);
-    const aluno = await this.service.transferir(id, request.filialId, request.user.sub, body);
+    const aluno = await this.service.transferir(id, request.filialId, request.user.sub, body, request.ip);
     return reply.status(200).send(aluno);
   }
 

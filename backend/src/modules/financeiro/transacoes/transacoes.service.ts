@@ -9,7 +9,7 @@ import type { CreateTransacaoInput } from './transacoes.schema';
 export class TransacoesService {
   private repo = new TransacoesRepository();
 
-  async create(filialId: string, userId: string, data: CreateTransacaoInput) {
+  async create(filialId: string, userId: string, data: CreateTransacaoInput, ip?: string) {
     // Verificar categoria pertence à filial
     const categoria = await prisma.categoriaFinanceira.findFirst({
       where: { id: data.categoriaId, filialId },
@@ -27,6 +27,7 @@ export class TransacoesService {
 
     await createAuditLog({
       userId,
+      filialId,
       action: 'CREATE',
       entityType: 'Transacao',
       entityId: transacao.id,
@@ -35,6 +36,7 @@ export class TransacoesService {
         valor: data.valor,
         categoriaId: data.categoriaId,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return {

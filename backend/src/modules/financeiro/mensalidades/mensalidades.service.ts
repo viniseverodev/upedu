@@ -14,7 +14,7 @@ export class MensalidadesService {
   private repo = new MensalidadesRepository();
 
   // S022 — Gerar mensalidade manual
-  async create(filialId: string, creatorId: string, data: CreateMensalidadeInput) {
+  async create(filialId: string, creatorId: string, data: CreateMensalidadeInput, ip?: string) {
     // Verificar aluno pertence à filial
     const aluno = await prisma.aluno.findUnique({ where: { id: data.alunoId } });
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
@@ -61,6 +61,7 @@ export class MensalidadesService {
 
     await createAuditLog({
       userId: creatorId,
+      filialId,
       action: 'CREATE',
       entityType: 'Mensalidade',
       entityId: mensalidade.id,
@@ -70,13 +71,14 @@ export class MensalidadesService {
         ano: data.anoReferencia,
         valorOriginal: Number(mensalidade.valorOriginal),
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return this.toResponse(mensalidade);
   }
 
   // S023 — Registrar pagamento
-  async pagar(id: string, filialId: string, userId: string, data: PagarMensalidadeInput) {
+  async pagar(id: string, filialId: string, userId: string, data: PagarMensalidadeInput, ip?: string) {
     const mensalidade = await this.repo.findByIdAndFilial(id, filialId);
     if (!mensalidade) throw new NotFoundError('Mensalidade');
 
@@ -97,6 +99,7 @@ export class MensalidadesService {
 
     await createAuditLog({
       userId,
+      filialId,
       action: 'UPDATE',
       entityType: 'Mensalidade',
       entityId: id,
@@ -105,6 +108,7 @@ export class MensalidadesService {
         valorPago: data.valorPago,
         formaPagamento: data.formaPagamento,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     // Invalida cache de KPIs para refletir nova receita imediatamente
@@ -115,7 +119,7 @@ export class MensalidadesService {
   }
 
   // S024 — Cancelar mensalidade
-  async cancelar(id: string, filialId: string, userId: string, motivoCancelamento: string) {
+  async cancelar(id: string, filialId: string, userId: string, motivoCancelamento: string, ip?: string) {
     const mensalidade = await this.repo.findByIdAndFilial(id, filialId);
     if (!mensalidade) throw new NotFoundError('Mensalidade');
 
@@ -130,6 +134,7 @@ export class MensalidadesService {
 
     await createAuditLog({
       userId,
+      filialId,
       action: 'UPDATE',
       entityType: 'Mensalidade',
       entityId: id,
@@ -138,6 +143,7 @@ export class MensalidadesService {
         motivoCancelamento,
         statusAnterior: mensalidade.status,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      ipAddress: ip,
     });
 
     return this.toResponse(updated);

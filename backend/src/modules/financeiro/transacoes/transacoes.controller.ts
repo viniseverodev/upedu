@@ -9,7 +9,7 @@ export class TransacoesController {
 
   async create(request: FastifyRequest, reply: FastifyReply) {
     const body = createTransacaoSchema.parse(request.body);
-    const transacao = await this.service.create(request.filialId, request.user.sub, body);
+    const transacao = await this.service.create(request.filialId, request.user.sub, body, request.ip);
     return reply.status(201).send(transacao);
   }
 

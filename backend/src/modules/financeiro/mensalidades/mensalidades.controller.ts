@@ -14,7 +14,7 @@ export class MensalidadesController {
   // S022 — POST /mensalidades
   async create(request: FastifyRequest, reply: FastifyReply) {
     const body = createMensalidadeSchema.parse(request.body);
-    const mensalidade = await this.service.create(request.filialId, request.user.sub, body);
+    const mensalidade = await this.service.create(request.filialId, request.user.sub, body, request.ip);
     return reply.status(201).send(mensalidade);
   }
 
@@ -22,7 +22,7 @@ export class MensalidadesController {
   async pagar(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const body = pagarMensalidadeSchema.parse(request.body);
-    const mensalidade = await this.service.pagar(id, request.filialId, request.user.sub, body);
+    const mensalidade = await this.service.pagar(id, request.filialId, request.user.sub, body, request.ip);
     return reply.status(200).send(mensalidade);
   }
 
@@ -35,6 +35,7 @@ export class MensalidadesController {
       request.filialId,
       request.user.sub,
       motivoCancelamento,
+      request.ip,
     );
     return reply.status(200).send(mensalidade);
   }

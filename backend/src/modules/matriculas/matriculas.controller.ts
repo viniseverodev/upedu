@@ -10,7 +10,7 @@ export class MatriculasController {
   // S020 — POST /matriculas
   async create(request: FastifyRequest, reply: FastifyReply) {
     const body = createMatriculaSchema.parse(request.body);
-    const matricula = await this.service.create(request.filialId, request.user.sub, body);
+    const matricula = await this.service.create(request.filialId, request.user.sub, body, request.ip);
     return reply.status(201).send(matricula);
   }
 

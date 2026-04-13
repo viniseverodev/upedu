@@ -20,7 +20,7 @@ export class ResponsaveisController {
   // POST /responsaveis — S018
   async create(req: FastifyRequest, reply: FastifyReply) {
     const data = createResponsavelSchema.parse(req.body);
-    const result = await this.service.create(req.user.sub, data);
+    const result = await this.service.create(req.user.sub, data, req.ip);
     return reply.status(201).send(result);
   }
 
@@ -34,7 +34,7 @@ export class ResponsaveisController {
   // GET /responsaveis/:id/revelar-cpf — S018
   async revelarCpf(req: FastifyRequest, reply: FastifyReply) {
     const { id } = req.params as { id: string };
-    const result = await this.service.revelarCpf(id, req.user.sub);
+    const result = await this.service.revelarCpf(id, req.user.sub, req.ip);
     return reply.send(result);
   }
 
@@ -42,7 +42,7 @@ export class ResponsaveisController {
   async update(req: FastifyRequest, reply: FastifyReply) {
     const { id } = req.params as { id: string };
     const data = updateResponsavelSchema.parse(req.body);
-    const result = await this.service.update(id, req.user.sub, data);
+    const result = await this.service.update(id, req.user.sub, data, req.ip);
     return reply.send(result);
   }
 
@@ -55,6 +55,7 @@ export class ResponsaveisController {
       req.filialId,
       req.user.sub,
       data,
+      req.ip,
     );
     return reply.status(201).send(result);
   }
@@ -67,6 +68,7 @@ export class ResponsaveisController {
       req.filialId,
       responsavelId,
       req.user.sub,
+      req.ip,
     );
     return reply.status(204).send();
   }

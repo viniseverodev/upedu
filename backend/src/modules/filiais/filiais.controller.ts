@@ -25,7 +25,7 @@ export class FiliaisController {
   async create(request: FastifyRequest, reply: FastifyReply) {
     const body = createFilialSchema.parse(request.body);
     const { sub: userId, orgId: organizationId } = request.user;
-    const filial = await this.service.create(organizationId, userId, body);
+    const filial = await this.service.create(organizationId, userId, body, request.ip);
     return reply.status(201).send(filial);
   }
 
@@ -34,7 +34,7 @@ export class FiliaisController {
     const { id } = request.params as { id: string };
     const body = updateFilialSchema.parse(request.body);
     const { sub: userId, orgId: organizationId } = request.user;
-    const filial = await this.service.update(id, organizationId, userId, body);
+    const filial = await this.service.update(id, organizationId, userId, body, request.ip);
     return reply.status(200).send(filial);
   }
 }
