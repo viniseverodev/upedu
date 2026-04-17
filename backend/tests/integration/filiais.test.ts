@@ -31,12 +31,13 @@ beforeAll(async () => {
   const hash = await bcrypt.hash('Senha123', 4);
 
   // Criar filial inicial para os testes de update/list
+  // WARN-003: CNPJ matematicamente válido (módulo 11/8 verificado)
   await prisma.filial.create({
     data: {
       id: FILIAL_ID,
       organizationId: ORG_ID,
       nome: 'Filial Inicial',
-      cnpj: '11111111000100',
+      cnpj: '11222333000181',
       valorMensalidadeIntegral: 1000,
       valorMensalidadeMeioTurno: 600,
     },
@@ -146,13 +147,14 @@ describe('GET /api/v1/filiais/ativas', () => {
 
 describe('POST /api/v1/filiais', () => {
   it('ADMIN_MATRIZ cria filial com sucesso — retorna 201', async () => {
+    // WARN-003: CNPJ 11.444.777/0001-61 matematicamente válido (módulo 11/8 verificado)
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/filiais',
       headers: { authorization: `Bearer ${adminToken}` },
       payload: {
         nome: 'Nova Filial Teste',
-        cnpj: '22.222.222/0001-00',
+        cnpj: '11.444.777/0001-61',
         diaVencimento: 15,
         valorMensalidadeIntegral: 1500,
         valorMensalidadeMeioTurno: 800,
@@ -162,7 +164,7 @@ describe('POST /api/v1/filiais', () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.nome).toBe('Nova Filial Teste');
-    expect(body.cnpj).toBe('22222222000100'); // normalizado
+    expect(body.cnpj).toBe('11444777000161'); // normalizado
     expect(body.ativo).toBe(true);
 
     // Cleanup
@@ -171,13 +173,14 @@ describe('POST /api/v1/filiais', () => {
   });
 
   it('retorna 409 para CNPJ duplicado na organização', async () => {
+    // WARN-003: usar o mesmo CNPJ válido da FILIAL_ID criada no beforeAll
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/filiais',
       headers: { authorization: `Bearer ${adminToken}` },
       payload: {
         nome: 'Duplicada',
-        cnpj: '11111111000100', // mesmo CNPJ da FILIAL_ID
+        cnpj: '11.222.333/0001-81', // mesmo CNPJ da FILIAL_ID (formatado)
         diaVencimento: 10,
         valorMensalidadeIntegral: 1000,
         valorMensalidadeMeioTurno: 600,

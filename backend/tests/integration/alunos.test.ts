@@ -397,10 +397,11 @@ describe('PATCH /api/v1/alunos/:id/promover', () => {
   });
 
   it('promove aluno da lista de espera para PRE_MATRICULA', async () => {
+    // BUG-016: promover requer GERENTE_FILIAL+ — usar adminToken (ADMIN_MATRIZ)
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/v1/alunos/${alunoId}/promover`,
-      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      headers: { authorization: `Bearer ${adminToken}`, 'x-filial-id': FILIAL_ID },
     });
 
     expect(res.statusCode).toBe(200);
@@ -408,11 +409,11 @@ describe('PATCH /api/v1/alunos/:id/promover', () => {
   });
 
   it('retorna 422 ao tentar promover aluno que não está na lista', async () => {
-    // Já foi promovido acima
+    // Já foi promovido acima — BUG-016: requer GERENTE_FILIAL+
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/v1/alunos/${alunoId}/promover`,
-      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      headers: { authorization: `Bearer ${adminToken}`, 'x-filial-id': FILIAL_ID },
     });
 
     expect(res.statusCode).toBe(422);
@@ -609,10 +610,11 @@ describe('DELETE /api/v1/alunos/:id', () => {
       },
     });
 
+    // BUG-016: delete requer GERENTE_FILIAL+ — usar adminToken (ADMIN_MATRIZ)
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/v1/alunos/${a.id}`,
-      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      headers: { authorization: `Bearer ${adminToken}`, 'x-filial-id': FILIAL_ID },
     });
 
     expect(res.statusCode).toBe(204);

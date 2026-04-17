@@ -268,6 +268,14 @@ describe('GET /api/v1/responsaveis/:id', () => {
       },
     });
     responsavelId = res.json().id;
+
+    // BUG-009: assertOrgAccess exige vínculo com aluno da org antes de findById
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/alunos/${alunoId}/responsaveis`,
+      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      payload: { responsavelId, parentesco: 'Mãe', isResponsavelFinanceiro: false },
+    });
   });
 
   it('retorna perfil com CPF mascarado', async () => {
@@ -312,6 +320,14 @@ describe('GET /api/v1/responsaveis/:id/revelar-cpf', () => {
       },
     });
     responsavelId = res.json().id;
+
+    // BUG-010: assertOrgAccess exige vínculo com aluno da org antes de revelarCpf
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/alunos/${alunoId}/responsaveis`,
+      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      payload: { responsavelId, parentesco: 'Pai', isResponsavelFinanceiro: false },
+    });
   });
 
   it('ADMIN revela CPF — retorna CPF completo formatado', async () => {
@@ -345,6 +361,14 @@ describe('GET /api/v1/responsaveis/:id/revelar-cpf', () => {
     });
     const semCpfId = semCpf.json().id;
 
+    // BUG-010: vincular antes de revelar para que assertOrgAccess passe
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/alunos/${alunoId}/responsaveis`,
+      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      payload: { responsavelId: semCpfId, parentesco: 'Tio', isResponsavelFinanceiro: false },
+    });
+
     const res = await app.inject({
       method: 'GET',
       url: `/api/v1/responsaveis/${semCpfId}/revelar-cpf`,
@@ -370,6 +394,14 @@ describe('PATCH /api/v1/responsaveis/:id', () => {
       },
     });
     responsavelId = res.json().id;
+
+    // BUG-009: assertOrgAccess exige vínculo com aluno da org antes de update
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/alunos/${alunoId}/responsaveis`,
+      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      payload: { responsavelId, parentesco: 'Avó', isResponsavelFinanceiro: false },
+    });
   });
 
   it('atualiza nome e telefone — retorna dados atualizados', async () => {
@@ -541,20 +573,22 @@ describe('DELETE /api/v1/alunos/:alunoId/responsaveis/:responsavelId', () => {
   });
 
   it('desvincula responsável — retorna 204', async () => {
+    // BUG-016: desvincular requer GERENTE_FILIAL+ — usar adminToken (ADMIN_MATRIZ)
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/v1/alunos/${alunoId}/responsaveis/${responsavelParaDesvincular}`,
-      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      headers: { authorization: `Bearer ${adminToken}`, 'x-filial-id': FILIAL_ID },
     });
 
     expect(res.statusCode).toBe(204);
   });
 
   it('vínculo inexistente — retorna 404', async () => {
+    // BUG-016: desvincular requer GERENTE_FILIAL+
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/v1/alunos/${alunoId}/responsaveis/${uuidv4()}`,
-      headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
+      headers: { authorization: `Bearer ${adminToken}`, 'x-filial-id': FILIAL_ID },
     });
 
     expect(res.statusCode).toBe(404);
