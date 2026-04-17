@@ -246,11 +246,18 @@ describe('AuthService.changePassword()', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new AuthService();
+    // BUG-011/015: service agora chama findById, revokeAllUserTokens e saveRefreshToken
     mockRepo.updatePassword.mockResolvedValue({});
+    mockRepo.revokeAllUserTokens.mockResolvedValue({});
+    mockRepo.saveRefreshToken.mockResolvedValue({});
   });
 
-  it('atualiza a senha com bcrypt e registra audit log', async () => {
-    await service.changePassword(FAKE_USER_ID, 'NovaSenha1');
+  it('primeiroAcesso=true — troca senha sem currentPassword e emite novo par de tokens', async () => {
+    const user = makeUser({ primeiroAcesso: true });
+    user.passwordHash = await bcrypt.hash('SenhaTemp1', 4);
+    mockRepo.findById.mockResolvedValue(user);
+
+    const result = await service.changePassword(FAKE_USER_ID, undefined, 'NovaSenha1');
 
     expect(mockRepo.updatePassword).toHaveBeenCalledOnce();
     const [calledUserId, calledHash] = mockRepo.updatePassword.mock.calls[0];
@@ -259,8 +266,70 @@ describe('AuthService.changePassword()', () => {
     const isValid = await bcrypt.compare('NovaSenha1', calledHash);
     expect(isValid).toBe(true);
 
+    // BUG-015: sessões anteriores revogadas
+    expect(mockRepo.revokeAllUserTokens).toHaveBeenCalledWith(FAKE_USER_ID);
+    // BUG-011: novo refresh token emitido
+    expect(mockRepo.saveRefreshToken).toHaveBeenCalledOnce();
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).toBeTruthy();
+
     expect(mockAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'UPDATE', entityId: FAKE_USER_ID })
     );
+  });
+
+  it('primeiroAcesso=false — valida currentPassword correta e troca senha', async () => {
+    const user = makeUser({ primeiroAcesso: false });
+    user.passwordHash = await bcrypt.hash('SenhaAtual1', 4);
+    mockRepo.findById.mockResolvedValue(user);
+
+    const result = await service.changePassword(FAKE_USER_ID, 'SenhaAtual1', 'NovaSenha1');
+
+    expect(mockRepo.updatePassword).toHaveBeenCalledOnce();
+    expect(mockRepo.revokeAllUserTokens).toHaveBeenCalledWith(FAKE_USER_ID);
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).toBeTruthy();
+    expect(mockAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'UPDATE', entityId: FAKE_USER_ID })
+    );
+  });
+
+  it('lança UnauthorizedError para currentPassword incorreta (primeiroAcesso=false)', async () => {
+    const user = makeUser({ primeiroAcesso: false });
+    user.passwordHash = await bcrypt.hash('SenhaCorreta1', 4);
+    mockRepo.findById.mockResolvedValue(user);
+
+    const err = await service
+      .changePassword(FAKE_USER_ID, 'SenhaErrada1', 'NovaSenha1')
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(UnauthorizedError);
+    expect(err.message).toContain('incorreta');
+    expect(mockRepo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it('lança UnauthorizedError quando currentPassword ausente e primeiroAcesso=false', async () => {
+    const user = makeUser({ primeiroAcesso: false });
+    mockRepo.findById.mockResolvedValue(user);
+
+    const err = await service
+      .changePassword(FAKE_USER_ID, undefined, 'NovaSenha1')
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(UnauthorizedError);
+    expect(err.message).toContain('obrigatória');
+    expect(mockRepo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it('lança UnauthorizedError quando usuário não encontrado', async () => {
+    mockRepo.findById.mockResolvedValue(null);
+
+    const err = await service
+      .changePassword(FAKE_USER_ID, undefined, 'NovaSenha1')
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(UnauthorizedError);
+    expect(err.message).toContain('não encontrado');
+    expect(mockRepo.updatePassword).not.toHaveBeenCalled();
   });
 });
