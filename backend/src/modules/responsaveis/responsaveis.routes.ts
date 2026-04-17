@@ -16,15 +16,17 @@ export async function responsaveisRoutes(app: FastifyInstance) {
 
   const base = [authenticate];
   const baseFilial = [authenticate, filialContext];
+  // BUG-016: escrita requer ao menos ATENDENTE (PROFESSOR é read-only)
+  const atendenteOnly = [...base, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE'])];
   const adminOnly = [...base, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL'])];
 
   // Listagem scoped por filial — requer x-filial-id
   app.get('/', { preHandler: baseFilial }, controller.list.bind(controller));
 
-  app.post('/', { preHandler: base }, controller.create.bind(controller));
+  app.post('/', { preHandler: atendenteOnly }, controller.create.bind(controller));
 
   // /revelar-cpf deve vir antes de /:id para não ser capturado como parâmetro
   app.get('/:id/revelar-cpf', { preHandler: adminOnly }, controller.revelarCpf.bind(controller));
   app.get('/:id', { preHandler: base }, controller.findById.bind(controller));
-  app.patch('/:id', { preHandler: base }, controller.update.bind(controller));
+  app.patch('/:id', { preHandler: atendenteOnly }, controller.update.bind(controller));
 }

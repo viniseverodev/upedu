@@ -7,6 +7,7 @@ import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { errorHandler } from './shared/errors/error-handler';
+import { env } from './config/env';
 
 // Rotas
 import { authRoutes } from './modules/auth/auth.routes';
@@ -23,7 +24,9 @@ import { relatoriosRoutes } from './modules/relatorios/relatorios.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 
 export async function buildApp() {
-  const app = Fastify({ logger: true });
+  // BUG-020: trustProxy para que request.ip reflita o IP real do cliente via X-Forwarded-For
+  // (sem isso, todos os audit logs registram o IP do container nginx em vez do cliente)
+  const app = Fastify({ logger: true, trustProxy: true });
 
   // Zod type provider — ADR-001
   app.setValidatorCompiler(validatorCompiler);
@@ -31,7 +34,8 @@ export async function buildApp() {
 
   // Plugins
   await app.register(helmet);
-  await app.register(cors, { origin: process.env.FRONTEND_URL, credentials: true });
+  // BUG-017: usar env.FRONTEND_URL validado por Zod (garante que nunca seja undefined)
+  await app.register(cors, { origin: env.FRONTEND_URL, credentials: true });
   await app.register(cookie);
 
   // Error handler centralizado

@@ -7,9 +7,11 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
 import { loginSchema, changePasswordSchema } from './auth.schema';
+import { env } from '../../config/env';
 
+// WARN-009 fix: usar env.NODE_ENV (Zod-validado) em vez de process.env.NODE_ENV diretamente
 const COOKIE_BASE = {
-  secure: process.env.NODE_ENV === 'production',
+  secure: env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
 };
 
@@ -78,11 +80,24 @@ export class AuthController {
 
   async changePassword(request: FastifyRequest, reply: FastifyReply) {
     const body = changePasswordSchema.parse(request.body);
-    await this.service.changePassword(request.user.sub, body.newPassword);
+    // BUG-011: recebe novo par de tokens para evitar JWT com primeiroAcesso=true stale
+    const { accessToken, refreshToken } = await this.service.changePassword(
+      request.user.sub,
+      body.currentPassword,
+      body.newPassword,
+    );
 
-    // Limpar o flag de primeiro acesso — próximos JWTs terão primeiroAcesso=false
+    // Rolar o refresh token no cookie httpOnly
+    reply.setCookie('refreshToken', refreshToken, {
+      ...COOKIE_BASE,
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    });
+
+    // Limpar flag de primeiro acesso
     reply.clearCookie('requires-password-change', { path: '/' });
 
-    return reply.status(200).send({ message: 'Senha alterada com sucesso' });
+    return reply.status(200).send({ message: 'Senha alterada com sucesso', accessToken });
   }
 }

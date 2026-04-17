@@ -3,13 +3,13 @@
 // Formato armazenado: IV (16 bytes) + TAG (16 bytes) + ENCRYPTED (n bytes) → BYTEA no PostgreSQL
 
 import crypto from 'crypto';
+import { env } from '../../config/env';
 
 const ALGORITHM = 'aes-256-gcm';
 
 function getKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) throw new Error('ENCRYPTION_KEY não configurada');
-  return Buffer.from(key, 'hex');
+  // Usa env validado pelo Zod (garante hex de 64 chars) em vez de process.env direto
+  return Buffer.from(env.ENCRYPTION_KEY, 'hex');
 }
 
 export function encrypt(text: string): Buffer {

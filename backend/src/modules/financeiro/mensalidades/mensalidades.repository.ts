@@ -36,6 +36,7 @@ export class MensalidadesRepository {
     valorDesconto?: number;
     formaPagamento?: string | null;
     dataPagamento?: Date | null;
+    motivoCancelamento?: string | null;
   }) {
     return prisma.mensalidade.update({ where: { id }, data });
   }

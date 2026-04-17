@@ -14,12 +14,10 @@ export async function rateLimitLogin(
   const ip = request.ip;
   const key = `rate:login:${ip}`;
 
+  // WARN-006 fix: SET NX EX é atômico — evita race condition entre INCR e EXPIRE.
+  // Se a chave já existe, SET NX não faz nada; se não existe, cria com TTL em uma única operação.
+  await redis.set(key, '0', 'EX', REDIS_TTL.RATE_LIMIT_LOGIN, 'NX');
   const attempts = await redis.incr(key);
-
-  if (attempts === 1) {
-    // Primeira tentativa: setar TTL
-    await redis.expire(key, REDIS_TTL.RATE_LIMIT_LOGIN);
-  }
 
   if (attempts > MAX_ATTEMPTS) {
     const ttl = await redis.ttl(key);

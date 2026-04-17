@@ -9,6 +9,9 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z
   .object({
+    // BUG-021: no primeiroAcesso a senha temporária foi gerada pelo sistema,
+    // portanto não exigir a senha atual (validado no service via user.primeiroAcesso)
+    currentPassword: z.string().optional(),
     newPassword: z
       .string()
       .min(8, 'Mínimo 8 caracteres')

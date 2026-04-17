@@ -192,10 +192,26 @@ export class AuthService {
     return { accessToken, refreshToken: newRefreshTokenRaw };
   }
 
-  // S004 — Troca de senha no primeiro acesso
-  async changePassword(userId: string, newPassword: string) {
+  // S004 — Troca de senha com validação da senha atual
+  // BUG-011: emite novo par de tokens para que o frontend não fique com JWT primeiroAcesso=true
+  // BUG-021: currentPassword é opcional para primeiroAcesso (senha temp gerada pelo sistema)
+  async changePassword(userId: string, currentPassword: string | undefined, newPassword: string) {
+    const user = await this.repo.findById(userId);
+    if (!user) throw new UnauthorizedError('Usuário não encontrado');
+
+    // Usuários em primeiroAcesso não precisam informar a senha atual (foi gerada pelo sistema)
+    if (!user.primeiroAcesso) {
+      if (!currentPassword) throw new UnauthorizedError('Senha atual obrigatória');
+      const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isValid) throw new UnauthorizedError('Senha atual incorreta');
+    }
+
     const hash = await bcrypt.hash(newPassword, BCRYPT_COST);
     await this.repo.updatePassword(userId, hash);
+
+    // BUG-015: revogar todos os refresh tokens anteriores para encerrar sessões em outros dispositivos
+    await this.repo.revokeAllUserTokens(userId);
+
     await createAuditLog({
       userId,
       action: 'UPDATE',
@@ -203,5 +219,31 @@ export class AuthService {
       entityId: userId,
       newValues: { action: 'password_changed', primeiroAcesso: false },
     });
+
+    // Emite novo access token com primeiroAcesso=false imediatamente (BUG-011)
+    const jti = uuidv4();
+    const accessToken = jwt.sign(
+      {
+        sub: user.id,
+        jti,
+        role: user.role,
+        orgId: user.organizationId,
+        primeiroAcesso: false,
+      },
+      env.JWT_SECRET,
+      { expiresIn: env.JWT_EXPIRES_IN as any },
+    );
+
+    // Novo refresh token com rotação
+    const jtiRefresh = uuidv4();
+    const refreshToken = jwt.sign(
+      { sub: user.id, jti: jtiRefresh },
+      env.JWT_REFRESH_SECRET,
+      { expiresIn: env.JWT_REFRESH_EXPIRES_IN as any },
+    );
+    const refreshTokenHash = await bcrypt.hash(jtiRefresh, BCRYPT_COST);
+    await this.repo.saveRefreshToken(user.id, refreshTokenHash);
+
+    return { accessToken, refreshToken };
   }
 }

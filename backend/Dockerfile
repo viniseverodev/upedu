@@ -24,5 +24,10 @@ RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist/
 
+# SEC-002: rodar como non-root (espelha frontend/Dockerfile)
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nodeapp
+USER nodeapp
+
 EXPOSE 3001
 CMD ["node", "dist/server.js"]

@@ -38,11 +38,6 @@ export class AuthRepository {
     });
   }
 
-  // Busca TODOS os tokens (incluindo revogados) de um usuário — usado na detecção de roubo.
-  async findAllTokensByUser(userId: string) {
-    return prisma.refreshToken.findMany({ where: { userId } });
-  }
-
   async revokeTokenById(id: string) {
     return prisma.refreshToken.update({
       where: { id },

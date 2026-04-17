@@ -16,7 +16,11 @@ export class DashboardService {
     // Tentar cache Redis
     const cached = await redis.get(cacheKey).catch(() => null);
     if (cached) {
-      return JSON.parse(cached);
+      try {
+        return JSON.parse(cached);
+      } catch {
+        // Cache corrompido — recalcular do banco
+      }
     }
 
     // Calcular do banco

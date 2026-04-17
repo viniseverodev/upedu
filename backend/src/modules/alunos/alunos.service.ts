@@ -9,6 +9,7 @@
 import { AlunosRepository } from "./alunos.repository";
 import { createAuditLog } from "../../middlewares/audit";
 import { NotFoundError, ValidationError } from "../../shared/errors/AppError";
+import { decrypt, maskCpf, maskRg } from "../../shared/utils/crypto";
 import type {
   CreateAlunoInput,
   UpdateAlunoInput,
@@ -24,13 +25,31 @@ export class AlunosService {
     return this.repo.findAllByFilial(filialId, status);
   }
 
-  // S016 — Perfil completo do aluno
+  // S016 — Perfil completo do aluno (com CPF/RG mascarados nos responsaveis)
   async findById(id: string, filialId: string) {
     const aluno = await this.repo.findById(id);
     if (!aluno || aluno.deletedAt || aluno.filialId !== filialId) {
       throw new NotFoundError("Aluno");
     }
-    return aluno;
+
+    // Aplicar mascaramento de CPF/RG — S016 AC
+    const responsaveisMascarados = aluno.responsaveis.map((vinculo) => {
+      const r = vinculo.responsavel;
+      let cpf: string | null = null;
+      let rg: string | null = null;
+      if (r.cpfEnc) {
+        try { cpf = maskCpf(decrypt(Buffer.from(r.cpfEnc as Buffer)).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')); } catch { /* sem CPF */ }
+      }
+      if (r.rgEnc) {
+        try { rg = maskRg(decrypt(Buffer.from(r.rgEnc as Buffer))); } catch { /* sem RG */ }
+      }
+      return {
+        ...vinculo,
+        responsavel: { id: r.id, nome: r.nome, telefone: r.telefone, email: r.email, cpf, rg },
+      };
+    });
+
+    return { ...aluno, responsaveis: responsaveisMascarados };
   }
 
   // S012 — Criar aluno com conformidade LGPD
@@ -195,6 +214,9 @@ export class AlunosService {
       throw new NotFoundError("Filial destino");
     }
 
+    // S015 AC: aviso de mensalidades em aberto (não bloqueia — admin pode confirmar mesmo assim)
+    const qtdPendentes = await this.repo.countMensalidadesPendentes(id, filialOrigemId);
+
     const valorMensalidade =
       aluno.turno === "INTEGRAL"
         ? Number(filialDestino.valorMensalidadeIntegral)
@@ -223,12 +245,23 @@ export class AlunosService {
       ipAddress: ip,
     });
 
-    return this.repo.findById(id);
+    // Usar findById do service para aplicar mascaramento de CPF/RG (BUG-008: evitar vazamento de cpfEnc/rgEnc)
+    const alunoAtualizado = await this.findById(id, data.filialDestinoId);
+    return {
+      ...alunoAtualizado,
+      ...(qtdPendentes > 0
+        ? { aviso: `Aluno possui ${qtdPendentes} mensalidade(s) em aberto na filial atual` }
+        : {}),
+    };
   }
 
   // S017 — Exportação CSV (sem CPF/RG — LGPD)
   async exportCsv(filialId: string, status?: AlunoStatus): Promise<string> {
     const alunos = await this.repo.findAllByFilial(filialId, status);
+
+    // C4: prevenir injeção de fórmula CSV — prefixar com tab se valor começa com =, +, -, @
+    const sanitize = (val: string): string =>
+      /^[=+\-@\t\r]/.test(val) ? `\t${val}` : val;
 
     const header = [
       "nome",
@@ -242,12 +275,12 @@ export class AlunosService {
     const rows = alunos.map((a) => {
       const resp = a.responsaveis[0]?.responsavel;
       return [
-        `"${a.nome.replace(/"/g, '""')}"`,
+        `"${sanitize(a.nome).replace(/"/g, '""')}"`,
         a.dataNascimento.toISOString().slice(0, 10),
         a.status,
         a.turno,
-        `"${(resp?.nome ?? "").replace(/"/g, '""')}"`,
-        `"${(resp?.telefone ?? "").replace(/"/g, '""')}"`,
+        `"${sanitize(resp?.nome ?? "").replace(/"/g, '""')}"`,
+        `"${sanitize(resp?.telefone ?? "").replace(/"/g, '""')}"`,
       ].join(",");
     });
 

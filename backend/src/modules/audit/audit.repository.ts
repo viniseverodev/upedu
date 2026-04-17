@@ -33,10 +33,12 @@ export class AuditRepository {
   }
 
   async findAllForCsv(filters: Omit<AuditFilters, 'page'>) {
+    // BUG-019: limite máximo de 10 000 linhas para evitar exaustão de memória no export CSV
     return prisma.auditLog.findMany({
       where: this.buildWhere({ ...filters, page: 1 }),
       include: { user: { select: { nome: true, email: true } } },
       orderBy: { createdAt: 'desc' },
+      take: 10_000,
     });
   }
 

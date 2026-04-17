@@ -8,7 +8,10 @@ export const auditQuerySchema = z.object({
   entityType: z.string().optional(),
   dateFrom:   z.string().date().optional(),
   dateTo:     z.string().date().optional(),
-  page:       z.string().regex(/^\d+$/).transform(Number).default('1'),
+  // BUG-018: page sem limite superior → OFFSET gigante no banco; min=1 para evitar skip negativo
+  page: z.string().regex(/^\d+$/).transform(Number)
+    .refine((n) => n >= 1 && n <= 1000, { message: 'Página deve estar entre 1 e 1000' })
+    .default('1'),
   format:     z.enum(['json', 'csv']).default('json'),
 });
 

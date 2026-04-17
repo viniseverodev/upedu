@@ -69,17 +69,19 @@ export class ResponsaveisService {
     return this.toPublico(responsavel);
   }
 
-  // S018 — Buscar por ID com CPF/RG mascarados
-  async findById(id: string): Promise<ResponsavelPublico> {
+  // S018 — Buscar por ID com CPF/RG mascarados (BUG-009: check de org obrigatório)
+  async findById(id: string, orgId: string): Promise<ResponsavelPublico> {
     const responsavel = await this.repo.findById(id);
     if (!responsavel) throw new NotFoundError('Responsável');
+    await this.assertOrgAccess(id, orgId);
     return this.toPublico(responsavel);
   }
 
-  // S018 — Revelar CPF completo + audit log (LGPD Art. 18)
-  async revelarCpf(id: string, requesterId: string, ip?: string): Promise<{ cpf: string }> {
+  // S018 — Revelar CPF completo + audit log (LGPD Art. 18) (BUG-010: check de org obrigatório)
+  async revelarCpf(id: string, requesterId: string, orgId: string, ip?: string): Promise<{ cpf: string }> {
     const responsavel = await this.repo.findById(id);
     if (!responsavel) throw new NotFoundError('Responsável');
+    await this.assertOrgAccess(id, orgId);
     if (!responsavel.cpfEnc) throw new ValidationError('Responsável não possui CPF cadastrado');
 
     const cpfClean = decrypt(responsavel.cpfEnc as Buffer);
@@ -97,15 +99,17 @@ export class ResponsaveisService {
     return { cpf: cpfFormatted };
   }
 
-  // S018 — Atualizar responsável
+  // S018 — Atualizar responsável (BUG-009: check de org obrigatório)
   async update(
     id: string,
     updaterId: string,
+    orgId: string,
     data: UpdateResponsavelInput,
     ip?: string,
   ): Promise<ResponsavelPublico> {
     const responsavel = await this.repo.findById(id);
     if (!responsavel) throw new NotFoundError('Responsável');
+    await this.assertOrgAccess(id, orgId);
 
     const updateData: {
       nome?: string;
@@ -226,6 +230,17 @@ export class ResponsaveisService {
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
       ipAddress: ip,
     });
+  }
+
+  // BUG-009/010 — Verifica que o responsável está vinculado a um aluno da organização do solicitante
+  private async assertOrgAccess(responsavelId: string, orgId: string): Promise<void> {
+    const link = await prisma.alunoResponsavel.findFirst({
+      where: {
+        responsavelId,
+        aluno: { deletedAt: null, filial: { organizationId: orgId } },
+      },
+    });
+    if (!link) throw new NotFoundError('Responsável');
   }
 
   // Converte campos BYTEA para CPF/RG mascarados

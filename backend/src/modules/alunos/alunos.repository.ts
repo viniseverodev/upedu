@@ -26,7 +26,8 @@ export class AlunosRepository {
       include: {
         responsaveis: {
           include: {
-            responsavel: { select: { id: true, nome: true, telefone: true, email: true } },
+            // S016 AC: retornar CPF/RG mascarados — cpfEnc/rgEnc incluídos para decrypt no service
+            responsavel: { select: { id: true, nome: true, telefone: true, email: true, cpfEnc: true, rgEnc: true } },
           },
         },
         matriculas: { orderBy: { createdAt: 'desc' }, take: 5 },
@@ -120,12 +121,19 @@ export class AlunosRepository {
     });
   }
 
+  // S015 — contar mensalidades PENDENTE do aluno na filial de origem
+  async countMensalidadesPendentes(alunoId: string, filialId: string) {
+    return prisma.mensalidade.count({
+      where: { alunoId, filialId, status: 'PENDENTE' },
+    });
+  }
+
   // S015 — transferência atômica entre filiais
   async transferir(alunoId: string, novaFilialId: string, valorMensalidade: number, turno: Turno) {
     await prisma.$transaction([
       prisma.aluno.update({
         where: { id: alunoId },
-        data: { filialId: novaFilialId, status: 'PRE_MATRICULA' },
+        data: { filialId: novaFilialId, status: 'ATIVO' },
       }),
       prisma.matricula.updateMany({
         where: { alunoId, status: 'ATIVA' },

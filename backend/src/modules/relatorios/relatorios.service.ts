@@ -55,27 +55,34 @@ export class RelatoriosService {
       else totalDespesas += valor;
     }
 
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+
     return {
       mes,
       ano,
-      receitaMensalidades,
-      totalReceitas,
-      totalDespesas,
-      saldo: totalReceitas - totalDespesas,
-      porCategoria: Object.values(porCategoria),
+      receitaMensalidades: round2(receitaMensalidades),
+      totalReceitas: round2(totalReceitas),
+      totalDespesas: round2(totalDespesas),
+      saldo: round2(totalReceitas - totalDespesas),
+      porCategoria: Object.values(porCategoria).map((c) => ({ ...c, total: round2(c.total) })),
     };
   }
 
   // S028 — Exportação CSV
   async fluxoCaixaCsv(filialId: string, mes: number, ano: number): Promise<string> {
     const transacoes = await this.repo.findTransacoesPeriodo(filialId, mes, ano);
+
+    // C4: prevenir injeção de fórmula CSV — prefixar com tab se valor começa com =, +, -, @
+    const sanitize = (val: string): string =>
+      /^[=+\-@\t\r]/.test(val) ? `\t${val}` : val;
+
     const header = 'data,tipo,categoria,descricao,valor\n';
     const rows = transacoes.map((t) =>
       [
         t.dataTransacao.toISOString().split('T')[0],
         t.tipo,
-        t.categoria.nome,
-        `"${t.descricao.replace(/"/g, '""')}"`,
+        `"${sanitize(t.categoria.nome).replace(/"/g, '""')}"`,
+        `"${sanitize(t.descricao).replace(/"/g, '""')}"`,
         Number(t.valor).toFixed(2),
       ].join(','),
     );

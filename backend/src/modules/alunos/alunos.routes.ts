@@ -26,23 +26,27 @@ export async function alunosRoutes(app: FastifyInstance) {
 
   const base = [authenticate, filialContext];
   const adminOnly = [...base, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ'])];
+  // BUG-016: operações de escrita/deleção requerem ao menos ATENDENTE (PROFESSOR é read-only)
+  const atendenteOnly = [...base, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE'])];
+  // BUG-016: promoção e deleção requerem GERENTE_FILIAL+
+  const gerenteOnly = [...base, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL'])];
 
   app.get('/', { preHandler: base }, controller.list.bind(controller));
-  app.post('/', { preHandler: base }, controller.create.bind(controller));
+  app.post('/', { preHandler: atendenteOnly }, controller.create.bind(controller));
 
   // /export deve vir antes de /:id para não ser capturado como parâmetro
   app.get('/export', { preHandler: base }, controller.exportCsv.bind(controller));
 
   app.get('/:id', { preHandler: base }, controller.findById.bind(controller));
-  app.patch('/:id', { preHandler: base }, controller.update.bind(controller));
-  app.delete('/:id', { preHandler: base }, controller.softDelete.bind(controller));
+  app.patch('/:id', { preHandler: atendenteOnly }, controller.update.bind(controller));
+  app.delete('/:id', { preHandler: gerenteOnly }, controller.softDelete.bind(controller));
 
-  app.patch('/:id/promover', { preHandler: base }, controller.promover.bind(controller));
+  app.patch('/:id/promover', { preHandler: gerenteOnly }, controller.promover.bind(controller));
   app.patch('/:id/transferir', { preHandler: adminOnly }, controller.transferir.bind(controller));
 
-  // S019 — Vincular/desvincular responsáveis
-  app.post('/:id/responsaveis', { preHandler: base }, respController.vincular.bind(respController));
-  app.delete('/:alunoId/responsaveis/:responsavelId', { preHandler: base }, respController.desvincular.bind(respController));
+  // S019 — Vincular/desvincular responsáveis (BUG-016: escrita requer ATENDENTE+, desvincular requer GERENTE+)
+  app.post('/:id/responsaveis', { preHandler: atendenteOnly }, respController.vincular.bind(respController));
+  app.delete('/:alunoId/responsaveis/:responsavelId', { preHandler: gerenteOnly }, respController.desvincular.bind(respController));
 
   // S021 — Histórico de matrículas
   app.get('/:id/matriculas', { preHandler: base }, matriculasController.listByAluno.bind(matriculasController));

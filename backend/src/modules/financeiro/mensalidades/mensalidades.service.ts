@@ -130,7 +130,7 @@ export class MensalidadesService {
       throw new ValidationError('Mensalidade já está cancelada');
     }
 
-    const updated = await this.repo.update(id, { status: 'CANCELADA' });
+    const updated = await this.repo.update(id, { status: 'CANCELADA', motivoCancelamento });
 
     await createAuditLog({
       userId,
@@ -170,6 +170,7 @@ export class MensalidadesService {
     dataVencimento: Date;
     dataPagamento: Date | null;
     formaPagamento: string | null;
+    motivoCancelamento: string | null;
     createdAt: Date;
   }) {
     return {
@@ -186,6 +187,7 @@ export class MensalidadesService {
       dataVencimento: m.dataVencimento,
       dataPagamento: m.dataPagamento ?? null,
       formaPagamento: m.formaPagamento ?? null,
+      motivoCancelamento: m.motivoCancelamento ?? null,
       createdAt: m.createdAt,
     };
   }

@@ -24,25 +24,25 @@ export class ResponsaveisController {
     return reply.status(201).send(result);
   }
 
-  // GET /responsaveis/:id — S018
+  // GET /responsaveis/:id — S018 (BUG-009: passa orgId para check de tenant)
   async findById(req: FastifyRequest, reply: FastifyReply) {
     const { id } = req.params as { id: string };
-    const result = await this.service.findById(id);
+    const result = await this.service.findById(id, req.user.orgId);
     return reply.send(result);
   }
 
-  // GET /responsaveis/:id/revelar-cpf — S018
+  // GET /responsaveis/:id/revelar-cpf — S018 (BUG-010: passa orgId para check de tenant)
   async revelarCpf(req: FastifyRequest, reply: FastifyReply) {
     const { id } = req.params as { id: string };
-    const result = await this.service.revelarCpf(id, req.user.sub, req.ip);
+    const result = await this.service.revelarCpf(id, req.user.sub, req.user.orgId, req.ip);
     return reply.send(result);
   }
 
-  // PATCH /responsaveis/:id — S018
+  // PATCH /responsaveis/:id — S018 (BUG-009: passa orgId para check de tenant)
   async update(req: FastifyRequest, reply: FastifyReply) {
     const { id } = req.params as { id: string };
     const data = updateResponsavelSchema.parse(req.body);
-    const result = await this.service.update(id, req.user.sub, data, req.ip);
+    const result = await this.service.update(id, req.user.sub, req.user.orgId, data, req.ip);
     return reply.send(result);
   }
 

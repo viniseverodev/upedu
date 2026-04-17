@@ -3,14 +3,16 @@
 
 import Redis from 'ioredis';
 import { env } from './env';
+import { logger } from './logger';
 
 export const redis = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: 3,
   lazyConnect: true,
 });
 
+// WARN-007 fix: usar pino logger em vez de console.error para consistência de observabilidade
 redis.on('error', (err) => {
-  console.error('[Redis] Erro de conexão:', err);
+  logger.error({ err }, '[Redis] Erro de conexão');
 });
 
 // TTLs em segundos — centralizados para evitar magic numbers

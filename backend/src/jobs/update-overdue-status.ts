@@ -7,7 +7,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 
 export function startOverdueStatusJob() {
-  // Executa todos os dias à meia-noite
+  // C3: timezone explícito — meia-noite horário de Brasília (UTC-3) para evitar divergência
   cron.schedule('0 0 * * *', async () => {
     logger.info('[Job] Iniciando atualização de status de inadimplência...');
     try {
@@ -22,5 +22,5 @@ export function startOverdueStatusJob() {
     } catch (err) {
       logger.error({ err }, '[Job] Erro ao atualizar status de inadimplência');
     }
-  });
+  }, { timezone: 'America/Sao_Paulo' });
 }

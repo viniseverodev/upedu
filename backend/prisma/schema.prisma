@@ -103,6 +103,7 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([tokenHash]) // DB-001: evitar full scan na validação/revogação de token por hash
   @@map("refresh_tokens")
 }
 
@@ -224,12 +225,13 @@ model Mensalidade {
   valorOriginal  Decimal           @db.Decimal(10, 2)
   valorDesconto  Decimal           @default(0) @db.Decimal(10, 2)
   valorJuros     Decimal           @default(0) @db.Decimal(10, 2)
-  valorPago      Decimal?          @db.Decimal(10, 2)
-  dataVencimento DateTime
-  dataPagamento  DateTime?
-  formaPagamento String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  valorPago             Decimal?          @db.Decimal(10, 2)
+  dataVencimento        DateTime
+  dataPagamento         DateTime?
+  formaPagamento        String?
+  motivoCancelamento    String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   aluno  Aluno  @relation(fields: [alunoId], references: [id])
   filial Filial @relation(fields: [filialId], references: [id])

@@ -1,16 +1,21 @@
 // AlunosController — handlers HTTP (S012-S017)
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { AlunosService } from './alunos.service';
 import { createAlunoSchema, updateAlunoSchema, transferirAlunoSchema } from './alunos.schema';
-import type { AlunoStatus } from '@prisma/client';
+
+// BUG-013: validar status como enum para retornar 422 em vez de 500
+const listQuerySchema = z.object({
+  status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA', 'TRANSFERIDO']).optional(),
+});
 
 export class AlunosController {
   private service = new AlunosService();
 
   // S012 — GET /alunos?status=
   async list(request: FastifyRequest, reply: FastifyReply) {
-    const { status } = request.query as { status?: AlunoStatus };
+    const { status } = listQuerySchema.parse(request.query);
     const alunos = await this.service.list(request.filialId, status);
     return reply.status(200).send(alunos);
   }
@@ -59,9 +64,9 @@ export class AlunosController {
     return reply.status(200).send(aluno);
   }
 
-  // S017 — GET /alunos/export?status=&format=csv
+  // S017 — GET /alunos/export?status=&format=csv (BUG-013: mesmo schema de validação)
   async exportCsv(request: FastifyRequest, reply: FastifyReply) {
-    const { status } = request.query as { status?: AlunoStatus };
+    const { status } = listQuerySchema.parse(request.query);
     const csv = await this.service.exportCsv(request.filialId, status);
     return reply
       .status(200)

@@ -1,10 +1,12 @@
 // Validação de variáveis de ambiente com Zod
 // Falha rápido na inicialização se alguma var obrigatória estiver ausente
 
-import { z } from 'zod';
+import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
   PORT: z.coerce.number().default(3001),
 
   // Database
@@ -16,14 +18,19 @@ const envSchema = z.object({
   // JWT
   JWT_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  JWT_EXPIRES_IN: z.string().default("15m"),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
-  // Criptografia AES-256-GCM (32 bytes em hex = 64 chars)
-  ENCRYPTION_KEY: z.string().length(64),
+  // Criptografia AES-256-GCM (32 bytes em hex = 64 chars hexadecimais válidos)
+  ENCRYPTION_KEY: z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{64}$/,
+      "ENCRYPTION_KEY deve ter 64 caracteres hexadecimais",
+    ),
 
   // CORS
-  FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+  FRONTEND_URL: z.string().url().default("http://localhost:3000"),
 });
 
 export const env = envSchema.parse(process.env);

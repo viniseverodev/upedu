@@ -41,13 +41,17 @@ export class AuditService {
       isSuperAdmin,
     });
 
+    // C4: prevenir injeção de fórmula CSV — prefixar com tab se valor começa com =, +, -, @
+    const sanitize = (val: string): string =>
+      /^[=+\-@\t\r]/.test(val) ? `\t${val}` : val;
+
     const header = 'id,timestamp,usuario,email,acao,entidade,entidadeId,ip\n';
     const rows = logs.map((l) =>
       [
         l.id.toString(),
         l.createdAt.toISOString(),
-        `"${(l.user.nome ?? '').replace(/"/g, '""')}"`,
-        `"${(l.user.email ?? '').replace(/"/g, '""')}"`,
+        `"${sanitize(l.user.nome ?? '').replace(/"/g, '""')}"`,
+        `"${sanitize(l.user.email ?? '').replace(/"/g, '""')}"`,
         l.action,
         l.entityType,
         l.entityId,

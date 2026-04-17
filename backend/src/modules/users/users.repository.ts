@@ -3,6 +3,21 @@
 import { prisma } from '../../config/database';
 import type { CreateUserInput, UpdateUserInput } from './users.schema';
 
+// BUG-001: passwordHash nunca deve sair nas respostas da API
+const USER_SELECT = {
+  id: true,
+  organizationId: true,
+  nome: true,
+  email: true,
+  role: true,
+  ativo: true,
+  primeiroAcesso: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
+  filiais: { select: { filialId: true } },
+} as const;
+
 export class UsersRepository {
   async findByEmailAndOrg(email: string, organizationId: string) {
     return prisma.user.findFirst({
@@ -13,14 +28,14 @@ export class UsersRepository {
   async findById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      include: { filiais: { select: { filialId: true } } },
+      select: USER_SELECT,
     });
   }
 
   async findAllByOrg(organizationId: string) {
     return prisma.user.findMany({
       where: { organizationId, deletedAt: null },
-      include: { filiais: { select: { filialId: true } } },
+      select: USER_SELECT,
       orderBy: { nome: 'asc' },
     });
   }
@@ -40,7 +55,7 @@ export class UsersRepository {
           create: data.filialIds.map((filialId) => ({ filialId })),
         },
       },
-      include: { filiais: { select: { filialId: true } } },
+      select: USER_SELECT,
     });
   }
 
@@ -49,7 +64,7 @@ export class UsersRepository {
     return prisma.user.update({
       where: { id },
       data,
-      include: { filiais: { select: { filialId: true } } },
+      select: USER_SELECT,
     });
   }
 
@@ -61,13 +76,6 @@ export class UsersRepository {
         data: filialIds.map((filialId) => ({ userId, filialId })),
       }),
     ]);
-  }
-
-  // S010: buscar todos os refresh tokens ativos para blacklist
-  async findActiveRefreshTokens(userId: string) {
-    return prisma.refreshToken.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
-    });
   }
 
   // S010: revogar todos os refresh tokens do usuário
