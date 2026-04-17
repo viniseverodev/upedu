@@ -1,12 +1,19 @@
 // 404 — App Router not-found page
-// Substitui o /_error do Pages Router
+
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-gray-500">Página não encontrada</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 text-center dark:bg-slate-950">
+      <div className="card max-w-md px-12 py-14">
+        <p className="text-7xl font-black text-brand-600 dark:text-brand-400">404</p>
+        <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-slate-100">Página não encontrada</h1>
+        <p className="mt-2 text-sm text-gray-400 dark:text-slate-500">
+          O endereço que você acessou não existe ou foi movido.
+        </p>
+        <Link href="/kpis" className="btn-primary mt-6 inline-flex">
+          Voltar ao início
+        </Link>
       </div>
     </div>
   );

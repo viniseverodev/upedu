@@ -1,6 +1,4 @@
 // Auditoria — S035
-// Consulta de audit logs com filtros, paginação e exportação CSV
-// Acesso: SUPER_ADMIN e ADMIN_MATRIZ
 
 'use client';
 
@@ -9,45 +7,31 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 interface AuditLog {
-  id: string;
-  userId: string;
-  userName: string;
-  filialId: string | null;
-  action: string;
-  entityType: string;
-  entityId: string;
-  ipAddress: string | null;
-  createdAt: string;
+  id: string; userId: string; userName: string; filialId: string | null;
+  action: string; entityType: string; entityId: string;
+  ipAddress: string | null; createdAt: string;
 }
-
 interface AuditResponse {
-  data: AuditLog[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  data: AuditLog[]; total: number; page: number; pageSize: number; totalPages: number;
 }
 
-const ACTION_COLORS: Record<string, string> = {
-  CREATE: 'bg-green-100 text-green-700',
-  UPDATE: 'bg-blue-100 text-blue-700',
-  DELETE: 'bg-red-100 text-red-700',
-  LOGIN:  'bg-gray-100 text-gray-700',
-  LOGOUT: 'bg-gray-100 text-gray-600',
+const ACTION_BADGE: Record<string, string> = {
+  CREATE: 'badge-green', UPDATE: 'badge-blue', DELETE: 'badge-red',
+  LOGIN: 'badge-gray', LOGOUT: 'badge-gray', SUSPICIOUS_TOKEN_REUSE: 'badge-red',
 };
 
 export default function AuditoriaPage() {
-  const [page, setPage]               = useState(1);
-  const [userId, setUserId]           = useState('');
-  const [entityType, setEntityType]   = useState('');
-  const [dateFrom, setDateFrom]       = useState('');
-  const [dateTo, setDateTo]           = useState('');
+  const [page, setPage] = useState(1);
+  const [userId, setUserId] = useState('');
+  const [entityType, setEntityType] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const params = new URLSearchParams({ page: String(page) });
-  if (userId)     params.set('userId', userId);
+  if (userId) params.set('userId', userId);
   if (entityType) params.set('entityType', entityType);
-  if (dateFrom)   params.set('dateFrom', dateFrom);
-  if (dateTo)     params.set('dateTo', dateTo);
+  if (dateFrom) params.set('dateFrom', dateFrom);
+  if (dateTo) params.set('dateTo', dateTo);
 
   const { data, isLoading } = useQuery<AuditResponse>({
     queryKey: ['auditoria', page, userId, entityType, dateFrom, dateTo],
@@ -55,82 +39,56 @@ export default function AuditoriaPage() {
   });
 
   const exportarCsv = async () => {
-    const csvParams = new URLSearchParams(params);
-    csvParams.set('format', 'csv');
-    const res = await api.get(`/auditoria?${csvParams.toString()}`, { responseType: 'blob' });
+    const p = new URLSearchParams(params);
+    p.set('format', 'csv');
+    const res = await api.get(`/auditoria?${p.toString()}`, { responseType: 'blob' });
     const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'auditoria.csv';
-    a.click();
+    const a = document.createElement('a'); a.href = url; a.download = 'auditoria.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const aplicarFiltros = () => setPage(1);
-
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Auditoria</h1>
-        <button
-          onClick={exportarCsv}
-          className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-        >
+    <div className="mx-auto max-w-6xl space-y-5">
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Auditoria</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+            Registro de todas as ações do sistema
+          </p>
+        </div>
+        <button onClick={exportarCsv} className="btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
           Exportar CSV
         </button>
       </div>
 
       {/* Filtros */}
-      <div className="rounded-xl bg-white shadow-sm p-4 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="card p-5">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Filtros</p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de Entidade</label>
-            <input
-              value={entityType}
-              onChange={(e) => setEntityType(e.target.value)}
-              placeholder="ex: Aluno, Matricula..."
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-            />
+            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">Entidade</label>
+            <input value={entityType} onChange={(e) => setEntityType(e.target.value)} placeholder="Aluno, Matricula…" className="input-base text-xs" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">ID do Usuário</label>
-            <input
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="UUID do usuário"
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-            />
+            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">ID do Usuário</label>
+            <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="UUID" className="input-base text-xs" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">De</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-            />
+            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">De</label>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="input-base text-xs" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Até</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-            />
+            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">Até</label>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="input-base text-xs" />
           </div>
         </div>
         <div className="mt-3 flex gap-2">
-          <button
-            onClick={aplicarFiltros}
-            className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Filtrar
-          </button>
-          <button
-            onClick={() => { setEntityType(''); setUserId(''); setDateFrom(''); setDateTo(''); setPage(1); }}
-            className="rounded-md border px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-          >
+          <button onClick={() => setPage(1)} className="btn-primary py-2 text-xs">Filtrar</button>
+          <button onClick={() => { setEntityType(''); setUserId(''); setDateFrom(''); setDateTo(''); setPage(1); }} className="btn-ghost py-2 text-xs">
             Limpar
           </button>
         </div>
@@ -138,38 +96,38 @@ export default function AuditoriaPage() {
 
       {/* Tabela */}
       {isLoading ? (
-        <div className="text-center text-gray-400 py-12">Carregando...</div>
+        <div className="skeleton h-64" />
       ) : data && data.data.length > 0 ? (
         <>
-          <div className="rounded-xl bg-white shadow-sm overflow-hidden mb-4">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-gray-50">
+          <div className="table-container">
+            <table className="table-base">
+              <thead className="table-head">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Timestamp</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Usuário</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Ação</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Entidade</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">ID da Entidade</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">IP</th>
+                  <th className="table-th">Timestamp</th>
+                  <th className="table-th">Usuário</th>
+                  <th className="table-th">Ação</th>
+                  <th className="table-th">Entidade</th>
+                  <th className="table-th">ID da Entidade</th>
+                  <th className="table-th">IP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody>
                 {data.data.map((log) => (
-                  <tr key={log.id}>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                  <tr key={log.id} className="table-row">
+                    <td className="table-td whitespace-nowrap text-xs text-gray-400 dark:text-slate-500">
                       {new Date(log.createdAt).toLocaleString('pt-BR')}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{log.userName}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ACTION_COLORS[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
+                    <td className="table-td font-medium text-gray-900 dark:text-slate-100">{log.userName}</td>
+                    <td className="table-td">
+                      <span className={`badge ${ACTION_BADGE[log.action] ?? 'badge-gray'}`}>
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{log.entityType}</td>
-                    <td className="px-4 py-3 text-gray-500 font-mono text-xs truncate max-w-[140px]">
+                    <td className="table-td">{log.entityType}</td>
+                    <td className="table-td max-w-[140px] truncate font-mono text-xs text-gray-400 dark:text-slate-500">
                       {log.entityId}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{log.ipAddress ?? '—'}</td>
+                    <td className="table-td text-xs text-gray-400 dark:text-slate-500">{log.ipAddress ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -177,29 +135,23 @@ export default function AuditoriaPage() {
           </div>
 
           {/* Paginação */}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>{data.total} registros — página {data.page} de {data.totalPages}</span>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              {data.total} registros · página {data.page} de {data.totalPages}
+            </p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="rounded-md border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
-              >
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-secondary py-2 text-xs disabled:opacity-40">
                 Anterior
               </button>
-              <button
-                onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                disabled={page >= data.totalPages}
-                className="rounded-md border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
-              >
+              <button onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))} disabled={page >= data.totalPages} className="btn-secondary py-2 text-xs disabled:opacity-40">
                 Próxima
               </button>
             </div>
           </div>
         </>
       ) : (
-        <div className="rounded-lg border border-dashed p-8 text-center text-gray-400">
-          Nenhum registro encontrado com os filtros aplicados.
+        <div className="empty-state">
+          <p className="text-sm text-gray-400 dark:text-slate-500">Nenhum registro encontrado com os filtros aplicados.</p>
         </div>
       )}
     </div>

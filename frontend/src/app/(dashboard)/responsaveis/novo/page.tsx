@@ -12,28 +12,17 @@ import { useState } from 'react';
 import api from '@/lib/api';
 import { createResponsavelSchema, type CreateResponsavelInput } from '@/schemas/index';
 
-function Field({
-  label,
-  error,
-  children,
-  hint,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  hint?: string;
-}) {
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
-      <div className="mt-1">{children}</div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      {hint && <p className="mb-1 text-xs text-gray-400 dark:text-slate-500">{hint}</p>}
+      {children}
+      {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
   );
 }
 
-// Máscara de CPF: 000.000.000-00
 function maskCpf(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
   if (digits.length <= 3) return digits;
@@ -46,16 +35,10 @@ export default function NovoResponsavelPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm<CreateResponsavelInput>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<CreateResponsavelInput>({
     resolver: zodResolver(createResponsavelSchema),
   });
 
-  // Desestrutura o onChange do register para encadear com a máscara
   const { onChange: cpfOnChange, ...cpfRest } = register('cpf');
 
   const mutation = useMutation({
@@ -66,84 +49,62 @@ export default function NovoResponsavelPage() {
     },
   });
 
-  const inputClass = (hasError: boolean) =>
-    `block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-      hasError ? 'border-red-400' : 'border-gray-300'
-    }`;
-
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Novo Responsável</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          CPF e RG são criptografados (LGPD Art. 46).
-        </p>
+    <div className="mx-auto max-w-lg space-y-5">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Novo Responsável</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">CPF e RG são criptografados — LGPD Art. 46</p>
+        </div>
+        <button type="button" onClick={() => router.push('/responsaveis')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <form
-          onSubmit={handleSubmit((d) => {
-            setServerError(null);
-            mutation.mutate(d);
-          })}
-          noValidate
-          className="space-y-4"
-        >
+      <div className="card p-6">
+        <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} noValidate className="space-y-4">
           <Field label="Nome completo" error={errors.nome?.message}>
-            <input {...register('nome')} className={inputClass(!!errors.nome)} />
+            <input {...register('nome')} placeholder="Ex: Ana Souza" className={`input-base ${errors.nome ? 'input-error' : ''}`} />
           </Field>
 
-          <Field
-            label="CPF"
-            error={errors.cpf?.message}
-            hint="Formato: 000.000.000-00 (opcional)"
-          >
+          <Field label="CPF" error={errors.cpf?.message} hint="Formato: 000.000.000-00 (opcional)">
             <input
               {...cpfRest}
               placeholder="000.000.000-00"
               maxLength={14}
-              className={inputClass(!!errors.cpf)}
+              className={`input-base ${errors.cpf ? 'input-error' : ''}`}
               onChange={(e) => {
                 const masked = maskCpf(e.target.value);
                 e.target.value = masked;
                 setValue('cpf', masked, { shouldValidate: false });
-                // Encadeia com o onChange do register para manter o estado interno do RHF
                 cpfOnChange(e);
               }}
             />
           </Field>
 
           <Field label="RG" error={errors.rg?.message} hint="Opcional">
-            <input {...register('rg')} className={inputClass(!!errors.rg)} />
+            <input {...register('rg')} className={`input-base ${errors.rg ? 'input-error' : ''}`} />
           </Field>
 
-          <Field label="Telefone" error={errors.telefone?.message}>
-            <input {...register('telefone')} placeholder="(11) 99999-9999" className={inputClass(!!errors.telefone)} />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Telefone" error={errors.telefone?.message}>
+              <input {...register('telefone')} placeholder="(11) 99999-9999" className={`input-base ${errors.telefone ? 'input-error' : ''}`} />
+            </Field>
 
-          <Field label="Email" error={errors.email?.message}>
-            <input {...register('email')} type="email" className={inputClass(!!errors.email)} />
-          </Field>
+            <Field label="Email" error={errors.email?.message}>
+              <input {...register('email')} type="email" placeholder="ana@email.com" className={`input-base ${errors.email ? 'input-error' : ''}`} />
+            </Field>
+          </div>
 
           {serverError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+              {serverError}
+            </div>
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Salvando...' : 'Cadastrar Responsável'}
+            <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
+              {mutation.isPending ? 'Cadastrando…' : 'Cadastrar responsável'}
             </button>
-            <button
-              type="button"
-              onClick={() => router.push('/responsaveis')}
-              className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
+            <button type="button" onClick={() => router.push('/responsaveis')} className="btn-secondary">Cancelar</button>
           </div>
         </form>
       </div>

@@ -20,20 +20,12 @@ interface Aluno {
   observacoes: string | null;
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="mt-1">{children}</div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
   );
 }
@@ -51,12 +43,7 @@ export default function EditarAlunoPage() {
     queryFn: () => api.get(`/alunos/${id}`).then((r) => r.data),
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UpdateAlunoInput>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<UpdateAlunoInput>({
     resolver: zodResolver(updateAlunoSchema),
   });
 
@@ -80,23 +67,28 @@ export default function EditarAlunoPage() {
     },
   });
 
-  const inputClass = (hasError: boolean) =>
-    `block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-      hasError ? 'border-red-400' : 'border-gray-300'
-    }`;
-
   if (isLoading) {
-    return <div className="text-center text-gray-400 py-12">Carregando...</div>;
+    return (
+      <div className="mx-auto max-w-lg space-y-4">
+        <div className="skeleton h-8 w-48" />
+        <div className="card p-6 space-y-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-10 w-full" />)}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Editar Aluno</h1>
-        <p className="mt-1 text-sm text-gray-500">{aluno?.nome}</p>
+    <div className="mx-auto max-w-lg space-y-5">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Editar Aluno</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{aluno?.nome}</p>
+        </div>
+        <button type="button" onClick={() => router.push(`/alunos/${id}`)} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="card p-6">
         <form
           onSubmit={handleSubmit((d) => {
             setServerError(null);
@@ -111,22 +103,24 @@ export default function EditarAlunoPage() {
           className="space-y-4"
         >
           <Field label="Nome completo" error={errors.nome?.message}>
-            <input {...register('nome')} className={inputClass(!!errors.nome)} />
+            <input {...register('nome')} className={`input-base ${errors.nome ? 'input-error' : ''}`} />
           </Field>
 
-          <Field label="Data de nascimento" error={errors.dataNascimento?.message}>
-            <input {...register('dataNascimento')} type="date" className={inputClass(!!errors.dataNascimento)} />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Data de nascimento" error={errors.dataNascimento?.message}>
+              <input {...register('dataNascimento')} type="date" className={`input-base ${errors.dataNascimento ? 'input-error' : ''}`} />
+            </Field>
 
-          <Field label="Turno" error={errors.turno?.message}>
-            <select {...register('turno')} className={inputClass(!!errors.turno)}>
-              <option value="INTEGRAL">Integral</option>
-              <option value="MEIO_TURNO">Meio Turno</option>
-            </select>
-          </Field>
+            <Field label="Turno" error={errors.turno?.message}>
+              <select {...register('turno')} className={`input-base ${errors.turno ? 'input-error' : ''}`}>
+                <option value="INTEGRAL">Integral</option>
+                <option value="MEIO_TURNO">Meio Turno</option>
+              </select>
+            </Field>
+          </div>
 
           <Field label="Status" error={errors.status?.message}>
-            <select {...register('status')} className={inputClass(!!errors.status)}>
+            <select {...register('status')} className={`input-base ${errors.status ? 'input-error' : ''}`}>
               <option value="PRE_MATRICULA">Pré-Matrícula</option>
               <option value="ATIVO">Ativo</option>
               <option value="INATIVO">Inativo</option>
@@ -135,34 +129,33 @@ export default function EditarAlunoPage() {
           </Field>
 
           <Field label="Observações" error={errors.observacoes?.message}>
-            <textarea {...register('observacoes')} rows={3} className={inputClass(!!errors.observacoes)} />
+            <textarea {...register('observacoes')} rows={3} className={`input-base resize-none ${errors.observacoes ? 'input-error' : ''}`} />
           </Field>
 
           {serverError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+              {serverError}
+            </div>
           )}
 
-          {/* Confirmação de inativação */}
           {showInativarConfirm && (
-            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4">
-              <p className="text-sm font-medium text-yellow-800">
-                Inativar este aluno?
-              </p>
-              <p className="mt-1 text-xs text-yellow-700">
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-4 dark:border-yellow-700/40 dark:bg-yellow-700/10">
+              <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Inativar este aluno?</p>
+              <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">
                 A matrícula ativa será encerrada e mensalidades pendentes serão canceladas.
               </p>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setShowInativarConfirm(false); mutation.mutate(pendingData ?? { status: 'INATIVO' }); }}
-                  className="rounded bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
+                  className="rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
                 >
                   Confirmar inativação
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowInativarConfirm(false)}
-                  className="rounded border px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                  className="btn-ghost text-xs"
                 >
                   Cancelar
                 </button>
@@ -171,20 +164,10 @@ export default function EditarAlunoPage() {
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+            <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
+              {mutation.isPending ? 'Salvando…' : 'Salvar alterações'}
             </button>
-            <button
-              type="button"
-              onClick={() => router.push(`/alunos/${id}`)}
-              className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
+            <button type="button" onClick={() => router.push(`/alunos/${id}`)} className="btn-secondary">Cancelar</button>
           </div>
         </form>
       </div>

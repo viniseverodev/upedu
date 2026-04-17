@@ -1,4 +1,4 @@
-// Cadastro de usuário — S009 (Sprint 3)
+// Cadastro de usuário — S009
 
 'use client';
 
@@ -12,12 +12,8 @@ import api from '@/lib/api';
 import { usePermission, useRole } from '@/hooks/usePermission';
 import { createUserSchema, type CreateUserInput } from '@/schemas/index';
 
-interface Filial {
-  id: string;
-  nome: string;
-}
+interface Filial { id: string; nome: string }
 
-// Roles que cada nível hierárquico pode criar
 const ROLES_BY_LEVEL: Record<string, { value: string; label: string }[]> = {
   SUPER_ADMIN: [
     { value: 'SUPER_ADMIN', label: 'Super Admin' },
@@ -33,20 +29,12 @@ const ROLES_BY_LEVEL: Record<string, { value: string; label: string }[]> = {
   ],
 };
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="mt-1">{children}</div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
   );
 }
@@ -65,134 +53,109 @@ export default function NovoUsuarioPage() {
     queryFn: () => api.get('/filiais').then((r) => r.data),
   });
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<CreateUserInput>({
+  const { register, handleSubmit, formState: { errors } } = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
     defaultValues: { filialIds: [] },
   });
 
   const mutation = useMutation({
     mutationFn: (data: CreateUserInput) => api.post('/users', data),
-    onSuccess: (res) => {
-      setTempPassword(res.data.tempPassword);
-    },
+    onSuccess: (res) => { setTempPassword(res.data.tempPassword); },
     onError: (error: AxiosError<{ message: string }>) => {
       setServerError(error.response?.data?.message ?? 'Erro ao cadastrar usuário.');
     },
   });
 
-  const inputClass = (hasError: boolean) =>
-    `block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-      hasError ? 'border-red-400' : 'border-gray-300'
-    }`;
-
-  // Modal de senha temporária — redireciona ao fechar
   if (tempPassword) {
     return (
       <div className="mx-auto max-w-lg">
-        <div className="rounded-xl bg-white p-8 shadow-sm text-center space-y-4">
-          <div className="text-4xl">✅</div>
-          <h2 className="text-xl font-bold text-gray-900">Usuário criado!</h2>
-          <p className="text-sm text-gray-500">
-            Compartilhe a senha temporária com o usuário. Ele será obrigado a trocá-la no primeiro acesso.
-          </p>
-          <div className="rounded-lg bg-gray-100 px-6 py-4">
-            <p className="text-xs text-gray-500 mb-1">Senha temporária</p>
-            <p className="font-mono text-xl font-bold text-gray-900 tracking-widest">{tempPassword}</p>
+        <div className="card flex flex-col items-center gap-4 p-10 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-forest-50 dark:bg-forest-700/20">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="h-8 w-8 text-forest-500 dark:text-forest-300">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+            </svg>
           </div>
-          <p className="text-xs text-yellow-600 bg-yellow-50 rounded p-2">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Usuário criado!</h2>
+            <p className="mt-1 text-sm text-gray-400 dark:text-slate-500">Compartilhe a senha temporária. O usuário deverá trocá-la no primeiro acesso.</p>
+          </div>
+          <div className="w-full rounded-xl border border-gray-200 bg-gray-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-800">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Senha temporária</p>
+            <p className="font-mono text-2xl font-bold tracking-widest text-brand-600 dark:text-brand-300">{tempPassword}</p>
+          </div>
+          <div className="flex items-start gap-2 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-700 dark:border-yellow-700/40 dark:bg-yellow-700/10 dark:text-yellow-300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" clipRule="evenodd" />
+            </svg>
             Esta senha não será exibida novamente.
-          </p>
-          <button
-            onClick={() => router.push('/usuarios')}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Concluir
-          </button>
+          </div>
+          <button onClick={() => router.push('/usuarios')} className="btn-primary w-full">Concluir</button>
         </div>
       </div>
     );
   }
 
   if (!canManage) {
-    return <div className="text-gray-400 text-center py-12">Sem permissão.</div>;
+    return (
+      <div className="empty-state mt-12">
+        <p className="text-sm text-gray-400 dark:text-slate-500">Sem permissão para criar usuários.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Novo Usuário</h1>
-        <p className="mt-1 text-sm text-gray-500">Uma senha temporária será gerada automaticamente.</p>
+    <div className="mx-auto max-w-lg space-y-5">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Novo Usuário</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">Uma senha temporária será gerada automaticamente.</p>
+        </div>
+        <button type="button" onClick={() => router.push('/usuarios')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <form
-          onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })}
-          noValidate
-          className="space-y-4"
-        >
+      <div className="card p-6">
+        <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} noValidate className="space-y-4">
           <Field label="Nome completo" error={errors.nome?.message}>
-            <input {...register('nome')} className={inputClass(!!errors.nome)} placeholder="Ex: João da Silva" />
+            <input {...register('nome')} placeholder="Ex: João da Silva" className={`input-base ${errors.nome ? 'input-error' : ''}`} />
           </Field>
 
           <Field label="Email" error={errors.email?.message}>
-            <input {...register('email')} type="email" className={inputClass(!!errors.email)} placeholder="joao@escola.com" />
+            <input {...register('email')} type="email" placeholder="joao@escola.com" className={`input-base ${errors.email ? 'input-error' : ''}`} />
           </Field>
 
-          <Field label="Role" error={errors.role?.message}>
-            <select {...register('role')} className={inputClass(!!errors.role)}>
-              <option value="">Selecione...</option>
-              {availableRoles.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
+          <Field label="Perfil de acesso" error={errors.role?.message}>
+            <select {...register('role')} className={`input-base ${errors.role ? 'input-error' : ''}`}>
+              <option value="">Selecione…</option>
+              {availableRoles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </Field>
 
           <Field label="Filiais de acesso" error={errors.filialIds?.message}>
-            <div className="space-y-2 rounded-md border border-gray-300 p-3 max-h-48 overflow-y-auto">
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-3 dark:border-slate-700">
               {filiais.length === 0 ? (
                 <p className="text-xs text-gray-400">Nenhuma filial disponível.</p>
               ) : (
                 filiais.map((f) => (
-                  <label key={f.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      value={f.id}
-                      {...register('filialIds')}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                    />
-                    <span className="text-sm text-gray-700">{f.nome}</span>
+                  <label key={f.id} className="flex cursor-pointer items-center gap-2.5">
+                    <input type="checkbox" value={f.id} {...register('filialIds')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
+                    <span className="text-sm text-gray-700 dark:text-slate-300">{f.nome}</span>
                   </label>
                 ))
               )}
             </div>
-            {errors.filialIds && (
-              <p className="mt-1 text-xs text-red-600">{errors.filialIds.message}</p>
-            )}
           </Field>
 
           {serverError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+              {serverError}
+            </div>
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Criando...' : 'Criar usuário'}
+            <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
+              {mutation.isPending ? 'Criando…' : 'Criar usuário'}
             </button>
-            <button
-              type="button"
-              onClick={() => router.push('/usuarios')}
-              className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
+            <button type="button" onClick={() => router.push('/usuarios')} className="btn-secondary">Cancelar</button>
           </div>
         </form>
       </div>

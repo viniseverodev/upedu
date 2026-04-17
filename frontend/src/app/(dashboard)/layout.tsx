@@ -1,4 +1,4 @@
-// Layout do dashboard — sidebar + topbar — S008
+// Layout do dashboard — sidebar + topbar + main
 
 import type { ReactNode } from 'react';
 import { Sidebar } from '@/components/layouts/Sidebar';
@@ -6,11 +6,11 @@ import { TopBar } from '@/components/layouts/TopBar';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-slate-950">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
       </div>

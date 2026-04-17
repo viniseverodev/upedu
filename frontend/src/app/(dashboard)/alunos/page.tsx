@@ -1,4 +1,4 @@
-// Listagem de alunos — S012 (Sprint 4)
+// Listagem de alunos — S012
 
 'use client';
 
@@ -6,46 +6,26 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/utils';
 
-interface Responsavel {
-  id: string;
-  nome: string;
-  telefone: string | null;
-}
-
-interface AlunoResponsavel {
-  responsavel: Responsavel;
-}
-
+interface Responsavel { id: string; nome: string; telefone: string | null }
+interface AlunoResponsavel { responsavel: Responsavel }
 interface Aluno {
-  id: string;
-  nome: string;
-  dataNascimento: string;
-  status: string;
-  turno: string;
-  responsaveis: AlunoResponsavel[];
+  id: string; nome: string; dataNascimento: string;
+  status: string; turno: string; responsaveis: AlunoResponsavel[];
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  PRE_MATRICULA: 'Pré-Matrícula',
-  ATIVO: 'Ativo',
-  INATIVO: 'Inativo',
-  LISTA_ESPERA: 'Lista de Espera',
-  TRANSFERIDO: 'Transferido',
+  PRE_MATRICULA: 'Pré-Matrícula', ATIVO: 'Ativo', INATIVO: 'Inativo',
+  LISTA_ESPERA: 'Lista de Espera', TRANSFERIDO: 'Transferido',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  PRE_MATRICULA: 'bg-blue-100 text-blue-700',
-  ATIVO: 'bg-green-100 text-green-700',
-  INATIVO: 'bg-gray-100 text-gray-500',
-  LISTA_ESPERA: 'bg-yellow-100 text-yellow-700',
-  TRANSFERIDO: 'bg-purple-100 text-purple-700',
+const STATUS_BADGE: Record<string, string> = {
+  PRE_MATRICULA: 'badge-blue', ATIVO: 'badge-green', INATIVO: 'badge-gray',
+  LISTA_ESPERA: 'badge-yellow', TRANSFERIDO: 'badge-purple',
 };
 
-const TURNO_LABELS: Record<string, string> = {
-  INTEGRAL: 'Integral',
-  MEIO_TURNO: 'Meio Turno',
-};
+const FILTERS = ['', 'PRE_MATRICULA', 'ATIVO', 'INATIVO', 'LISTA_ESPERA'];
 
 export default function AlunosPage() {
   const [statusFilter, setStatusFilter] = useState('');
@@ -53,94 +33,95 @@ export default function AlunosPage() {
   const { data: alunos = [], isLoading } = useQuery<Aluno[]>({
     queryKey: ['alunos', statusFilter],
     queryFn: () =>
-      api
-        .get('/alunos', { params: statusFilter ? { status: statusFilter } : {} })
-        .then((r) => r.data),
+      api.get('/alunos', { params: statusFilter ? { status: statusFilter } : {} }).then((r) => r.data),
   });
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Alunos</h1>
-        <Link
-          href="/alunos/novo"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Novo Aluno
+    <div className="mx-auto max-w-6xl space-y-5">
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Alunos</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+            {isLoading ? '…' : `${alunos.length} aluno${alunos.length !== 1 ? 's' : ''} encontrado${alunos.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
+        <Link href="/alunos/novo" className="btn-primary">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5z" />
+          </svg>
+          Novo Aluno
         </Link>
       </div>
 
-      {/* Filtros de status */}
-      <div className="mb-4 flex gap-2 flex-wrap">
-        {['', 'PRE_MATRICULA', 'ATIVO', 'INATIVO', 'LISTA_ESPERA'].map((s) => (
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+            className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition-all ${
               statusFilter === s
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
             }`}
           >
-            {s === '' ? 'Todos' : (STATUS_LABELS[s] ?? s)}
+            {s === '' ? 'Todos' : STATUS_LABELS[s]}
           </button>
         ))}
       </div>
 
+      {/* Conteúdo */}
       {isLoading ? (
-        <div className="text-center text-gray-400 py-12">Carregando...</div>
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-14 rounded-xl" />)}
+        </div>
       ) : alunos.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center text-gray-400">
-          Nenhum aluno encontrado.
+        <div className="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-slate-700">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+          </svg>
+          <p className="text-sm font-medium text-gray-500 dark:text-slate-400">Nenhum aluno encontrado</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-slate-600">Tente alterar o filtro ou cadastre um novo aluno.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
+        <div className="table-container">
+          <table className="table-base">
+            <thead className="table-head">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Nome</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Nascimento</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Turno</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Responsável</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-                <th className="px-4 py-3" />
+                <th className="table-th">Nome</th>
+                <th className="table-th">Nascimento</th>
+                <th className="table-th">Turno</th>
+                <th className="table-th">Responsável</th>
+                <th className="table-th">Status</th>
+                <th className="table-th w-24" />
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody>
               {alunos.map((aluno) => (
-                <tr key={aluno.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{aluno.nome}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {new Date(aluno.dataNascimento).toLocaleDateString('pt-BR')}
+                <tr key={aluno.id} className="table-row">
+                  <td className="table-td font-semibold text-gray-900 dark:text-slate-100">{aluno.nome}</td>
+                  <td className="table-td">{formatDate(aluno.dataNascimento)}</td>
+                  <td className="table-td">
+                    <span className={aluno.turno === 'INTEGRAL' ? 'badge-blue badge' : 'badge-gray badge'}>
+                      {aluno.turno === 'INTEGRAL' ? 'Integral' : 'Meio Turno'}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {TURNO_LABELS[aluno.turno] ?? aluno.turno}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {aluno.responsaveis[0]?.responsavel.nome ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                        STATUS_COLORS[aluno.status] ?? 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
+                  <td className="table-td">{aluno.responsaveis[0]?.responsavel.nome ?? '—'}</td>
+                  <td className="table-td">
+                    <span className={STATUS_BADGE[aluno.status] ?? 'badge-gray'}>
                       {STATUS_LABELS[aluno.status] ?? aluno.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/alunos/${aluno.id}`}
-                      className="text-sm text-blue-600 hover:underline mr-3"
-                    >
-                      Ver
-                    </Link>
-                    <Link
-                      href={`/alunos/${aluno.id}/editar`}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      Editar
-                    </Link>
+                  <td className="table-td">
+                    <div className="flex items-center justify-end gap-3">
+                      <Link href={`/alunos/${aluno.id}`} className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400">
+                        Ver
+                      </Link>
+                      <Link href={`/alunos/${aluno.id}/editar`} className="text-xs font-medium text-gray-500 hover:text-gray-700 hover:underline dark:text-slate-400 dark:hover:text-slate-200">
+                        Editar
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

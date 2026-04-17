@@ -1,5 +1,5 @@
-// DataTable — wrapper de tabela com paginação
-// TODO: implementar com shadcn/ui Table + TanStack Query
+// DataTable — wrapper de tabela com design system
+// TODO: adicionar paginação quando necessário
 
 'use client';
 
@@ -10,22 +10,20 @@ interface DataTableProps<T> {
 
 export function DataTable<T extends Record<string, unknown>>({ data, columns }: DataTableProps<T>) {
   return (
-    <div className="rounded-md border">
-      <table className="w-full">
+    <div className="table-container">
+      <table className="table-base">
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={String(col.key)} className="px-4 py-3 text-left text-sm font-medium">
-                {col.label}
-              </th>
+              <th key={String(col.key)} className="table-th">{col.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i} className="border-t">
+            <tr key={i} className="table-row">
               {columns.map((col) => (
-                <td key={String(col.key)} className="px-4 py-3 text-sm">
+                <td key={String(col.key)} className="table-td">
                   {String(row[col.key] ?? '')}
                 </td>
               ))}

@@ -12,10 +12,7 @@ import api from '@/lib/api';
 import { useRole } from '@/hooks/usePermission';
 import { updateUserSchema, type UpdateUserInput } from '@/schemas/index';
 
-interface UserFilial {
-  filialId: string;
-}
-
+interface UserFilial { filialId: string }
 interface User {
   id: string;
   nome: string;
@@ -24,11 +21,7 @@ interface User {
   ativo: boolean;
   filiais: UserFilial[];
 }
-
-interface Filial {
-  id: string;
-  nome: string;
-}
+interface Filial { id: string; nome: string }
 
 const ROLES_BY_LEVEL: Record<string, { value: string; label: string }[]> = {
   SUPER_ADMIN: [
@@ -45,20 +38,12 @@ const ROLES_BY_LEVEL: Record<string, { value: string; label: string }[]> = {
   ],
 };
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="mt-1">{children}</div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
   );
 }
@@ -90,12 +75,7 @@ export default function EditarUsuarioPage() {
     queryFn: () => api.get('/filiais').then((r) => r.data),
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UpdateUserInput>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
   });
 
@@ -118,23 +98,28 @@ export default function EditarUsuarioPage() {
     },
   });
 
-  const inputClass = (hasError: boolean) =>
-    `block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-      hasError ? 'border-red-400' : 'border-gray-300'
-    }`;
-
   if (loadingUser) {
-    return <div className="text-center text-gray-400 py-12">Carregando...</div>;
+    return (
+      <div className="mx-auto max-w-lg space-y-4">
+        <div className="skeleton h-8 w-48" />
+        <div className="card p-6 space-y-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-10 w-full" />)}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Editar Usuário</h1>
-        <p className="mt-1 text-sm text-gray-500">{user?.email}</p>
+    <div className="mx-auto max-w-lg space-y-5">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Editar Usuário</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{user?.email}</p>
+        </div>
+        <button type="button" onClick={() => router.push('/usuarios')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="card p-6">
         <form
           onSubmit={handleSubmit((d) => {
             setServerError(null);
@@ -149,11 +134,11 @@ export default function EditarUsuarioPage() {
           className="space-y-4"
         >
           <Field label="Nome completo" error={errors.nome?.message}>
-            <input {...register('nome')} className={inputClass(!!errors.nome)} />
+            <input {...register('nome')} className={`input-base ${errors.nome ? 'input-error' : ''}`} />
           </Field>
 
-          <Field label="Role" error={errors.role?.message}>
-            <select {...register('role')} className={inputClass(!!errors.role)}>
+          <Field label="Perfil de acesso" error={errors.role?.message}>
+            <select {...register('role')} className={`input-base ${errors.role ? 'input-error' : ''}`}>
               {availableRoles.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
@@ -161,59 +146,54 @@ export default function EditarUsuarioPage() {
           </Field>
 
           <Field label="Filiais de acesso" error={errors.filialIds?.message}>
-            <div className="space-y-2 rounded-md border border-gray-300 p-3 max-h-48 overflow-y-auto">
-              {filiais.map((f) => (
-                <label key={f.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    value={f.id}
-                    {...register('filialIds')}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">{f.nome}</span>
-                </label>
-              ))}
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-3 dark:border-slate-700">
+              {filiais.length === 0 ? (
+                <p className="text-xs text-gray-400">Nenhuma filial disponível.</p>
+              ) : (
+                filiais.map((f) => (
+                  <label key={f.id} className="flex cursor-pointer items-center gap-2.5">
+                    <input type="checkbox" value={f.id} {...register('filialIds')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
+                    <span className="text-sm text-gray-700 dark:text-slate-300">{f.nome}</span>
+                  </label>
+                ))
+              )}
             </div>
           </Field>
 
-          {/* Toggle de ativação */}
-          <div className="flex items-center gap-3 rounded-md border p-3">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-slate-700">
             <input
               {...register('ativo')}
               type="checkbox"
               id="ativo"
-              className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              className="h-4 w-4 rounded border-gray-300 accent-brand-600"
             />
-            <label htmlFor="ativo" className="text-sm text-gray-700">
-              Usuário ativo
-            </label>
+            <label htmlFor="ativo" className="text-sm text-gray-700 dark:text-slate-300">Usuário ativo</label>
           </div>
 
           {serverError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+              {serverError}
+            </div>
           )}
 
-          {/* Confirmação de desativação */}
           {showDeactivateConfirm && (
-            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4">
-              <p className="text-sm font-medium text-yellow-800">
-                Desativar este usuário imediatamente?
-              </p>
-              <p className="mt-1 text-xs text-yellow-700">
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-4 dark:border-yellow-700/40 dark:bg-yellow-700/10">
+              <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Desativar este usuário imediatamente?</p>
+              <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">
                 Todas as sessões ativas serão encerradas e o acesso será bloqueado.
               </p>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setShowDeactivateConfirm(false); mutation.mutate(pendingData ?? { ativo: false }); }}
-                  className="rounded bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
+                  className="rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
                 >
                   Confirmar desativação
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowDeactivateConfirm(false)}
-                  className="rounded border px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                  className="btn-ghost text-xs"
                 >
                   Cancelar
                 </button>
@@ -222,20 +202,10 @@ export default function EditarUsuarioPage() {
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+            <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
+              {mutation.isPending ? 'Salvando…' : 'Salvar alterações'}
             </button>
-            <button
-              type="button"
-              onClick={() => router.push('/usuarios')}
-              className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
+            <button type="button" onClick={() => router.push('/usuarios')} className="btn-secondary">Cancelar</button>
           </div>
         </form>
       </div>

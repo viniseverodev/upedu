@@ -21,20 +21,12 @@ interface Filial {
   ativo: boolean;
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="mt-1">{children}</div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
   );
 }
@@ -57,12 +49,7 @@ export default function EditarFilialPage() {
       }),
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UpdateFilialInput>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<UpdateFilialInput>({
     resolver: zodResolver(updateFilialSchema),
   });
 
@@ -87,27 +74,31 @@ export default function EditarFilialPage() {
     },
   });
 
-  const inputClass = (hasError: boolean) =>
-    `block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-      hasError ? 'border-red-400' : 'border-gray-300'
-    }`;
-
   if (isLoading) {
-    return <div className="text-center text-gray-400 py-12">Carregando...</div>;
+    return (
+      <div className="mx-auto max-w-lg space-y-4">
+        <div className="skeleton h-8 w-48" />
+        <div className="card p-6 space-y-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton h-10 w-full" />)}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Editar Filial</h1>
-        <p className="mt-1 text-sm text-gray-500">{filial?.nome}</p>
+    <div className="mx-auto max-w-lg space-y-5">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Editar Filial</h1>
+          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{filial?.nome}</p>
+        </div>
+        <button type="button" onClick={() => router.push('/filiais')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="card p-6">
         <form
           onSubmit={handleSubmit((d) => {
             setServerError(null);
-            // Confirmação para desativação
             if (d.ativo === false && filial?.ativo === true) {
               setShowDeactivateConfirm(true);
               return;
@@ -118,81 +109,78 @@ export default function EditarFilialPage() {
           className="space-y-4"
         >
           <Field label="Nome da filial" error={errors.nome?.message}>
-            <input {...register('nome')} className={inputClass(!!errors.nome)} />
+            <input {...register('nome')} className={`input-base ${errors.nome ? 'input-error' : ''}`} />
           </Field>
 
           <Field label="CNPJ" error={errors.cnpj?.message}>
-            <input {...register('cnpj')} className={inputClass(!!errors.cnpj)} maxLength={18} />
+            <input {...register('cnpj')} maxLength={18} className={`input-base ${errors.cnpj ? 'input-error' : ''}`} />
           </Field>
 
           <Field label="Dia de vencimento" error={errors.diaVencimento?.message}>
-            <select {...register('diaVencimento')} className={inputClass(!!errors.diaVencimento)}>
+            <select {...register('diaVencimento')} className={`input-base ${errors.diaVencimento ? 'input-error' : ''}`}>
               {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-                <option key={d} value={d}>
-                  Dia {d}
-                </option>
+                <option key={d} value={d}>Dia {d}</option>
               ))}
             </select>
           </Field>
 
-          <Field label="Mensalidade integral (R$)" error={errors.valorMensalidadeIntegral?.message}>
-            <input
-              {...register('valorMensalidadeIntegral')}
-              type="number"
-              step="0.01"
-              min="0"
-              className={inputClass(!!errors.valorMensalidadeIntegral)}
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Mensalidade integral (R$)" error={errors.valorMensalidadeIntegral?.message}>
+              <input
+                {...register('valorMensalidadeIntegral')}
+                type="number"
+                step="0.01"
+                min="0"
+                className={`input-base ${errors.valorMensalidadeIntegral ? 'input-error' : ''}`}
+              />
+            </Field>
 
-          <Field label="Mensalidade meio turno (R$)" error={errors.valorMensalidadeMeioTurno?.message}>
-            <input
-              {...register('valorMensalidadeMeioTurno')}
-              type="number"
-              step="0.01"
-              min="0"
-              className={inputClass(!!errors.valorMensalidadeMeioTurno)}
-            />
-          </Field>
+            <Field label="Mensalidade meio turno (R$)" error={errors.valorMensalidadeMeioTurno?.message}>
+              <input
+                {...register('valorMensalidadeMeioTurno')}
+                type="number"
+                step="0.01"
+                min="0"
+                className={`input-base ${errors.valorMensalidadeMeioTurno ? 'input-error' : ''}`}
+              />
+            </Field>
+          </div>
 
           {/* Toggle de ativação */}
-          <div className="flex items-center gap-3 rounded-md border p-3">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-slate-700">
             <input
               {...register('ativo')}
               type="checkbox"
               id="ativo"
-              className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              className="h-4 w-4 rounded border-gray-300 accent-brand-600"
             />
-            <label htmlFor="ativo" className="text-sm text-gray-700">
-              Filial ativa
-            </label>
+            <label htmlFor="ativo" className="text-sm text-gray-700 dark:text-slate-300">Filial ativa</label>
           </div>
 
           {serverError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+              {serverError}
+            </div>
           )}
 
-          {/* Modal de confirmação para desativação */}
           {showDeactivateConfirm && (
-            <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4">
-              <p className="text-sm font-medium text-yellow-800">
-                Tem certeza que deseja desativar esta filial?
-              </p>
-              <p className="mt-1 text-xs text-yellow-700">
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-4 dark:border-yellow-700/40 dark:bg-yellow-700/10">
+              <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Desativar esta filial?</p>
+              <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">
                 A filial deixará de aparecer para seleção. Alunos ativos impedirão a desativação.
               </p>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setShowDeactivateConfirm(false); mutation.mutate({ ativo: false }); }}
-                  className="rounded bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
+                  className="rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-yellow-700"
                 >
                   Confirmar desativação
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowDeactivateConfirm(false)}
-                  className="rounded border px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                  className="btn-ghost text-xs"
                 >
                   Cancelar
                 </button>
@@ -201,20 +189,10 @@ export default function EditarFilialPage() {
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+            <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
+              {mutation.isPending ? 'Salvando…' : 'Salvar alterações'}
             </button>
-            <button
-              type="button"
-              onClick={() => router.push('/filiais')}
-              className="rounded-md border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
+            <button type="button" onClick={() => router.push('/filiais')} className="btn-secondary">Cancelar</button>
           </div>
         </form>
       </div>
