@@ -8,7 +8,8 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRepository } from './auth.repository';
-import { redis } from '../../config/redis';
+import { redis, REDIS_TTL } from '../../config/redis';
+import { RATE_LIMIT_LOGIN_KEY, RATE_LIMIT_MAX_ATTEMPTS } from '../../middlewares/rate-limit';
 import { env } from '../../config/env';
 import { createAuditLog } from '../../middlewares/audit';
 import { UnauthorizedError } from '../../shared/errors/AppError';
@@ -31,13 +32,18 @@ export class AuthService {
       : await bcrypt.compare(input.password, dummyHash).then(() => false);
 
     if (!user || !isValid) {
+      // Incrementar contador de falhas (SET NX cria com TTL se não existe; INCR incrementa)
+      const rateKey = RATE_LIMIT_LOGIN_KEY(ip);
+      await redis.set(rateKey, '0', 'EX', REDIS_TTL.RATE_LIMIT_LOGIN, 'NX');
+      const attempts = await redis.incr(rateKey);
+
       await createAuditLog({
         userId: user?.id ?? 'unknown',
         action: 'LOGIN',
         entityType: 'User',
         entityId: user?.id ?? 'unknown',
         ipAddress: ip,
-        newValues: { success: false, reason: 'invalid_credentials' },
+        newValues: { success: false, reason: 'invalid_credentials', attempt: attempts },
       }).catch(() => {}); // não bloquear resposta se audit falhar
       throw new UnauthorizedError('Credenciais inválidas');
     }
@@ -69,6 +75,9 @@ export class AuthService {
     );
     const refreshTokenHash = await bcrypt.hash(jtiRefresh, BCRYPT_COST);
     await this.repo.saveRefreshToken(user.id, refreshTokenHash);
+
+    // Login bem-sucedido — zerar contador de tentativas do IP
+    await redis.del(RATE_LIMIT_LOGIN_KEY(ip));
 
     await createAuditLog({
       userId: user.id,
