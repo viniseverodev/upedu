@@ -46,7 +46,7 @@ export default function LoginPage() {
       api.post<{
         accessToken: string;
         requiresPasswordChange: boolean;
-        user: { id: string; nome: string; role: string; filiais: Array<{ filialId: string }> };
+        user: { id: string; nome: string; email: string; role: string; filiais: Array<{ filialId: string }> };
       }>('/auth/login', data),
     onSuccess: (response) => {
       const { accessToken, user, requiresPasswordChange } = response.data;

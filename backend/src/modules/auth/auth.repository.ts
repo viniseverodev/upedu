@@ -72,4 +72,12 @@ export class AuthRepository {
       data: { passwordHash, primeiroAcesso: false },
     });
   }
+
+  async updateProfile(userId: string, data: { nome?: string; email?: string }) {
+    return prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, nome: true, email: true, role: true },
+    });
+  }
 }

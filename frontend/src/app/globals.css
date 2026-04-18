@@ -53,10 +53,26 @@
     @apply focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
     @apply dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500;
     @apply dark:focus:border-brand-500;
+    /* Neutraliza autofill do browser (Chrome/Safari) */
+    -webkit-text-fill-color: inherit;
+  }
+  .input-base:-webkit-autofill,
+  .input-base:-webkit-autofill:hover,
+  .input-base:-webkit-autofill:focus {
+    -webkit-text-fill-color: theme('colors.gray.900');
+    box-shadow: 0 0 0 1000px theme('colors.white') inset;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  .dark .input-base:-webkit-autofill,
+  .dark .input-base:-webkit-autofill:hover,
+  .dark .input-base:-webkit-autofill:focus {
+    -webkit-text-fill-color: theme('colors.slate.100');
+    box-shadow: 0 0 0 1000px theme('colors.slate.800') inset;
   }
 
+  /* input-error estende input-base — sempre use as duas juntas: "input-base input-error" */
   .input-error {
-    @apply border-crimson-500 focus:border-crimson-500 focus:ring-crimson-500/20;
+    @apply border-crimson-500 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20;
   }
 
   /* Button variants */

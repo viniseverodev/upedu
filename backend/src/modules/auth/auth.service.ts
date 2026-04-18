@@ -13,7 +13,7 @@ import { RATE_LIMIT_LOGIN_KEY } from '../../middlewares/rate-limit';
 import { env } from '../../config/env';
 import { createAuditLog } from '../../middlewares/audit';
 import { UnauthorizedError } from '../../shared/errors/AppError';
-import type { LoginInput } from './auth.schema';
+import type { LoginInput, UpdateProfileInput } from './auth.schema';
 import type { JwtPayload, RefreshTokenPayload } from '../../middlewares/authenticate';
 
 const BCRYPT_COST = 12;
@@ -94,6 +94,7 @@ export class AuthService {
       user: {
         id: user.id,
         nome: user.nome,
+        email: user.email,
         role: user.role,
         filiais: user.filiais,
       },
@@ -254,5 +255,20 @@ export class AuthService {
     await this.repo.saveRefreshToken(user.id, refreshTokenHash);
 
     return { accessToken, refreshToken };
+  }
+
+  // Atualização de perfil — nome e/ou e-mail do próprio usuário
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    const updated = await this.repo.updateProfile(userId, input);
+
+    await createAuditLog({
+      userId,
+      action: 'UPDATE',
+      entityType: 'User',
+      entityId: userId,
+      newValues: input,
+    });
+
+    return updated;
   }
 }

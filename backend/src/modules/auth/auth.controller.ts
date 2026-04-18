@@ -6,7 +6,7 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
-import { loginSchema, changePasswordSchema } from './auth.schema';
+import { loginSchema, changePasswordSchema, updateProfileSchema } from './auth.schema';
 import { env } from '../../config/env';
 
 // WARN-009 fix: usar env.NODE_ENV (Zod-validado) em vez de process.env.NODE_ENV diretamente
@@ -99,5 +99,11 @@ export class AuthController {
     reply.clearCookie('requires-password-change', { path: '/' });
 
     return reply.status(200).send({ message: 'Senha alterada com sucesso', accessToken });
+  }
+
+  async updateProfile(request: FastifyRequest, reply: FastifyReply) {
+    const body = updateProfileSchema.parse(request.body);
+    const updated = await this.service.updateProfile(request.user.sub, body);
+    return reply.status(200).send(updated);
   }
 }

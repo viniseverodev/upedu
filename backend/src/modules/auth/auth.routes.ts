@@ -1,8 +1,9 @@
 // Rotas de autenticação — STORY-001/002/003/004 (Sprint 1-2)
-// POST /login           — público
-// POST /logout          — requer authenticate
-// POST /refresh         — público (usa cookie httpOnly)
-// POST /change-password — requer authenticate
+// POST  /login           — público
+// POST  /logout          — requer authenticate
+// POST  /refresh         — público (usa cookie httpOnly)
+// POST  /change-password — requer authenticate
+// PATCH /me              — requer authenticate (atualiza nome/email do próprio usuário)
 
 import type { FastifyInstance } from 'fastify';
 import { AuthController } from './auth.controller';
@@ -16,4 +17,5 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/logout',          { preHandler: [authenticate] },   controller.logout.bind(controller));
   app.post('/refresh',         controller.refresh.bind(controller));
   app.post('/change-password', { preHandler: [authenticate] },   controller.changePassword.bind(controller));
+  app.patch('/me',             { preHandler: [authenticate] },   controller.updateProfile.bind(controller));
 }

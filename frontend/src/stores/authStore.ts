@@ -8,6 +8,7 @@ import { persist } from 'zustand/middleware';
 interface User {
   id: string;
   nome: string;
+  email: string;
   role: string;
   filiais: Array<{ filialId: string }>;
 }
@@ -19,6 +20,7 @@ interface AuthState {
   requiresPasswordChange: boolean;
   setAuth: (user: User, accessToken: string, requiresPasswordChange?: boolean) => void;
   setAccessToken: (token: string) => void;
+  updateUser: (data: Partial<Pick<User, 'nome' | 'email'>>) => void;
   logout: () => void;
 }
 
@@ -34,6 +36,11 @@ export const useAuthStore = create<AuthState>()(
         set({ user, accessToken, isAuthenticated: true, requiresPasswordChange }),
 
       setAccessToken: (accessToken) => set({ accessToken }),
+
+      updateUser: (data) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...data } : null,
+        })),
 
       logout: () =>
         set({ user: null, accessToken: null, isAuthenticated: false, requiresPasswordChange: false }),

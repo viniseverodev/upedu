@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
@@ -58,10 +59,18 @@ function IcoCreditCard() {
   );
 }
 
-function IcoChart() {
+function IcoChartBar() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125z" />
+    </svg>
+  );
+}
+
+function IcoExclamation() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
     </svg>
   );
 }
@@ -106,13 +115,46 @@ function IcoMenu() {
   );
 }
 
-// ---------- NavItem ----------
+function IcoGear() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+    </svg>
+  );
+}
+
+function IcoPerson() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  );
+}
+
+// ---------- Tipos ----------
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
   visible: boolean;
+  matchPrefix?: string; // para active check de relatórios (mesma rota, tabs diferentes)
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+// ---------- Componentes ----------
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <p className="mb-1 mt-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-600">
+      {label}
+    </p>
+  );
 }
 
 function NavLink({
@@ -128,7 +170,7 @@ function NavLink({
     <Link
       href={item.href}
       title={collapsed ? item.label : undefined}
-      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+      className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
         isActive
           ? 'bg-brand-600 text-white shadow-sm'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
@@ -140,6 +182,29 @@ function NavLink({
   );
 }
 
+function SettingsDropdownItem({
+  href,
+  icon,
+  label,
+  onClick,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700"
+    >
+      <span className="text-gray-500 dark:text-slate-400">{icon}</span>
+      {label}
+    </Link>
+  );
+}
+
 // ---------- Sidebar ----------
 
 export function Sidebar() {
@@ -147,12 +212,26 @@ export function Sidebar() {
   const router = useRouter();
   const { user, logout: clearAuth } = useAuthStore();
   const { collapsed, toggle } = useSidebarStore();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const canManageUsers = usePermission('ADMIN_MATRIZ');
   const canManageFiliais = usePermission('ADMIN_MATRIZ');
   const canViewFinanceiro = usePermission('GERENTE_FILIAL');
   const canViewAuditoria = usePermission('ADMIN_MATRIZ');
   const canViewRelatorios = usePermission('GERENTE_FILIAL');
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [settingsOpen]);
 
   const logoutMutation = useMutation({
     mutationFn: () => api.post('/auth/logout'),
@@ -162,23 +241,39 @@ export function Sidebar() {
     },
   });
 
-  const navItems: NavItem[] = [
-    { label: 'Dashboard', href: '/kpis', icon: <IcoDashboard />, visible: true },
-    { label: 'Alunos', href: '/alunos', icon: <IcoStudents />, visible: true },
-    { label: 'Responsáveis', href: '/responsaveis', icon: <IcoResponsaveis />, visible: true },
-    { label: 'Matrículas', href: '/matriculas', icon: <IcoMatriculas />, visible: true },
-    { label: 'Mensalidades', href: '/financeiro/mensalidades', icon: <IcoCurrency />, visible: canViewFinanceiro },
-    { label: 'Transações', href: '/financeiro/transacoes', icon: <IcoCreditCard />, visible: canViewFinanceiro },
-    { label: 'Relatórios', href: '/relatorios', icon: <IcoChart />, visible: canViewRelatorios },
-    { label: 'Filiais', href: '/filiais', icon: <IcoBuilding />, visible: canManageFiliais },
-    { label: 'Usuários', href: '/usuarios', icon: <IcoUsers />, visible: canManageUsers },
-    { label: 'Auditoria', href: '/auditoria', icon: <IcoShield />, visible: canViewAuditoria },
-  ].filter((item) => item.visible);
+  const sections: NavSection[] = [
+    {
+      label: 'Cadastros',
+      items: [
+        { label: 'Alunos', href: '/alunos', icon: <IcoStudents />, visible: true },
+        { label: 'Responsáveis', href: '/responsaveis', icon: <IcoResponsaveis />, visible: true },
+        { label: 'Matrículas', href: '/matriculas', icon: <IcoMatriculas />, visible: true },
+      ],
+    },
+    {
+      label: 'Financeiro',
+      items: [
+        { label: 'Mensalidades', href: '/financeiro/mensalidades', icon: <IcoCurrency />, visible: canViewFinanceiro },
+        { label: 'Transações', href: '/financeiro/transacoes', icon: <IcoCreditCard />, visible: canViewFinanceiro },
+      ],
+    },
+    {
+      label: 'Relatórios',
+      items: [
+        { label: 'Inadimplência', href: '/relatorios', icon: <IcoExclamation />, visible: canViewRelatorios },
+        { label: 'Fluxo de Caixa', href: '/relatorios', icon: <IcoChartBar />, visible: canViewRelatorios },
+      ],
+    },
+  ];
 
-  // Obtém iniciais do usuário para avatar
   const initials = user?.nome
     ? user.nome.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
     : 'U';
+
+  function isActive(item: NavItem) {
+    if (!pathname) return false;
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
 
   return (
     <aside
@@ -211,36 +306,136 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-3">
+        {/* Dashboard — standalone */}
         <ul className="space-y-0.5">
-          {navItems.map((item) => {
-            const isActive =
-              pathname != null &&
-              (pathname === item.href || pathname.startsWith(`${item.href}/`));
-            return (
-              <li key={item.href}>
-                <NavLink item={item} collapsed={collapsed} isActive={isActive} />
-              </li>
-            );
-          })}
+          <li>
+            <NavLink
+              item={{ label: 'Dashboard', href: '/kpis', icon: <IcoDashboard />, visible: true }}
+              collapsed={collapsed}
+              isActive={pathname === '/kpis'}
+            />
+          </li>
         </ul>
+
+        {/* Seções agrupadas */}
+        {sections.map((section) => {
+          const visibleItems = section.items.filter((i) => i.visible);
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={section.label}>
+              {!collapsed && <SectionLabel label={section.label} />}
+              {collapsed && <div className="mt-3" />}
+              <ul className="space-y-0.5">
+                {visibleItems.map((item) => (
+                  <li key={`${item.href}-${item.label}`}>
+                    <NavLink item={item} collapsed={collapsed} isActive={isActive(item)} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
 
-      {/* Footer: avatar + nome + logout */}
+      {/* Footer: avatar + engrenagem + logout */}
       <div className="shrink-0 border-t border-gray-200 px-3 py-3 dark:border-slate-800">
-        {!collapsed && user && (
-          <div className="mb-2 flex items-center gap-3 rounded-xl px-2 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
-              {initials}
+        {/* Linha de usuário + engrenagem */}
+        {!collapsed ? (
+          <div className="relative mb-1" ref={settingsRef}>
+            <div className="flex items-center gap-2 rounded-xl px-2 py-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-gray-900 dark:text-slate-100">{user?.nome}</p>
+                <p className="truncate text-[11px] text-gray-400 dark:text-slate-500">
+                  {user?.role.replace(/_/g, ' ')}
+                </p>
+              </div>
+              {/* Botão engrenagem */}
+              <button
+                onClick={() => setSettingsOpen((v) => !v)}
+                title="Configurações"
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                  settingsOpen
+                    ? 'bg-brand-600 text-white'
+                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300'
+                }`}
+              >
+                <IcoGear />
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-gray-900 dark:text-slate-100">{user.nome}</p>
-              <p className="truncate text-[11px] text-gray-400 dark:text-slate-500">
-                {user.role.replace(/_/g, ' ')}
-              </p>
-            </div>
+
+            {/* Dropdown de configurações */}
+            {settingsOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-gray-200 bg-white p-1.5 shadow-card dark:border-slate-700 dark:bg-slate-800">
+                <p className="mb-1 px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                  Configurações
+                </p>
+                <SettingsDropdownItem
+                  href="/perfil"
+                  icon={<IcoPerson />}
+                  label="Perfil"
+                  onClick={() => setSettingsOpen(false)}
+                />
+                {canManageFiliais && (
+                  <SettingsDropdownItem
+                    href="/filiais"
+                    icon={<IcoBuilding />}
+                    label="Filiais"
+                    onClick={() => setSettingsOpen(false)}
+                  />
+                )}
+                {canManageUsers && (
+                  <SettingsDropdownItem
+                    href="/usuarios"
+                    icon={<IcoUsers />}
+                    label="Usuários"
+                    onClick={() => setSettingsOpen(false)}
+                  />
+                )}
+                {canViewAuditoria && (
+                  <SettingsDropdownItem
+                    href="/auditoria"
+                    icon={<IcoShield />}
+                    label="Auditoria"
+                    onClick={() => setSettingsOpen(false)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Collapsed: apenas o ícone de engrenagem centralizado */
+          <div className="relative mb-1 flex justify-center" ref={settingsRef}>
+            <button
+              onClick={() => setSettingsOpen((v) => !v)}
+              title="Configurações"
+              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                settingsOpen
+                  ? 'bg-brand-600 text-white'
+                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300'
+              }`}
+            >
+              <IcoGear />
+            </button>
+
+            {settingsOpen && (
+              <div className="absolute bottom-full left-1/2 mb-1 w-44 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-1.5 shadow-card dark:border-slate-700 dark:bg-slate-800">
+                <p className="mb-1 px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                  Configurações
+                </p>
+                <SettingsDropdownItem href="/perfil" icon={<IcoPerson />} label="Perfil" onClick={() => setSettingsOpen(false)} />
+                {canManageFiliais && <SettingsDropdownItem href="/filiais" icon={<IcoBuilding />} label="Filiais" onClick={() => setSettingsOpen(false)} />}
+                {canManageUsers && <SettingsDropdownItem href="/usuarios" icon={<IcoUsers />} label="Usuários" onClick={() => setSettingsOpen(false)} />}
+                {canViewAuditoria && <SettingsDropdownItem href="/auditoria" icon={<IcoShield />} label="Auditoria" onClick={() => setSettingsOpen(false)} />}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Sair */}
         <button
           onClick={() => logoutMutation.mutate()}
           disabled={logoutMutation.isPending}
