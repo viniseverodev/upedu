@@ -5,7 +5,7 @@ export type UserRole = 'SUPER_ADMIN' | 'ADMIN_MATRIZ' | 'GERENTE_FILIAL' | 'ATEN
 
 export type AlunoStatus = 'PRE_MATRICULA' | 'ATIVO' | 'INATIVO' | 'LISTA_ESPERA' | 'TRANSFERIDO';
 
-export type Turno = 'INTEGRAL' | 'MEIO_TURNO';
+export type Turno = 'MANHA' | 'TARDE';
 
 export type MatriculaStatus = 'ATIVA' | 'ENCERRADA' | 'CANCELADA';
 

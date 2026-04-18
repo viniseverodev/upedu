@@ -42,8 +42,8 @@ beforeAll(async () => {
       nome: 'Filial Mens',
       cnpj: ORG_ID.replace(/-/g, '').slice(1, 15),
       diaVencimento: 10,
-      valorMensalidadeIntegral: 450,
-      valorMensalidadeMeioTurno: 250,
+      valorMensalidadeManha: 450,
+      valorMensalidadeTarde: 250,
     },
   });
 
@@ -92,7 +92,7 @@ beforeAll(async () => {
       nome: 'Aluno Mens Teste',
       dataNascimento: new Date('2010-01-01'),
       status: 'ATIVO',
-      turno: 'INTEGRAL',
+      turno: 'MANHA',
     },
   });
   alunoId = aluno.id;
@@ -101,7 +101,7 @@ beforeAll(async () => {
     data: {
       alunoId,
       filialId: FILIAL_ID,
-      turno: 'INTEGRAL',
+      turno: 'MANHA',
       valorMensalidade: 450,
       dataInicio: new Date('2025-01-01'),
       status: 'ATIVA',
@@ -163,7 +163,7 @@ describe('POST /api/v1/mensalidades', () => {
         nome: 'Aluno Inativo',
         dataNascimento: new Date('2012-01-01'),
         status: 'INATIVO',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
       },
     });
 

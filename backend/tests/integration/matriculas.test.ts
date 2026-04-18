@@ -39,8 +39,8 @@ beforeAll(async () => {
       nome: 'Filial Mat',
       cnpj: ORG_ID.replace(/-/g, '').slice(1, 15),
       diaVencimento: 10,
-      valorMensalidadeIntegral: 900,
-      valorMensalidadeMeioTurno: 500,
+      valorMensalidadeManha: 900,
+      valorMensalidadeTarde: 500,
     },
   });
 
@@ -75,7 +75,7 @@ beforeAll(async () => {
       nome: 'Aluno Mat Teste',
       dataNascimento: new Date('2010-01-01'),
       status: 'PRE_MATRICULA',
-      turno: 'INTEGRAL',
+      turno: 'MANHA',
     },
   });
   alunoId = aluno.id;
@@ -120,14 +120,14 @@ describe('POST /api/v1/matriculas', () => {
       method: 'POST',
       url: '/api/v1/matriculas',
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
-      payload: { alunoId, turno: 'INTEGRAL', dataInicio: '2025-03-01' },
+      payload: { alunoId, turno: 'MANHA', dataInicio: '2025-03-01' },
     });
 
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.valorMensalidade).toBe(900); // snapshot da filial
     expect(body.status).toBe('ATIVA');
-    expect(body.turno).toBe('INTEGRAL');
+    expect(body.turno).toBe('MANHA');
   });
 
   it('segunda matrícula ativa — retorna 422', async () => {
@@ -137,7 +137,7 @@ describe('POST /api/v1/matriculas', () => {
       method: 'POST',
       url: '/api/v1/matriculas',
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
-      payload: { alunoId, turno: 'INTEGRAL', dataInicio: '2025-04-01' },
+      payload: { alunoId, turno: 'MANHA', dataInicio: '2025-04-01' },
     });
 
     expect(res.statusCode).toBe(422);
@@ -151,7 +151,7 @@ describe('POST /api/v1/matriculas', () => {
         nome: 'Aluno Sem Resp',
         dataNascimento: new Date('2012-01-01'),
         status: 'PRE_MATRICULA',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
       },
     });
 
@@ -159,7 +159,7 @@ describe('POST /api/v1/matriculas', () => {
       method: 'POST',
       url: '/api/v1/matriculas',
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
-      payload: { alunoId: alunoSemResp.id, turno: 'INTEGRAL', dataInicio: '2025-03-01' },
+      payload: { alunoId: alunoSemResp.id, turno: 'MANHA', dataInicio: '2025-03-01' },
     });
 
     expect(res.statusCode).toBe(422);
@@ -173,7 +173,7 @@ describe('POST /api/v1/matriculas', () => {
       method: 'POST',
       url: '/api/v1/matriculas',
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
-      payload: { alunoId: uuidv4(), turno: 'INTEGRAL', dataInicio: '2025-03-01' },
+      payload: { alunoId: uuidv4(), turno: 'MANHA', dataInicio: '2025-03-01' },
     });
 
     expect(res.statusCode).toBe(404);
@@ -196,7 +196,7 @@ describe('GET /api/v1/alunos/:id/matriculas', () => {
     expect(body.length).toBeGreaterThan(0);
     expect(body[0]).toMatchObject({
       status: 'ATIVA',
-      turno: 'INTEGRAL',
+      turno: 'MANHA',
       valorMensalidade: 900,
       nomeDaFilial: 'Filial Mat',
     });

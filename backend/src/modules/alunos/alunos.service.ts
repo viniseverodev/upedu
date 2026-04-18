@@ -218,9 +218,9 @@ export class AlunosService {
     const qtdPendentes = await this.repo.countMensalidadesPendentes(id, filialOrigemId);
 
     const valorMensalidade =
-      aluno.turno === "INTEGRAL"
-        ? Number(filialDestino.valorMensalidadeIntegral)
-        : Number(filialDestino.valorMensalidadeMeioTurno);
+      aluno.turno === "MANHA"
+        ? Number(filialDestino.valorMensalidadeManha)
+        : Number(filialDestino.valorMensalidadeTarde);
 
     await this.repo.transferir(
       id,

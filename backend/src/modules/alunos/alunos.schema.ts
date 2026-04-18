@@ -10,7 +10,7 @@ export const createAlunoSchema = z.object({
       const date = new Date(y, m - 1, d);
       return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
     }, 'Data não existe no calendário'),
-  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  turno: z.enum(['MANHA', 'TARDE']),
   observacoes: z.string().max(500).optional(),
   consentimentoResponsavel: z.literal(true, {
     errorMap: () => ({ message: 'Consentimento parental obrigatório (LGPD Art. 14)' }),
@@ -26,7 +26,7 @@ export const updateAlunoSchema = z.object({
       const date = new Date(y, m - 1, d);
       return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
     }, 'Data não existe no calendário').optional(),
-  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']).optional(),
+  turno: z.enum(['MANHA', 'TARDE']).optional(),
   observacoes: z.string().max(500).optional(),
   status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA']).optional(),
 });

@@ -147,7 +147,7 @@ export default function AlunoPerfilPage() {
 
   const now = new Date();
   const { register: registerMatricula, handleSubmit: handleMatricula, reset: resetMatricula, formState: { errors: errorsMatricula } } =
-    useForm<CreateMatriculaInput>({ resolver: zodResolver(createMatriculaSchema), defaultValues: { alunoId: id, turno: 'INTEGRAL', dataInicio: now.toISOString().split('T')[0] } });
+    useForm<CreateMatriculaInput>({ resolver: zodResolver(createMatriculaSchema), defaultValues: { alunoId: id, turno: 'MANHA', dataInicio: now.toISOString().split('T')[0] } });
 
   const matriculaMutation = useMutation({
     mutationFn: (data: CreateMatriculaInput) => api.post('/matriculas', { ...data, alunoId: id }),
@@ -215,7 +215,7 @@ export default function AlunoPerfilPage() {
                 {STATUS_LABELS[aluno.status] ?? aluno.status}
               </span>
               <span className="text-xs text-gray-400 dark:text-slate-500">
-                {aluno.turno === 'INTEGRAL' ? 'Integral' : 'Meio Turno'}
+                {aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'}
               </span>
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function AlunoPerfilPage() {
         <div className="card px-6 py-2">
           <InfoRow label="Nome completo" value={aluno.nome} />
           <InfoRow label="Data de nascimento" value={new Date(aluno.dataNascimento).toLocaleDateString('pt-BR')} />
-          <InfoRow label="Turno" value={aluno.turno === 'INTEGRAL' ? 'Integral' : 'Meio Turno'} />
+          <InfoRow label="Turno" value={aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'} />
           {aluno.observacoes && <InfoRow label="Observações" value={aluno.observacoes} />}
           {aluno.consentimentoTimestamp && (
             <InfoRow
@@ -386,7 +386,7 @@ export default function AlunoPerfilPage() {
               <div key={m.id} className="card flex items-center justify-between p-4">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-slate-100">
-                    {m.turno === 'INTEGRAL' ? 'Integral' : 'Meio Turno'} —{' '}
+                    {m.turno === 'MANHA' ? 'Manhã' : 'Tarde'} —{' '}
                     {Number(m.valorMensalidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
                   </p>
                   <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">
@@ -438,8 +438,8 @@ export default function AlunoPerfilPage() {
           <form onSubmit={handleMatricula((d) => { setMatriculaError(null); matriculaMutation.mutate({ ...d, alunoId: id }); })} noValidate className="space-y-4">
             <ModalField label="Turno" error={errorsMatricula.turno?.message}>
               <select {...registerMatricula('turno')} className={`input-base ${errorsMatricula.turno ? 'input-error' : ''}`}>
-                <option value="INTEGRAL">Integral</option>
-                <option value="MEIO_TURNO">Meio Turno</option>
+                <option value="MANHA">Manhã</option>
+                <option value="TARDE">Tarde</option>
               </select>
             </ModalField>
 

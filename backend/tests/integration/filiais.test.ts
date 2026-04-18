@@ -38,8 +38,8 @@ beforeAll(async () => {
       organizationId: ORG_ID,
       nome: 'Filial Inicial',
       cnpj: '11222333000181',
-      valorMensalidadeIntegral: 1000,
-      valorMensalidadeMeioTurno: 600,
+      valorMensalidadeManha: 1000,
+      valorMensalidadeTarde: 600,
     },
   });
 
@@ -156,8 +156,8 @@ describe('POST /api/v1/filiais', () => {
         nome: 'Nova Filial Teste',
         cnpj: '11.444.777/0001-61',
         diaVencimento: 15,
-        valorMensalidadeIntegral: 1500,
-        valorMensalidadeMeioTurno: 800,
+        valorMensalidadeManha: 1500,
+        valorMensalidadeTarde: 800,
       },
     });
 
@@ -182,8 +182,8 @@ describe('POST /api/v1/filiais', () => {
         nome: 'Duplicada',
         cnpj: '11.222.333/0001-81', // mesmo CNPJ da FILIAL_ID (formatado)
         diaVencimento: 10,
-        valorMensalidadeIntegral: 1000,
-        valorMensalidadeMeioTurno: 600,
+        valorMensalidadeManha: 1000,
+        valorMensalidadeTarde: 600,
       },
     });
 
@@ -200,8 +200,8 @@ describe('POST /api/v1/filiais', () => {
         nome: 'Tentativa',
         cnpj: '33333333000133',
         diaVencimento: 10,
-        valorMensalidadeIntegral: 1000,
-        valorMensalidadeMeioTurno: 600,
+        valorMensalidadeManha: 1000,
+        valorMensalidadeTarde: 600,
       },
     });
 
@@ -259,7 +259,7 @@ describe('PATCH /api/v1/filiais/:id', () => {
         nome: 'Aluno Teste',
         dataNascimento: new Date('2018-01-01'),
         status: 'ATIVO',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
       },

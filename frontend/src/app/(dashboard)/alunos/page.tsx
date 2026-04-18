@@ -103,8 +103,8 @@ export default function AlunosPage() {
                   <td className="table-td font-semibold text-gray-900 dark:text-slate-100">{aluno.nome}</td>
                   <td className="table-td">{formatDate(aluno.dataNascimento)}</td>
                   <td className="table-td">
-                    <span className={aluno.turno === 'INTEGRAL' ? 'badge-blue badge' : 'badge-gray badge'}>
-                      {aluno.turno === 'INTEGRAL' ? 'Integral' : 'Meio Turno'}
+                    <span className={aluno.turno === 'MANHA' ? 'badge-blue badge' : 'badge-gray badge'}>
+                      {aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'}
                     </span>
                   </td>
                   <td className="table-td">{aluno.responsaveis[0]?.responsavel.nome ?? '—'}</td>

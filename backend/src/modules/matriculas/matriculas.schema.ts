@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export const createMatriculaSchema = z.object({
   alunoId: z.string().uuid('ID do aluno inválido'),
-  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  turno: z.enum(['MANHA', 'TARDE']),
   dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)')
     .refine((val) => {
       const [y, m, d] = val.split('-').map(Number);

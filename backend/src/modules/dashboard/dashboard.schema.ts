@@ -17,13 +17,31 @@ const anoOptional = z
   .refine((n) => n >= 2020, { message: 'Ano deve ser >= 2020' })
   .optional();
 
+const dataOptional = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato esperado: YYYY-MM-DD')
+  .optional();
+
 export const kpisQuerySchema = z.object({
   mes: mesOptional,
   ano: anoOptional,
+  dataInicio: dataOptional,
+  dataFim: dataOptional,
+});
+
+export const evolucaoQuerySchema = z.object({
+  meses: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .refine((n) => n >= 1 && n <= 24, { message: 'meses deve ser entre 1 e 24' })
+    .optional(),
 });
 
 // S031 — Comparativo entre filiais (ADMIN_MATRIZ / SUPER_ADMIN)
 export const comparativoQuerySchema = z.object({
   mes: mesOptional,
   ano: anoOptional,
+  dataInicio: dataOptional,
+  dataFim: dataOptional,
 });

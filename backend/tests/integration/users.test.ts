@@ -34,8 +34,8 @@ beforeAll(async () => {
       organizationId: ORG_ID,
       nome: 'Filial Users',
       cnpj: ORG_ID.replace(/-/g, '').slice(1, 15),
-      valorMensalidadeIntegral: 1000,
-      valorMensalidadeMeioTurno: 600,
+      valorMensalidadeManha: 1000,
+      valorMensalidadeTarde: 600,
     },
   });
 

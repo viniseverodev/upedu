@@ -20,16 +20,27 @@ export class DashboardRepository {
     };
   }
 
-  // Receita do mês (mensalidades pagas no mês)
-  async receitaMes(filialId: string, mes: number, ano: number) {
+  // Alunos ativos por turno
+  async countAlunosByTurno(filialId: string) {
+    const results = await prisma.aluno.groupBy({
+      by: ['turno'],
+      where: { filialId, status: 'ATIVO', deletedAt: null },
+      _count: { turno: true },
+    });
+    const map = Object.fromEntries(results.map((r) => [r.turno, r._count.turno]));
+    return {
+      manha: map['MANHA'] ?? 0,
+      tarde: map['TARDE'] ?? 0,
+    };
+  }
+
+  // Receita do período (mensalidades pagas entre dataInicio (inclusive) e dataFim (exclusive))
+  async receitaPeriodo(filialId: string, dataInicio: Date, dataFim: Date) {
     const result = await prisma.mensalidade.aggregate({
       where: {
         filialId,
         status: 'PAGO',
-        dataPagamento: {
-          gte: new Date(ano, mes - 1, 1),
-          lt: new Date(ano, mes, 1),
-        },
+        dataPagamento: { gte: dataInicio, lt: dataFim },
       },
       _sum: { valorPago: true },
     });
@@ -38,7 +49,6 @@ export class DashboardRepository {
 
   // Número de alunos inadimplentes
   async countInadimplentes(filialId: string) {
-    // Conta alunos distintos com mensalidade INADIMPLENTE
     const result = await prisma.mensalidade.findMany({
       where: { filialId, status: 'INADIMPLENTE' },
       distinct: ['alunoId'],
@@ -47,9 +57,62 @@ export class DashboardRepository {
     return result.length;
   }
 
-  // Taxa de ocupação: matrículas ATIVAS / capacidade (não temos capacidade no schema, usamos total de alunos ATIVOS)
+  // Matrículas ativas
   async matriculasAtivas(filialId: string) {
     return prisma.matricula.count({ where: { filialId, status: 'ATIVA' } });
+  }
+
+  // Entradas e saídas do período (Transacao)
+  async transacoesPeriodo(filialId: string, dataInicio: Date, dataFim: Date) {
+    const [entradas, saidas] = await Promise.all([
+      prisma.transacao.aggregate({
+        where: { filialId, tipo: 'ENTRADA', dataTransacao: { gte: dataInicio, lte: dataFim } },
+        _sum: { valor: true },
+      }),
+      prisma.transacao.aggregate({
+        where: { filialId, tipo: 'SAIDA', dataTransacao: { gte: dataInicio, lte: dataFim } },
+        _sum: { valor: true },
+      }),
+    ]);
+    return {
+      entradas: Number(entradas._sum.valor ?? 0),
+      saidas: Number(saidas._sum.valor ?? 0),
+    };
+  }
+
+  // Evolução mensal: últimos N meses de alunos ativos e receita
+  async evolucaoMensal(filialId: string, meses: number) {
+    const pontos: { mes: string; alunosAtivos: number; receita: number }[] = [];
+    const hoje = new Date();
+
+    for (let i = meses - 1; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const inicio = new Date(d.getFullYear(), d.getMonth(), 1);
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+
+      const [alunosAtivos, receitaRaw] = await Promise.all([
+        prisma.aluno.count({
+          where: { filialId, status: 'ATIVO', deletedAt: null },
+        }),
+        prisma.mensalidade.aggregate({
+          where: {
+            filialId,
+            status: 'PAGO',
+            dataPagamento: { gte: inicio, lt: fim },
+          },
+          _sum: { valorPago: true },
+        }),
+      ]);
+
+      const label = inicio.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      pontos.push({
+        mes: label.replace('.', '').replace(' ', '/'),
+        alunosAtivos,
+        receita: Number(receitaRaw._sum.valorPago ?? 0),
+      });
+    }
+
+    return pontos;
   }
 
   // S031 — Lista filiais ativas de uma organização

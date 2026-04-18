@@ -115,8 +115,8 @@ export class AlunosRepository {
       where: { id: filialId },
       select: {
         id: true,
-        valorMensalidadeIntegral: true,
-        valorMensalidadeMeioTurno: true,
+        valorMensalidadeManha: true,
+        valorMensalidadeTarde: true,
       },
     });
   }

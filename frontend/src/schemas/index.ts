@@ -25,7 +25,7 @@ export const changePasswordSchema = z
 export const createAlunoSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres'),
   dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)'),
-  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  turno: z.enum(['MANHA', 'TARDE']),
   observacoes: z.string().optional(),
   consentimentoResponsavel: z.literal(true, {
     errorMap: () => ({ message: 'Consentimento parental obrigatório (LGPD Art. 14)' }),
@@ -37,23 +37,23 @@ export const createFilialSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
   cnpj: z.string().min(14, 'CNPJ inválido').max(18),
   diaVencimento: z.coerce.number().int().min(1).max(28).default(10),
-  valorMensalidadeIntegral: z.coerce.number().positive('Valor deve ser positivo'),
-  valorMensalidadeMeioTurno: z.coerce.number().positive('Valor deve ser positivo'),
+  valorMensalidadeManha: z.coerce.number().positive('Valor deve ser positivo'),
+  valorMensalidadeTarde: z.coerce.number().positive('Valor deve ser positivo'),
 });
 
 export const updateFilialSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
   cnpj: z.string().min(14).max(18).optional(),
   diaVencimento: z.coerce.number().int().min(1).max(28).optional(),
-  valorMensalidadeIntegral: z.coerce.number().positive().optional(),
-  valorMensalidadeMeioTurno: z.coerce.number().positive().optional(),
+  valorMensalidadeManha: z.coerce.number().positive().optional(),
+  valorMensalidadeTarde: z.coerce.number().positive().optional(),
   ativo: z.boolean().optional(),
 });
 
 export const updateAlunoSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(150).optional(),
   dataNascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)').optional(),
-  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']).optional(),
+  turno: z.enum(['MANHA', 'TARDE']).optional(),
   observacoes: z.string().max(500).optional(),
   status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA']).optional(),
 });
@@ -116,7 +116,7 @@ export const vincularResponsavelSchema = z.object({
 // S020 — Criar matrícula
 export const createMatriculaSchema = z.object({
   alunoId: z.string().uuid('ID do aluno inválido'),
-  turno: z.enum(['INTEGRAL', 'MEIO_TURNO']),
+  turno: z.enum(['MANHA', 'TARDE']),
   dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
 });
 

@@ -34,16 +34,16 @@ export const createFilialSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
   cnpj: cnpjSchema,
   diaVencimento: z.number().int().min(1).max(28).default(10),
-  valorMensalidadeIntegral: z.number().positive('Valor deve ser positivo'),
-  valorMensalidadeMeioTurno: z.number().positive('Valor deve ser positivo'),
+  valorMensalidadeManha: z.number().positive('Valor deve ser positivo'),
+  valorMensalidadeTarde: z.number().positive('Valor deve ser positivo'),
 });
 
 export const updateFilialSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
   cnpj: cnpjSchema.optional(),
   diaVencimento: z.number().int().min(1).max(28).optional(),
-  valorMensalidadeIntegral: z.number().positive().optional(),
-  valorMensalidadeMeioTurno: z.number().positive().optional(),
+  valorMensalidadeManha: z.number().positive().optional(),
+  valorMensalidadeTarde: z.number().positive().optional(),
   ativo: z.boolean().optional(),
 });
 

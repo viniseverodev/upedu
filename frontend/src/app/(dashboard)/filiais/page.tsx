@@ -10,7 +10,7 @@ import api from '@/lib/api';
 
 interface Filial {
   id: string; nome: string; cnpj: string; diaVencimento: number;
-  valorMensalidadeIntegral: string; valorMensalidadeMeioTurno: string; ativo: boolean;
+  valorMensalidadeManha: string; valorMensalidadeTarde: string; ativo: boolean;
 }
 
 function formatCnpj(cnpj: string) {
@@ -63,8 +63,8 @@ export default function FiliaisPage() {
                 <th className="table-th">Nome</th>
                 <th className="table-th">CNPJ</th>
                 <th className="table-th">Vencimento</th>
-                <th className="table-th text-right">Mensalidade Integral</th>
-                <th className="table-th text-right">Meio Turno</th>
+                <th className="table-th text-right">Mensalidade Manhã</th>
+                <th className="table-th text-right">Mensalidade Tarde</th>
                 <th className="table-th">Status</th>
                 {canManage && <th className="table-th w-20" />}
               </tr>
@@ -75,8 +75,8 @@ export default function FiliaisPage() {
                   <td className="table-td font-semibold text-gray-900 dark:text-slate-100">{filial.nome}</td>
                   <td className="table-td font-mono text-xs">{formatCnpj(filial.cnpj)}</td>
                   <td className="table-td">Dia {filial.diaVencimento}</td>
-                  <td className="table-td text-right">{formatCurrency(filial.valorMensalidadeIntegral)}</td>
-                  <td className="table-td text-right">{formatCurrency(filial.valorMensalidadeMeioTurno)}</td>
+                  <td className="table-td text-right">{formatCurrency(filial.valorMensalidadeManha)}</td>
+                  <td className="table-td text-right">{formatCurrency(filial.valorMensalidadeTarde)}</td>
                   <td className="table-td">
                     <span className={filial.ativo ? 'badge-green' : 'badge-gray'}>
                       {filial.ativo ? 'Ativa' : 'Inativa'}

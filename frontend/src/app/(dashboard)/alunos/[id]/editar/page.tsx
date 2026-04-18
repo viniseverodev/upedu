@@ -113,8 +113,8 @@ export default function EditarAlunoPage() {
 
             <Field label="Turno" error={errors.turno?.message}>
               <select {...register('turno')} className={`input-base ${errors.turno ? 'input-error' : ''}`}>
-                <option value="INTEGRAL">Integral</option>
-                <option value="MEIO_TURNO">Meio Turno</option>
+                <option value="MANHA">Manhã</option>
+                <option value="TARDE">Tarde</option>
               </select>
             </Field>
           </div>

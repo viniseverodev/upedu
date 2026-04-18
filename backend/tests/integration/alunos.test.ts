@@ -40,8 +40,8 @@ beforeAll(async () => {
       organizationId: ORG_ID,
       nome: 'Filial Principal',
       cnpj: ORG_ID.replace(/-/g, '').slice(1, 15),
-      valorMensalidadeIntegral: 1200,
-      valorMensalidadeMeioTurno: 700,
+      valorMensalidadeManha: 1200,
+      valorMensalidadeTarde: 700,
     },
   });
 
@@ -51,8 +51,8 @@ beforeAll(async () => {
       organizationId: ORG_ID,
       nome: 'Filial Secundária',
       cnpj: ORG_ID.replace(/-/g, '').slice(2, 16),
-      valorMensalidadeIntegral: 1100,
-      valorMensalidadeMeioTurno: 650,
+      valorMensalidadeManha: 1100,
+      valorMensalidadeTarde: 650,
     },
   });
 
@@ -132,7 +132,7 @@ describe('POST /api/v1/alunos', () => {
       payload: {
         nome: 'Maria Teste',
         dataNascimento: '2018-05-10',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         consentimentoResponsavel: true,
       },
     });
@@ -156,7 +156,7 @@ describe('POST /api/v1/alunos', () => {
       payload: {
         nome: 'Pedro Espera',
         dataNascimento: '2019-03-15',
-        turno: 'MEIO_TURNO',
+        turno: 'TARDE',
         consentimentoResponsavel: true,
         status: 'LISTA_ESPERA',
       },
@@ -177,7 +177,7 @@ describe('POST /api/v1/alunos', () => {
       payload: {
         nome: 'Sem Consentimento',
         dataNascimento: '2018-01-01',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         consentimentoResponsavel: false,
       },
     });
@@ -209,7 +209,7 @@ describe('POST /api/v1/alunos', () => {
       payload: {
         nome: 'Aluno Proibido',
         dataNascimento: '2018-01-01',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         consentimentoResponsavel: true,
       },
     });
@@ -222,7 +222,7 @@ describe('POST /api/v1/alunos', () => {
       method: 'POST',
       url: '/api/v1/alunos',
       headers: { 'x-filial-id': FILIAL_ID },
-      payload: { nome: 'Sem Auth', dataNascimento: '2018-01-01', turno: 'INTEGRAL', consentimentoResponsavel: true },
+      payload: { nome: 'Sem Auth', dataNascimento: '2018-01-01', turno: 'MANHA', consentimentoResponsavel: true },
     });
 
     expect(res.statusCode).toBe(401);
@@ -240,7 +240,7 @@ describe('GET /api/v1/alunos', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno Lista',
         dataNascimento: new Date('2017-07-20'),
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         status: 'ATIVO',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
@@ -288,7 +288,7 @@ describe('PATCH /api/v1/alunos/:id', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno Editar',
         dataNascimento: new Date('2016-04-01'),
-        turno: 'MEIO_TURNO',
+        turno: 'TARDE',
         status: 'ATIVO',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
@@ -321,7 +321,7 @@ describe('PATCH /api/v1/alunos/:id', () => {
         alunoId,
         filialId: FILIAL_ID,
         status: 'ATIVA',
-        turno: 'MEIO_TURNO',
+        turno: 'TARDE',
         valorMensalidade: 700,
         dataInicio: new Date(),
       },
@@ -382,7 +382,7 @@ describe('PATCH /api/v1/alunos/:id/promover', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno Espera',
         dataNascimento: new Date('2020-01-01'),
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         status: 'LISTA_ESPERA',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
@@ -431,7 +431,7 @@ describe('GET /api/v1/alunos/:id', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno Perfil',
         dataNascimento: new Date('2015-08-22'),
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         status: 'ATIVO',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
@@ -481,7 +481,7 @@ describe('GET /api/v1/alunos/export', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno CSV',
         dataNascimento: new Date('2014-12-01'),
-        turno: 'MEIO_TURNO',
+        turno: 'TARDE',
         status: 'ATIVO',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
@@ -535,7 +535,7 @@ describe('PATCH /api/v1/alunos/:id/transferir', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno Transferir',
         dataNascimento: new Date('2016-06-15'),
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         status: 'ATIVO',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),
@@ -547,7 +547,7 @@ describe('PATCH /api/v1/alunos/:id/transferir', () => {
         alunoId: a.id,
         filialId: FILIAL_ID,
         status: 'ATIVA',
-        turno: 'INTEGRAL',
+        turno: 'MANHA',
         valorMensalidade: 1200,
         dataInicio: new Date(),
       },
@@ -579,7 +579,7 @@ describe('PATCH /api/v1/alunos/:id/transferir', () => {
 
     expect(encerrada?.status).toBe('ENCERRADA');
     expect(nova?.status).toBe('ATIVA');
-    expect(Number(nova?.valorMensalidade)).toBe(1100); // valorMensalidadeIntegral da FILIAL2
+    expect(Number(nova?.valorMensalidade)).toBe(1100); // valorMensalidadeManha da FILIAL2
   });
 
   it('retorna 403 quando ATENDENTE tenta transferir', async () => {
@@ -603,7 +603,7 @@ describe('DELETE /api/v1/alunos/:id', () => {
         filialId: FILIAL_ID,
         nome: 'Aluno Deletar',
         dataNascimento: new Date('2019-09-09'),
-        turno: 'MEIO_TURNO',
+        turno: 'TARDE',
         status: 'INATIVO',
         consentimentoResponsavel: true,
         consentimentoTimestamp: new Date(),

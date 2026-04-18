@@ -19,4 +19,5 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
   app.get('/kpis', { preHandler: gerenteOnly }, controller.kpis.bind(controller));
   app.get('/kpis/comparativo', { preHandler: adminOnly }, controller.comparativo.bind(controller));
+  app.get('/evolucao', { preHandler: gerenteOnly }, controller.evolucao.bind(controller));
 }

@@ -16,8 +16,8 @@ interface Filial {
   nome: string;
   cnpj: string;
   diaVencimento: number;
-  valorMensalidadeIntegral: string;
-  valorMensalidadeMeioTurno: string;
+  valorMensalidadeManha: string;
+  valorMensalidadeTarde: string;
   ativo: boolean;
 }
 
@@ -59,8 +59,8 @@ export default function EditarFilialPage() {
         nome: filial.nome,
         cnpj: filial.cnpj,
         diaVencimento: filial.diaVencimento,
-        valorMensalidadeIntegral: Number(filial.valorMensalidadeIntegral),
-        valorMensalidadeMeioTurno: Number(filial.valorMensalidadeMeioTurno),
+        valorMensalidadeManha: Number(filial.valorMensalidadeManha),
+        valorMensalidadeTarde: Number(filial.valorMensalidadeTarde),
         ativo: filial.ativo,
       });
     }
@@ -125,23 +125,23 @@ export default function EditarFilialPage() {
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Mensalidade integral (R$)" error={errors.valorMensalidadeIntegral?.message}>
+            <Field label="Mensalidade manhã (R$)" error={errors.valorMensalidadeManha?.message}>
               <input
-                {...register('valorMensalidadeIntegral')}
+                {...register('valorMensalidadeManha')}
                 type="number"
                 step="0.01"
                 min="0"
-                className={`input-base ${errors.valorMensalidadeIntegral ? 'input-error' : ''}`}
+                className={`input-base ${errors.valorMensalidadeManha ? 'input-error' : ''}`}
               />
             </Field>
 
-            <Field label="Mensalidade meio turno (R$)" error={errors.valorMensalidadeMeioTurno?.message}>
+            <Field label="Mensalidade tarde (R$)" error={errors.valorMensalidadeTarde?.message}>
               <input
-                {...register('valorMensalidadeMeioTurno')}
+                {...register('valorMensalidadeTarde')}
                 type="number"
                 step="0.01"
                 min="0"
-                className={`input-base ${errors.valorMensalidadeMeioTurno ? 'input-error' : ''}`}
+                className={`input-base ${errors.valorMensalidadeTarde ? 'input-error' : ''}`}
               />
             </Field>
           </div>

@@ -42,9 +42,9 @@ export class MatriculasService {
     const filial = await prisma.filial.findUnique({ where: { id: filialId } });
     if (!filial) throw new NotFoundError('Filial');
 
-    const valorSnapshot = data.turno === 'INTEGRAL'
-      ? Number(filial.valorMensalidadeIntegral)
-      : Number(filial.valorMensalidadeMeioTurno);
+    const valorSnapshot = data.turno === 'MANHA'
+      ? Number(filial.valorMensalidadeManha)
+      : Number(filial.valorMensalidadeTarde);
 
     // Transação: criar matrícula + atualizar aluno para ATIVO
     const matricula = await prisma.$transaction(async (tx) => {

@@ -28,8 +28,8 @@ enum AlunoStatus {
 }
 
 enum Turno {
-  INTEGRAL
-  MEIO_TURNO
+  MANHA
+  TARDE
 }
 
 enum MatriculaStatus {
@@ -113,8 +113,8 @@ model Filial {
   nome                      String
   cnpj                      String
   diaVencimento             Int      @default(10)
-  valorMensalidadeIntegral  Decimal  @db.Decimal(10, 2)
-  valorMensalidadeMeioTurno Decimal  @db.Decimal(10, 2)
+  valorMensalidadeManha Decimal @db.Decimal(10, 2)
+  valorMensalidadeTarde Decimal @db.Decimal(10, 2)
   ativo                     Boolean  @default(true)
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt

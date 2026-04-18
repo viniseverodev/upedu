@@ -57,8 +57,8 @@ function makeFilial(overrides: Record<string, unknown> = {}) {
     nome: 'Filial Teste',
     cnpj: '12345678000195',
     diaVencimento: 10,
-    valorMensalidadeIntegral: 1200,
-    valorMensalidadeMeioTurno: 700,
+    valorMensalidadeManha: 1200,
+    valorMensalidadeTarde: 700,
     ativo: true,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -70,8 +70,8 @@ const CREATE_INPUT = {
   nome: 'Nova Filial',
   cnpj: '98765432000100',
   diaVencimento: 10,
-  valorMensalidadeIntegral: 1200,
-  valorMensalidadeMeioTurno: 700,
+  valorMensalidadeManha: 1200,
+  valorMensalidadeTarde: 700,
 };
 
 // --- S006: create ---

@@ -40,8 +40,8 @@ beforeAll(async () => {
       organizationId: ORG_ID,
       nome: 'Filial Resp',
       cnpj: ORG_ID.replace(/-/g, '').slice(1, 15),
-      valorMensalidadeIntegral: 1200,
-      valorMensalidadeMeioTurno: 700,
+      valorMensalidadeManha: 1200,
+      valorMensalidadeTarde: 700,
     },
   });
 
@@ -97,7 +97,7 @@ beforeAll(async () => {
     payload: {
       nome: 'Aluno para Responsáveis',
       dataNascimento: '2018-03-01',
-      turno: 'INTEGRAL',
+      turno: 'MANHA',
       consentimentoResponsavel: true,
     },
   });
