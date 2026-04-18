@@ -43,7 +43,10 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
 
-    if (error.response?.status === 401 && !original._retry) {
+    // Rotas de auth nunca disparam auto-refresh — evita deadlock circular
+    const isAuthRoute = original.url?.includes('/auth/');
+
+    if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
 
       if (!refreshPromise) {
@@ -65,6 +68,7 @@ api.interceptors.response.use(
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
+        return Promise.reject(error);
       }
     }
 
