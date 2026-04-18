@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRepository } from './auth.repository';
 import { redis, REDIS_TTL } from '../../config/redis';
-import { RATE_LIMIT_LOGIN_KEY, RATE_LIMIT_MAX_ATTEMPTS } from '../../middlewares/rate-limit';
+import { RATE_LIMIT_LOGIN_KEY } from '../../middlewares/rate-limit';
 import { env } from '../../config/env';
 import { createAuditLog } from '../../middlewares/audit';
 import { UnauthorizedError } from '../../shared/errors/AppError';
