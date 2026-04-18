@@ -204,7 +204,7 @@ describe('POST /api/v1/responsaveis', () => {
     expect(body.rg).toBeNull();
   });
 
-  it('cria responsável com CPF válido — retorna 201 e CPF mascarado', async () => {
+  it('cria responsável com CPF válido — retorna 201 e CPF formatado', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/responsaveis',
@@ -219,8 +219,8 @@ describe('POST /api/v1/responsaveis', () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.cpf).toBeTruthy();
-    // CPF deve estar mascarado (não deve conter o CPF original completo)
-    expect(body.cpf).toMatch(/•••\./);
+    // CPF retornado formatado (sem ofuscação — mascaramento removido por decisão de produto)
+    expect(body.cpf).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
   });
 
   it('CPF com dígito verificador inválido — retorna 400', async () => {
@@ -278,7 +278,7 @@ describe('GET /api/v1/responsaveis/:id', () => {
     });
   });
 
-  it('retorna perfil com CPF mascarado', async () => {
+  it('retorna perfil com CPF formatado', async () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/v1/responsaveis/${responsavelId}`,
@@ -288,10 +288,8 @@ describe('GET /api/v1/responsaveis/:id', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.nome).toBe('Test Resp GET');
-    // CPF mascarado — não expõe o valor completo
-    expect(body.cpf).toMatch(/•••\./);
-    // CPF real não deve aparecer no response
-    expect(body.cpf).not.toContain('529');
+    // CPF retornado formatado (sem ofuscação — mascaramento removido por decisão de produto)
+    expect(body.cpf).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
   });
 
   it('ID inexistente — retorna 404', async () => {
