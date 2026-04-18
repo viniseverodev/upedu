@@ -21,11 +21,13 @@ export class MensalidadesService {
       throw new NotFoundError('Aluno');
     }
 
-    // Verificar aluno tem matrícula ativa
+    // Buscar matrícula ativa para obter o valor snapshot
     const matriculaAtiva = await prisma.matricula.findFirst({
       where: { alunoId: data.alunoId, status: 'ATIVA' },
     });
-    if (!matriculaAtiva) {
+
+    // Aluno precisa estar ATIVO para gerar mensalidade
+    if (!matriculaAtiva && aluno.status !== 'ATIVO') {
       throw new ValidationError('Aluno não possui matrícula ativa');
     }
 
@@ -39,9 +41,16 @@ export class MensalidadesService {
       throw new ConflictError('Mensalidade já existe para este mês');
     }
 
-    // Buscar filial para calcular dataVencimento
+    // Buscar filial para calcular dataVencimento e valor de fallback
     const filial = await prisma.filial.findUnique({ where: { id: filialId } });
     if (!filial) throw new NotFoundError('Filial');
+
+    // Valor: snapshot da matrícula se existir; caso contrário, valor atual da filial pelo turno
+    const valorOriginal = matriculaAtiva
+      ? Number(matriculaAtiva.valorMensalidade)
+      : aluno.turno === 'MANHA'
+        ? Number(filial.valorMensalidadeManha)
+        : Number(filial.valorMensalidadeTarde);
 
     // Calcular dataVencimento — tratar dia > último dia do mês
     const dataVencimento = this.calcularVencimento(
@@ -55,7 +64,7 @@ export class MensalidadesService {
       filialId,
       mesReferencia: data.mesReferencia,
       anoReferencia: data.anoReferencia,
-      valorOriginal: Number(matriculaAtiva.valorMensalidade),
+      valorOriginal,
       dataVencimento,
     });
 

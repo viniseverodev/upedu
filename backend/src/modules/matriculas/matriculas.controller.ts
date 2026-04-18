@@ -1,4 +1,4 @@
-// MatriculasController — handlers HTTP (S020/S021)
+// MatriculasController — handlers HTTP (S020/S021/S022)
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { MatriculasService } from './matriculas.service';
@@ -18,6 +18,13 @@ export class MatriculasController {
   async listByAluno(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const matriculas = await this.service.listByAluno(id, request.filialId);
+    return reply.status(200).send(matriculas);
+  }
+
+  // S022 — GET /matriculas
+  async listByFilial(request: FastifyRequest, reply: FastifyReply) {
+    const { status, turno } = request.query as { status?: string; turno?: string };
+    const matriculas = await this.service.listByFilial(request.filialId, status as any, turno as any);
     return reply.status(200).send(matriculas);
   }
 }

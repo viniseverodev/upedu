@@ -1,4 +1,5 @@
-// Rotas de matrículas — S020
+// Rotas de matrículas — S020/S022
+// GET  /matriculas — listar matrículas da filial
 // POST /matriculas — criar matrícula com snapshot
 
 import type { FastifyInstance } from 'fastify';
@@ -13,5 +14,6 @@ export async function matriculasRoutes(app: FastifyInstance) {
   // BUG-016: matrícula é ato formal de admissão — requer ao menos ATENDENTE (PROFESSOR é read-only)
   const atendenteOnly = [...base, authorize(['SUPER_ADMIN', 'ADMIN_MATRIZ', 'GERENTE_FILIAL', 'ATENDENTE'])];
 
+  app.get('/', { preHandler: base }, controller.listByFilial.bind(controller));
   app.post('/', { preHandler: atendenteOnly }, controller.create.bind(controller));
 }

@@ -1,4 +1,4 @@
-// MatriculasService — lógica de negócio (S020/S021)
+// MatriculasService — lógica de negócio (S020/S021/S022)
 // S020: POST /matriculas — snapshot valorMensalidade, 1 ativa, requer resp. financeiro
 // S021: GET /alunos/:id/matriculas — histórico
 
@@ -6,6 +6,7 @@ import { MatriculasRepository } from './matriculas.repository';
 import { createAuditLog } from '../../middlewares/audit';
 import { NotFoundError, ValidationError } from '../../shared/errors/AppError';
 import { prisma } from '../../config/database';
+import type { MatriculaStatus, Turno } from '@prisma/client';
 import type { CreateMatriculaInput } from './matriculas.schema';
 
 export class MatriculasService {
@@ -85,6 +86,21 @@ export class MatriculasService {
       ...matricula,
       valorMensalidade: Number(matricula.valorMensalidade),
     };
+  }
+
+  // S022 — Listar todas as matrículas da filial
+  async listByFilial(filialId: string, status?: MatriculaStatus, turno?: Turno) {
+    const matriculas = await this.repo.findAllByFilial(filialId, status, turno);
+    return matriculas.map((m) => ({
+      id: m.id,
+      status: m.status,
+      turno: m.turno,
+      valorMensalidade: Number(m.valorMensalidade),
+      dataInicio: m.dataInicio,
+      dataFim: m.dataFim ?? null,
+      createdAt: m.createdAt,
+      aluno: m.aluno,
+    }));
   }
 
   // S021 — Histórico de matrículas
