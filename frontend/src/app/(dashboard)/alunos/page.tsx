@@ -316,6 +316,7 @@ export default function AlunosPage() {
   // didReadParam evita que o router.replace re-dispare o effect com searchParams vazio.
   useEffect(() => {
     if (didReadParam.current) return;
+    if (!searchParams) return;
     const created  = searchParams.get('created');
     const updated  = searchParams.get('updated');
     const respErr  = searchParams.get('respErr');
