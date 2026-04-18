@@ -66,6 +66,9 @@ api.interceptors.response.use(
       } catch {
         getAuthStore()?.logout();
         if (typeof window !== 'undefined') {
+          // Apaga o cookie auth-session (não-httpOnly) para que o middleware
+          // não redirecione de volta ao dashboard causando loop infinito.
+          document.cookie = 'auth-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
           window.location.href = '/login';
         }
         return Promise.reject(error);

@@ -42,7 +42,9 @@ function getQueryClient() {
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => getQueryClient());
 
-  // Reidrata os stores zustand no cliente (skipHydration=true nos stores)
+  // Reidrata os stores Zustand no cliente (skipHydration=true nos stores).
+  // useEffect garante que roda apenas no cliente, após o SSR, evitando
+  // hydration mismatch entre servidor e cliente.
   useEffect(() => {
     useAuthStore.persist.rehydrate();
     useFilialStore.persist.rehydrate();

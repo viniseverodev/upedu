@@ -85,7 +85,7 @@ export default function EditarAlunoPage() {
           <h1 className="page-title">Editar Aluno</h1>
           <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{aluno?.nome}</p>
         </div>
-        <button type="button" onClick={() => router.push(`/alunos/${id}`)} className="btn-ghost text-sm">Cancelar</button>
+        <button type="button" onClick={() => router.push('/alunos')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
       <div className="card p-6">
@@ -167,7 +167,7 @@ export default function EditarAlunoPage() {
             <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
               {mutation.isPending ? 'Salvando…' : 'Salvar alterações'}
             </button>
-            <button type="button" onClick={() => router.push(`/alunos/${id}`)} className="btn-secondary">Cancelar</button>
+            <button type="button" onClick={() => router.push('/alunos')} className="btn-secondary">Cancelar</button>
           </div>
         </form>
       </div>
