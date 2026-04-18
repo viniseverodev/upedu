@@ -47,7 +47,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'upedu-auth',
-      partialize: (state) => ({ user: state.user }), // Não persistir accessToken
+      // Persistir user e isAuthenticated; accessToken não é persistido (renovado via refresh)
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
       skipHydration: true, // evita mismatch SSR/cliente no Next.js App Router
     }
   )
