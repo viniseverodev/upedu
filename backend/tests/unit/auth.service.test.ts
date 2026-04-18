@@ -21,6 +21,9 @@ const mockRepo = vi.hoisted(() => ({
 
 const mockAuditLog = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockRedisSetex = vi.hoisted(() => vi.fn().mockResolvedValue('OK'));
+const mockRedisSet = vi.hoisted(() => vi.fn().mockResolvedValue('OK'));
+const mockRedisIncr = vi.hoisted(() => vi.fn().mockResolvedValue(1));
+const mockRedisDel = vi.hoisted(() => vi.fn().mockResolvedValue(1));
 
 vi.mock('../../src/modules/auth/auth.repository', () => ({
   AuthRepository: vi.fn(() => mockRepo),
@@ -31,7 +34,13 @@ vi.mock('../../src/middlewares/audit', () => ({
 }));
 
 vi.mock('../../src/config/redis', () => ({
-  redis: { setex: mockRedisSetex, get: vi.fn().mockResolvedValue(null) },
+  redis: {
+    setex: mockRedisSetex,
+    get: vi.fn().mockResolvedValue(null),
+    set: mockRedisSet,
+    incr: mockRedisIncr,
+    del: mockRedisDel,
+  },
   REDIS_TTL: { ACCESS_TOKEN_BLACKLIST: 900, RATE_LIMIT_LOGIN: 900, KPI_CACHE: 300, FILIAL_CACHE: 3600 },
 }));
 
