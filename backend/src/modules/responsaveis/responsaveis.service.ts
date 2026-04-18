@@ -5,7 +5,7 @@
 import { ResponsaveisRepository } from './responsaveis.repository';
 import { createAuditLog } from '../../middlewares/audit';
 import { NotFoundError, ValidationError } from '../../shared/errors/AppError';
-import { encrypt, decrypt, maskCpf, maskRg } from '../../shared/utils/crypto';
+import { encrypt, decrypt, maskRg } from '../../shared/utils/crypto';
 import type {
   CreateResponsavelInput,
   UpdateResponsavelInput,
@@ -13,12 +13,12 @@ import type {
 } from './responsaveis.schema';
 import { prisma } from '../../config/database';
 
-// Responsável com CPF/RG mascarados (retorno padrão)
+// Responsável com dados descriptografados (retorno padrão)
 export interface ResponsavelPublico {
   id: string;
   nome: string;
-  cpf?: string | null;    // mascarado: •••.123.•••-••
-  rg?: string | null;     // mascarado: •••••23
+  cpf?: string | null;
+  rg?: string | null;
   telefone?: string | null;
   email?: string | null;
   deletedAt?: Date | null;
@@ -113,20 +113,20 @@ export class ResponsaveisService {
 
     const updateData: {
       nome?: string;
-      cpfEnc?: Buffer;
-      rgEnc?: Buffer;
-      telefone?: string;
-      email?: string;
+      cpfEnc?: Buffer | null;
+      rgEnc?: Buffer | null;
+      telefone?: string | null;
+      email?: string | null;
     } = {};
 
     if (data.nome !== undefined) updateData.nome = data.nome;
-    if (data.telefone !== undefined) updateData.telefone = data.telefone;
-    if (data.email !== undefined) updateData.email = data.email;
+    if (data.telefone !== undefined) updateData.telefone = data.telefone ?? null;
+    if (data.email !== undefined) updateData.email = data.email ?? null;
     if (data.cpf !== undefined) {
-      updateData.cpfEnc = encrypt(data.cpf.replace(/\D/g, ''));
+      updateData.cpfEnc = data.cpf === null ? null : encrypt(data.cpf.replace(/\D/g, ''));
     }
     if (data.rg !== undefined) {
-      updateData.rgEnc = encrypt(data.rg.replace(/\D/g, ''));
+      updateData.rgEnc = data.rg === null ? null : encrypt(data.rg.replace(/\D/g, ''));
     }
 
     const updated = await this.repo.update(id, updateData);
@@ -259,8 +259,7 @@ export class ResponsaveisService {
     if (r.cpfEnc) {
       try {
         const cpfClean = decrypt(Buffer.from(r.cpfEnc));
-        const cpfFormatted = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        cpf = maskCpf(cpfFormatted);
+        cpf = cpfClean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
       } catch {
         cpf = null;
       }

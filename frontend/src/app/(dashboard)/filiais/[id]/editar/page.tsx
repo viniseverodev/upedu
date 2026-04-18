@@ -92,7 +92,6 @@ export default function EditarFilialPage() {
           <h1 className="page-title">Editar Filial</h1>
           <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{filial?.nome}</p>
         </div>
-        <button type="button" onClick={() => router.push('/filiais')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
       <div className="card p-6">

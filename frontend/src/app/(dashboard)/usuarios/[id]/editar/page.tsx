@@ -116,7 +116,6 @@ export default function EditarUsuarioPage() {
           <h1 className="page-title">Editar Usuário</h1>
           <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{user?.email}</p>
         </div>
-        <button type="button" onClick={() => router.push('/usuarios')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
       <div className="card p-6">

@@ -45,7 +45,6 @@ export default function NovaFilialPage() {
           <h1 className="page-title">Nova Filial</h1>
           <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">Preencha os dados da nova unidade.</p>
         </div>
-        <button type="button" onClick={() => router.push('/filiais')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
       <div className="card p-6">

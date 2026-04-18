@@ -9,7 +9,7 @@
 import { AlunosRepository } from "./alunos.repository";
 import { createAuditLog } from "../../middlewares/audit";
 import { NotFoundError, ValidationError } from "../../shared/errors/AppError";
-import { decrypt, maskCpf, maskRg } from "../../shared/utils/crypto";
+import { decrypt, maskRg } from "../../shared/utils/crypto";
 import type {
   CreateAlunoInput,
   UpdateAlunoInput,
@@ -32,13 +32,13 @@ export class AlunosService {
       throw new NotFoundError("Aluno");
     }
 
-    // Aplicar mascaramento de CPF/RG — S016 AC
+    // Descriptografar CPF/RG sem mascaramento
     const responsaveisMascarados = aluno.responsaveis.map((vinculo) => {
       const r = vinculo.responsavel;
       let cpf: string | null = null;
       let rg: string | null = null;
       if (r.cpfEnc) {
-        try { cpf = maskCpf(decrypt(Buffer.from(r.cpfEnc as Buffer)).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')); } catch { /* sem CPF */ }
+        try { cpf = decrypt(Buffer.from(r.cpfEnc as Buffer)).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); } catch { /* sem CPF */ }
       }
       if (r.rgEnc) {
         try { rg = maskRg(decrypt(Buffer.from(r.rgEnc as Buffer))); } catch { /* sem RG */ }

@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { DatePickerModal, fmtDateBR } from '@/components/ui/DatePickerModal';
+import { cpfSchema } from '@/schemas';
 
 // ---------- Schema combinado ----------
 
@@ -25,10 +26,19 @@ const schema = z.object({
   observacoes: z.string().optional(),
   // Responsável (todos opcionais — pode ser vinculado depois)
   respNome: z.string().optional(),
+  respCpf: cpfSchema.optional().or(z.literal('')),
   respTelefone: z.string().optional(),
   respEmail: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
   respParentesco: z.string().optional(),
   respIsFinanceiro: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+  if (data.respIsFinanceiro && !data.respCpf?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'CPF obrigatório para responsável financeiro',
+      path: ['respCpf'],
+    });
+  }
 });
 
 type FormData = z.infer<typeof schema>;
@@ -107,6 +117,7 @@ export default function NovoAlunoPage() {
         try {
           const respRes = await api.post<{ id: string }>('/responsaveis', {
             nome: data.respNome.trim(),
+            cpf: data.respCpf?.trim() || undefined,
             telefone: data.respTelefone?.trim() || undefined,
             email: data.respEmail?.trim() || undefined,
           });
@@ -147,9 +158,6 @@ export default function NovoAlunoPage() {
             Preencha os dados abaixo para realizar o cadastro
           </p>
         </div>
-        <button type="button" onClick={() => router.push('/alunos')} className="btn-ghost text-sm">
-          Cancelar
-        </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -182,7 +190,7 @@ export default function NovoAlunoPage() {
                 <button
                   type="button"
                   onClick={() => setShowDatePicker(true)}
-                  className={`input-base flex items-center justify-between text-left ${
+                  className={`input-base cursor-pointer flex items-center justify-between text-left ${
                     errors.dataNascimento ? 'input-error' : ''
                   } ${!dataNascimento ? 'text-gray-400 dark:text-slate-500' : ''}`}
                 >
@@ -237,6 +245,17 @@ export default function NovoAlunoPage() {
                 {...register('respNome')}
                 placeholder="Ex: João da Silva"
                 className="input-base"
+              />
+            </Field>
+
+            <Field label="CPF do responsável" error={errors.respCpf?.message}>
+              <input
+                {...register('respCpf')}
+                type="text"
+                autoComplete="off"
+                placeholder="000.000.000-00"
+                maxLength={14}
+                className={`input-base ${errors.respCpf ? 'input-error' : ''}`}
               />
             </Field>
 

@@ -34,10 +34,10 @@ export const createResponsavelSchema = z.object({
 
 export const updateResponsavelSchema = z.object({
   nome: z.string().min(3).max(150).optional(),
-  cpf: cpfSchema.optional(),
-  rg: z.string().min(5).max(20).optional(),
-  telefone: z.string().min(8).max(20).optional(),
-  email: z.string().email().optional(),
+  cpf: cpfSchema.nullable().optional(),
+  rg: z.string().min(5).max(20).nullable().optional(),
+  telefone: z.string().min(8).max(20).nullable().optional(),
+  email: z.string().email().nullable().optional(),
 });
 
 export const vincularResponsavelSchema = z.object({

@@ -86,7 +86,7 @@ function validarCpf(cpf: string): boolean {
   return calc(9) === Number(digits[9]) && calc(10) === Number(digits[10]);
 }
 
-const cpfSchema = z
+export const cpfSchema = z
   .string()
   .regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/, 'CPF inválido (formato: 000.000.000-00)')
   .refine(validarCpf, 'CPF inválido (dígitos verificadores)');

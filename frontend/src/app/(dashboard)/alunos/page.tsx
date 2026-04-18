@@ -9,6 +9,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 
 // ---------- Helpers de calendário ----------
 
@@ -27,7 +29,7 @@ function fmtBR(s: string) {
 }
 
 interface Responsavel { id: string; nome: string; telefone: string | null }
-interface AlunoResponsavel { responsavel: Responsavel }
+interface AlunoResponsavel { responsavel: Responsavel; isResponsavelFinanceiro: boolean }
 interface Aluno {
   id: string; nome: string; dataNascimento: string; createdAt: string;
   status: string; turno: string; responsaveis: AlunoResponsavel[];
@@ -306,16 +308,8 @@ export default function AlunosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Toast genérico
-  const [toast, setToast] = useState<{ title: string; sub: string } | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { toast, showToast, hideToast } = useToast();
   const didReadParam = useRef(false);
-
-  function showToast(title: string, sub: string) {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast({ title, sub });
-    toastTimerRef.current = setTimeout(() => setToast(null), 5000);
-  }
 
   // Lê parâmetros de URL vindos de outras páginas (?created=, ?updated=, ?respErr=)
   // showToast é omitida das deps intencionalmente: captura apenas refs estáveis (setToast, toastTimerRef).
@@ -338,13 +332,7 @@ export default function AlunosPage() {
     } else if (updated) {
       showToast('Aluno atualizado', `${decodeURIComponent(updated)} foi atualizado com sucesso.`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- showToast captura apenas refs estáveis
-  }, [searchParams]);
-
-  // Cleanup do timer ao desmontar o componente (evita setState em componente desmontado)
-  useEffect(() => {
-    return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
-  }, []);
+  }, [searchParams, showToast]);
 
   // Filtros
   const [search, setSearch] = useState('');
@@ -548,7 +536,7 @@ export default function AlunosPage() {
                     </span>
                   </td>
                   <td className="table-td text-gray-600 dark:text-slate-400">
-                    {aluno.responsaveis[0]?.responsavel.nome ?? '—'}
+                    {(aluno.responsaveis.find((ar) => ar.isResponsavelFinanceiro) ?? aluno.responsaveis[0])?.responsavel.nome ?? '—'}
                   </td>
                   <td className="table-td">
                     <span className={STATUS_BADGE[aluno.status] ?? 'badge badge-gray'}>
@@ -615,28 +603,7 @@ export default function AlunosPage() {
         />
       )}
 
-      {/* Toast de feedback */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-5 py-3.5 shadow-2xl dark:border-emerald-800 dark:bg-slate-900">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{toast.title}</p>
-            <p className="text-xs text-gray-500 dark:text-slate-400">{toast.sub}</p>
-          </div>
-          <button
-            onClick={() => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); setToast(null); }}
-            className="ml-2 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }

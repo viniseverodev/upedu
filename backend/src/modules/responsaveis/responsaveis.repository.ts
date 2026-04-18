@@ -22,15 +22,15 @@ export class ResponsaveisRepository {
     });
   }
 
-  // S018 — atualizar campos (CPF/RG já encriptados pelo service)
+  // S018 — atualizar campos (CPF/RG já encriptados pelo service; null = limpar campo)
   async update(
     id: string,
     data: {
       nome?: string;
-      cpfEnc?: Buffer;
-      rgEnc?: Buffer;
-      telefone?: string;
-      email?: string;
+      cpfEnc?: Buffer | null;
+      rgEnc?: Buffer | null;
+      telefone?: string | null;
+      email?: string | null;
     },
   ) {
     return prisma.responsavel.update({ where: { id }, data });

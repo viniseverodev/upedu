@@ -110,7 +110,6 @@ export default function NovoUsuarioPage() {
           <h1 className="page-title">Novo Usuário</h1>
           <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">Uma senha temporária será gerada automaticamente.</p>
         </div>
-        <button type="button" onClick={() => router.push('/usuarios')} className="btn-ghost text-sm">Cancelar</button>
       </div>
 
       <div className="card p-6">

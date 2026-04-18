@@ -5,25 +5,61 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
+import { z } from 'zod';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 import {
-  vincularResponsavelSchema,
   createMatriculaSchema,
   createMensalidadeSchema,
   pagarMensalidadeSchema,
-  type VincularResponsavelInput,
+  cpfSchema,
   type CreateMatriculaInput,
   type CreateMensalidadeInput,
   type PagarMensalidadeInput,
 } from '@/schemas/index';
 
-interface Responsavel { id: string; nome: string; telefone: string | null; email: string | null }
+// Schema local: criar e vincular responsável em um único formulário
+const addResponsavelSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres'),
+  cpf: cpfSchema.optional().or(z.literal('')),
+  telefone: z.string().optional(),
+  email: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
+  parentesco: z.string().min(2, 'Parentesco obrigatório'),
+  isResponsavelFinanceiro: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+  if (data.isResponsavelFinanceiro && !data.cpf?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'CPF obrigatório para responsável financeiro',
+      path: ['cpf'],
+    });
+  }
+});
+type AddResponsavelInput = z.infer<typeof addResponsavelSchema>;
+
+// Schema local: editar dados do responsável
+const editResponsavelSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres'),
+  parentesco: z.string().min(2, 'Parentesco obrigatório'),
+  cpf: cpfSchema.optional().or(z.literal('')),
+  telefone: z.string().optional(),
+  email: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
+  isResponsavelFinanceiro: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+  if (data.isResponsavelFinanceiro && !data.cpf?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'CPF obrigatório para responsável financeiro', path: ['cpf'] });
+  }
+});
+type EditResponsavelInput = z.infer<typeof editResponsavelSchema>;
+
+interface Responsavel { id: string; nome: string; cpf: string | null; telefone: string | null; email: string | null }
 interface AlunoResponsavel { parentesco: string; isResponsavelFinanceiro: boolean; responsavel: Responsavel }
 interface Matricula { id: string; status: string; turno: string; valorMensalidade: number; dataInicio: string; dataFim: string | null }
 interface Mensalidade { id: string; status: string; mesReferencia: number; anoReferencia: number; valorOriginal: number }
@@ -117,9 +153,13 @@ export default function AlunoPerfilPage() {
   const params = useParams() ?? {};
   const id = (params.id as string) ?? '';
   const [activeTab, setActiveTab] = useState<Tab>('dados');
-  const [showVincularModal, setShowVincularModal] = useState(false);
-  const [vincularError, setVincularError] = useState<string | null>(null);
+  const { toast, showToast, hideToast } = useToast();
+  const [showAdicionarModal, setShowAdicionarModal] = useState(false);
+  const [adicionarError, setAdicionarError] = useState<string | null>(null);
+  const [editingResponsavel, setEditingResponsavel] = useState<(Responsavel & { isResponsavelFinanceiro: boolean; parentesco: string }) | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [desvinculaError, setDesvinculaError] = useState<string | null>(null);
+  const [confirmRemover, setConfirmRemover] = useState<{ id: string; nome: string } | null>(null);
   const [showMatriculaModal, setShowMatriculaModal] = useState(false);
   const [matriculaError, setMatriculaError] = useState<string | null>(null);
   const [showMensalidadeModal, setShowMensalidadeModal] = useState(false);
@@ -133,19 +173,104 @@ export default function AlunoPerfilPage() {
     queryFn: () => api.get(`/alunos/${id}`).then((r) => r.data),
   });
 
-  const { register: registerVincular, handleSubmit: handleVincular, reset: resetVincular, formState: { errors: errorsVincular } } =
-    useForm<VincularResponsavelInput>({ resolver: zodResolver(vincularResponsavelSchema), defaultValues: { isResponsavelFinanceiro: false } });
+  const { register: registerAdicionar, handleSubmit: handleAdicionar, reset: resetAdicionar, formState: { errors: errorsAdicionar } } =
+    useForm<AddResponsavelInput>({ resolver: zodResolver(addResponsavelSchema), defaultValues: { isResponsavelFinanceiro: false } });
 
-  const vincularMutation = useMutation({
-    mutationFn: (data: VincularResponsavelInput) => api.post(`/alunos/${id}/responsaveis`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['aluno', id] }); setShowVincularModal(false); resetVincular(); setVincularError(null); },
-    onError: (error: AxiosError<{ message: string }>) => setVincularError(error.response?.data?.message ?? 'Erro ao vincular responsável.'),
+  const { register: registerEdit, handleSubmit: handleEditSubmit, reset: resetEdit, formState: { errors: errorsEdit } } =
+    useForm<EditResponsavelInput>({ resolver: zodResolver(editResponsavelSchema) });
+
+  useEffect(() => {
+    if (editingResponsavel) {
+      resetEdit({
+        nome: editingResponsavel.nome,
+        parentesco: editingResponsavel.parentesco,
+        cpf: editingResponsavel.cpf ?? '',
+        telefone: editingResponsavel.telefone ?? '',
+        email: editingResponsavel.email ?? '',
+        isResponsavelFinanceiro: !!editingResponsavel.isResponsavelFinanceiro,
+      });
+    }
+  }, [editingResponsavel, resetEdit]);
+
+  // Cria o responsável e já vincula ao aluno em sequência
+  const adicionarMutation = useMutation({
+    mutationFn: async (data: AddResponsavelInput) => {
+      const resp = await api.post<{ id: string }>('/responsaveis', {
+        nome: data.nome,
+        cpf: data.cpf?.trim() || undefined,
+        telefone: data.telefone?.trim() || undefined,
+        email: data.email?.trim() || undefined,
+      });
+      await api.post(`/alunos/${id}/responsaveis`, {
+        responsavelId: resp.data.id,
+        parentesco: data.parentesco,
+        isResponsavelFinanceiro: data.isResponsavelFinanceiro,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      setShowAdicionarModal(false);
+      resetAdicionar();
+      setAdicionarError(null);
+      showToast('Responsável adicionado', 'O responsável foi vinculado ao aluno com sucesso.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const msg = error.response?.data?.message;
+      setAdicionarError(msg && !msg.startsWith('Route ') ? msg : 'Erro ao adicionar responsável. Tente novamente.');
+    },
+  });
+
+  // Edita os dados pessoais do responsável e o vínculo financeiro
+  const editMutation = useMutation({
+    mutationFn: async (data: EditResponsavelInput) => {
+      await api.patch(`/responsaveis/${editingResponsavel?.id}`, {
+        nome: data.nome,
+        cpf: data.cpf?.trim() || null,
+        telefone: data.telefone?.trim() || null,
+        email: data.email?.trim() || null,
+      });
+      const vinculoMudou = !!data.isResponsavelFinanceiro !== !!editingResponsavel?.isResponsavelFinanceiro
+        || data.parentesco !== editingResponsavel?.parentesco;
+      if (vinculoMudou) {
+        await api.delete(`/alunos/${id}/responsaveis/${editingResponsavel?.id}`);
+        try {
+          await api.post(`/alunos/${id}/responsaveis`, {
+            responsavelId: editingResponsavel?.id,
+            parentesco: data.parentesco,
+            isResponsavelFinanceiro: data.isResponsavelFinanceiro,
+          });
+        } catch (postErr) {
+          await api.post(`/alunos/${id}/responsaveis`, {
+            responsavelId: editingResponsavel?.id,
+            parentesco: editingResponsavel?.parentesco,
+            isResponsavelFinanceiro: editingResponsavel?.isResponsavelFinanceiro,
+          }).catch(() => {});
+          const backendMsg = (postErr as AxiosError<{ message: string }>).response?.data?.message;
+          throw new Error(backendMsg ?? 'Erro ao atualizar responsável. Tente novamente.');
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      setEditingResponsavel(null);
+      resetEdit();
+      setEditError(null);
+      showToast('Responsável atualizado', 'As informações foram salvas com sucesso.');
+    },
+    onError: (error: AxiosError<{ message: string }> | Error) => {
+      const msg = (error as AxiosError<{ message: string }>).response?.data?.message ?? (error as Error).message;
+      setEditError(msg && !msg.startsWith('Route ') ? msg : 'Erro ao atualizar responsável. Tente novamente.');
+    },
   });
 
   const desvinculaMutation = useMutation({
     mutationFn: (responsavelId: string) => api.delete(`/alunos/${id}/responsaveis/${responsavelId}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['aluno', id] }); setDesvinculaError(null); },
-    onError: () => setDesvinculaError('Não foi possível desvincular o responsável. Tente novamente.'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      setDesvinculaError(null);
+      showToast('Responsável removido', 'O responsável foi desvinculado do aluno com sucesso.');
+    },
+    onError: () => setDesvinculaError('Não foi possível remover. Tente novamente.'),
   });
 
   const now = new Date();
@@ -275,10 +400,10 @@ export default function AlunoPerfilPage() {
         <div className="space-y-3">
           <div className="flex justify-end">
             <button
-              onClick={() => { setShowVincularModal(true); setVincularError(null); }}
+              onClick={() => { setShowAdicionarModal(true); setAdicionarError(null); }}
               className="btn-primary text-sm"
             >
-              Vincular Responsável
+              Adicionar Responsável
             </button>
           </div>
 
@@ -310,17 +435,24 @@ export default function AlunoPerfilPage() {
                     {ar.responsavel.email && (
                       <p className="text-sm text-gray-600 dark:text-slate-400">{ar.responsavel.email}</p>
                     )}
-                    <Link href={`/responsaveis/${ar.responsavel.id}`} className="mt-2 inline-block text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">
-                      Ver perfil completo →
-                    </Link>
                   </div>
-                  <button
-                    onClick={() => desvinculaMutation.mutate(ar.responsavel.id)}
-                    disabled={desvinculaMutation.isPending}
-                    className="text-xs font-medium text-crimson-500 hover:text-crimson-700 disabled:opacity-50"
-                  >
-                    Desvincular
-                  </button>
+                  <div className="flex flex-col items-end gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingResponsavel({ ...ar.responsavel, isResponsavelFinanceiro: ar.isResponsavelFinanceiro, parentesco: ar.parentesco });
+                        setEditError(null);
+                      }}
+                      className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => { setDesvinculaError(null); setConfirmRemover({ id: ar.responsavel.id, nome: ar.responsavel.nome }); }}
+                      className="text-xs font-medium text-crimson-500 hover:text-crimson-700"
+                    >
+                      Remover
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -411,30 +543,85 @@ export default function AlunoPerfilPage() {
         </div>
       )}
 
-      {/* Modal: Vincular Responsável */}
-      {showVincularModal && (
-        <ModalShell title="Vincular Responsável" onClose={() => { setShowVincularModal(false); resetVincular(); setVincularError(null); }}>
-          <form onSubmit={handleVincular((d) => { setVincularError(null); vincularMutation.mutate(d); })} noValidate className="space-y-4">
-            <ModalField label="ID do Responsável" error={errorsVincular.responsavelId?.message}>
-              <input {...registerVincular('responsavelId')} placeholder="UUID do responsável" className={`input-base ${errorsVincular.responsavelId ? 'input-error' : ''}`} />
+      {/* Modal: Adicionar Responsável */}
+      {showAdicionarModal && (
+        <ModalShell title="Adicionar Responsável" onClose={() => { setShowAdicionarModal(false); resetAdicionar(); setAdicionarError(null); }}>
+          <form onSubmit={handleAdicionar((d) => { setAdicionarError(null); adicionarMutation.mutate(d); })} noValidate className="space-y-4">
+            <ModalField label="Nome completo" error={errorsAdicionar.nome?.message}>
+              <input {...registerAdicionar('nome')} placeholder="Ex: Maria da Silva" className={`input-base ${errorsAdicionar.nome ? 'input-error' : ''}`} />
             </ModalField>
 
-            <ModalField label="Parentesco" error={errorsVincular.parentesco?.message}>
-              <input {...registerVincular('parentesco')} placeholder="Ex: Mãe, Pai, Avó" className={`input-base ${errorsVincular.parentesco ? 'input-error' : ''}`} />
+            <ModalField label="Parentesco" error={errorsAdicionar.parentesco?.message}>
+              <input {...registerAdicionar('parentesco')} placeholder="Ex: Mãe, Pai, Avó" className={`input-base ${errorsAdicionar.parentesco ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="CPF" error={errorsAdicionar.cpf?.message}>
+              <input {...registerAdicionar('cpf')} type="text" autoComplete="off" placeholder="000.000.000-00" maxLength={14} className={`input-base ${errorsAdicionar.cpf ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="Telefone">
+              <input {...registerAdicionar('telefone')} placeholder="(11) 99999-9999" className="input-base" />
+            </ModalField>
+
+            <ModalField label="Email" error={errorsAdicionar.email?.message}>
+              <input {...registerAdicionar('email')} type="email" placeholder="email@exemplo.com" className={`input-base ${errorsAdicionar.email ? 'input-error' : ''}`} />
             </ModalField>
 
             <label className="flex cursor-pointer items-center gap-2.5">
-              <input type="checkbox" id="isFinanceiro" {...registerVincular('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
+              <input type="checkbox" {...registerAdicionar('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
               <span className="text-sm text-gray-700 dark:text-slate-300">Responsável financeiro</span>
             </label>
 
-            {vincularError && <ServerError message={vincularError} />}
+            {adicionarError && <ServerError message={adicionarError} />}
 
             <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={vincularMutation.isPending} className="btn-primary flex-1">
-                {vincularMutation.isPending ? 'Vinculando…' : 'Vincular'}
+              <button type="submit" disabled={adicionarMutation.isPending} className="btn-primary flex-1">
+                {adicionarMutation.isPending ? 'Salvando…' : 'Adicionar'}
               </button>
-              <button type="button" onClick={() => { setShowVincularModal(false); resetVincular(); setVincularError(null); }} className="btn-secondary">
+              <button type="button" onClick={() => { setShowAdicionarModal(false); resetAdicionar(); setAdicionarError(null); }} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {/* Modal: Editar Responsável */}
+      {editingResponsavel && (
+        <ModalShell title="Editar Responsável" onClose={() => { setEditingResponsavel(null); resetEdit(); setEditError(null); }}>
+          <form onSubmit={handleEditSubmit((d) => { setEditError(null); editMutation.mutate(d); })} noValidate className="space-y-4">
+            <ModalField label="Nome completo" error={errorsEdit.nome?.message}>
+              <input {...registerEdit('nome')} className={`input-base ${errorsEdit.nome ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="Parentesco" error={errorsEdit.parentesco?.message}>
+              <input {...registerEdit('parentesco')} placeholder="Ex: Pai" className={`input-base ${errorsEdit.parentesco ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="CPF" error={errorsEdit.cpf?.message}>
+              <input {...registerEdit('cpf')} type="text" autoComplete="off" placeholder="000.000.000-00" maxLength={14} className={`input-base ${errorsEdit.cpf ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="Telefone">
+              <input {...registerEdit('telefone')} placeholder="(11) 99999-9999" className="input-base" />
+            </ModalField>
+
+            <ModalField label="Email" error={errorsEdit.email?.message}>
+              <input {...registerEdit('email')} type="email" className={`input-base ${errorsEdit.email ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <label className="flex cursor-pointer items-center gap-2.5">
+              <input type="checkbox" {...registerEdit('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
+              <span className="text-sm text-gray-700 dark:text-slate-300">Responsável financeiro</span>
+            </label>
+
+            {editError && <ServerError message={editError} />}
+
+            <div className="flex gap-3 pt-2">
+              <button type="submit" disabled={editMutation.isPending} className="btn-primary flex-1">
+                {editMutation.isPending ? 'Salvando…' : 'Salvar alterações'}
+              </button>
+              <button type="button" onClick={() => { setEditingResponsavel(null); resetEdit(); setEditError(null); }} className="btn-secondary">
                 Cancelar
               </button>
             </div>
@@ -538,6 +725,38 @@ export default function AlunoPerfilPage() {
           </form>
         </ModalShell>
       )}
+      {/* Modal: Confirmar remoção de responsável */}
+      {confirmRemover && (
+        <ModalShell title="Remover responsável" onClose={() => { setConfirmRemover(null); setDesvinculaError(null); }}>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
+            Tem certeza que deseja remover <span className="font-medium text-gray-900 dark:text-slate-100">{confirmRemover.nome}</span> como responsável deste aluno?
+          </p>
+          {desvinculaError && <p className="mt-2 text-xs text-crimson-500">{desvinculaError}</p>}
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                desvinculaMutation.mutate(confirmRemover.id, {
+                  onSuccess: () => { setConfirmRemover(null); },
+                });
+              }}
+              disabled={desvinculaMutation.isPending}
+              className="btn-primary flex-1 bg-crimson-600 hover:bg-crimson-700 focus-visible:ring-crimson-500 disabled:opacity-50"
+            >
+              {desvinculaMutation.isPending ? 'Removendo…' : 'Remover'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirmRemover(null); setDesvinculaError(null); }}
+              className="btn-secondary"
+            >
+              Cancelar
+            </button>
+          </div>
+        </ModalShell>
+      )}
+
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }
