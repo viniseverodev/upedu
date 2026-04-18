@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/utils';
 import {
   vincularResponsavelSchema,
   createMatriculaSchema,
@@ -118,6 +119,7 @@ export default function AlunoPerfilPage() {
   const [activeTab, setActiveTab] = useState<Tab>('dados');
   const [showVincularModal, setShowVincularModal] = useState(false);
   const [vincularError, setVincularError] = useState<string | null>(null);
+  const [desvinculaError, setDesvinculaError] = useState<string | null>(null);
   const [showMatriculaModal, setShowMatriculaModal] = useState(false);
   const [matriculaError, setMatriculaError] = useState<string | null>(null);
   const [showMensalidadeModal, setShowMensalidadeModal] = useState(false);
@@ -142,7 +144,8 @@ export default function AlunoPerfilPage() {
 
   const desvinculaMutation = useMutation({
     mutationFn: (responsavelId: string) => api.delete(`/alunos/${id}/responsaveis/${responsavelId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aluno', id] }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['aluno', id] }); setDesvinculaError(null); },
+    onError: () => setDesvinculaError('Não foi possível desvincular o responsável. Tente novamente.'),
   });
 
   const now = new Date();
@@ -229,6 +232,7 @@ export default function AlunoPerfilPage() {
               Nova Matrícula
             </button>
           )}
+          <Link href="/alunos" className="btn-ghost text-sm">Voltar</Link>
           <Link href={`/alunos/${id}/editar`} className="btn-secondary text-sm">Editar</Link>
         </div>
       </div>
@@ -254,7 +258,7 @@ export default function AlunoPerfilPage() {
       {activeTab === 'dados' && (
         <div className="card px-6 py-2">
           <InfoRow label="Nome completo" value={aluno.nome} />
-          <InfoRow label="Data de nascimento" value={new Date(aluno.dataNascimento).toLocaleDateString('pt-BR')} />
+          <InfoRow label="Data de nascimento" value={formatDate(aluno.dataNascimento.slice(0, 10))} />
           <InfoRow label="Turno" value={aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'} />
           {aluno.observacoes && <InfoRow label="Observações" value={aluno.observacoes} />}
           {aluno.consentimentoTimestamp && (
@@ -277,6 +281,12 @@ export default function AlunoPerfilPage() {
               Vincular Responsável
             </button>
           </div>
+
+          {desvinculaError && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+              {desvinculaError}
+            </div>
+          )}
 
           {aluno.responsaveis.length === 0 ? (
             <div className="empty-state">

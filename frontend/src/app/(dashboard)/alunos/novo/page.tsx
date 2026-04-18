@@ -1,154 +1,335 @@
-// Cadastro de aluno — S012
+// Cadastro de aluno — S012 (refatorado)
+// Layout 2 colunas: dados do aluno + responsável opcional em uma só tela
 
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useState } from 'react';
+import { z } from 'zod';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { createAlunoSchema, type CreateAlunoInput } from '@/schemas/index';
+import { DatePickerModal, fmtDateBR } from '@/components/ui/DatePickerModal';
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+// ---------- Schema combinado ----------
+
+const schema = z.object({
+  // Aluno
+  nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres'),
+  dataNascimento: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento inválida')
+    .refine((d) => new Date(d) <= new Date(), 'Data de nascimento não pode ser no futuro'),
+  turno: z.enum(['MANHA', 'TARDE'], { required_error: 'Selecione o turno' }),
+  status: z.enum(['PRE_MATRICULA', 'LISTA_ESPERA']).default('PRE_MATRICULA'),
+  observacoes: z.string().optional(),
+  // Responsável (todos opcionais — pode ser vinculado depois)
+  respNome: z.string().optional(),
+  respTelefone: z.string().optional(),
+  respEmail: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
+  respParentesco: z.string().optional(),
+  respIsFinanceiro: z.boolean().default(false),
+});
+
+type FormData = z.infer<typeof schema>;
+
+// ---------- Componentes de campo ----------
+
+function Field({
+  label,
+  required,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+        {label}
+        {required && <span className="ml-0.5 text-crimson-500">*</span>}
+      </label>
       {children}
+      {hint && !error && <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{hint}</p>}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
   );
 }
 
+// ---------- Page ----------
+
 export default function NovoAlunoPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CreateAlunoInput>({
-    resolver: zodResolver(createAlunoSchema),
-    defaultValues: { status: 'PRE_MATRICULA' },
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { status: 'PRE_MATRICULA', turno: 'MANHA', respIsFinanceiro: false },
   });
 
-  const mutation = useMutation({
-    mutationFn: (data: CreateAlunoInput) => api.post('/alunos', data),
-    onSuccess: () => setCreated(true),
-    onError: (error: AxiosError<{ message: string }>) => {
-      setServerError(error.response?.data?.message ?? 'Erro ao cadastrar aluno.');
-    },
-  });
+  const dataNascimento = watch('dataNascimento');
 
-  if (created) {
-    return (
-      <div className="mx-auto max-w-lg">
-        <div className="card flex flex-col items-center gap-4 p-10 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-forest-50 dark:bg-forest-700/20">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="h-8 w-8 text-forest-500 dark:text-forest-300">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Aluno cadastrado!</h2>
-            <p className="mt-1 text-sm text-gray-400 dark:text-slate-500">Registrado com status Pré-Matrícula.</p>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button onClick={() => { setCreated(false); setServerError(null); }} className="btn-secondary">
-              Cadastrar outro
-            </button>
-            <button onClick={() => router.push('/alunos')} className="btn-primary">
-              Ver lista
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  async function onSubmit(data: FormData) {
+    setSubmitting(true);
+    setServerError(null);
+
+    try {
+      // 1. Criar aluno (consentimento implícito ao submeter o formulário)
+      const alunoRes = await api.post<{ id: string; nome: string }>('/alunos', {
+        nome: data.nome,
+        dataNascimento: data.dataNascimento,
+        turno: data.turno,
+        status: data.status,
+        observacoes: data.observacoes || undefined,
+        consentimentoResponsavel: true,
+      });
+
+      const alunoId = alunoRes.data.id;
+
+      // 2. Criar e vincular responsável se o nome foi informado
+      let respFailed = false;
+      if (data.respNome?.trim()) {
+        try {
+          const respRes = await api.post<{ id: string }>('/responsaveis', {
+            nome: data.respNome.trim(),
+            telefone: data.respTelefone?.trim() || undefined,
+            email: data.respEmail?.trim() || undefined,
+          });
+
+          await api.post(`/alunos/${alunoId}/responsaveis`, {
+            responsavelId: respRes.data.id,
+            parentesco: data.respParentesco?.trim() || 'Responsável',
+            isResponsavelFinanceiro: data.respIsFinanceiro,
+          });
+        } catch {
+          // Aluno criado — responsável falhou; informa o usuário via toast de aviso
+          respFailed = true;
+        }
+      }
+
+      // Invalida cache e redireciona com nome na URL para exibir toast na listagem
+      await queryClient.invalidateQueries({ queryKey: ['alunos'] });
+      const params = new URLSearchParams({ created: data.nome });
+      if (respFailed) params.set('respErr', '1');
+      router.push(`/alunos?${params.toString()}`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setServerError(axiosErr.response?.data?.message ?? 'Erro ao cadastrar aluno. Tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
+  // ---------- Formulário ----------
+
   return (
-    <div className="mx-auto max-w-lg space-y-5">
+    <div className="mx-auto max-w-5xl space-y-5">
+      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Novo Aluno</h1>
           <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
-            Requer consentimento parental — LGPD Art. 14
+            Preencha os dados abaixo para realizar o cadastro
           </p>
         </div>
-        <Link href="/alunos" className="btn-ghost text-sm">Cancelar</Link>
+        <button type="button" onClick={() => router.push('/alunos')} className="btn-ghost text-sm">
+          Cancelar
+        </button>
       </div>
 
-      <div className="card p-6">
-        <form onSubmit={handleSubmit((d) => { setServerError(null); mutation.mutate(d); })} noValidate className="space-y-4">
-          <Field label="Nome completo" error={errors.nome?.message}>
-            <input {...register('nome')} placeholder="Ex: Maria da Silva" className={`input-base ${errors.nome ? 'input-error' : ''}`} />
-          </Field>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Data de nascimento" error={errors.dataNascimento?.message}>
-              <input {...register('dataNascimento')} type="date" className={`input-base ${errors.dataNascimento ? 'input-error' : ''}`} />
+          {/* ── Card: Dados do Aluno ── */}
+          <div className="card p-6 space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-4 dark:border-slate-800">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600/10 dark:bg-brand-600/20">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 text-brand-600 dark:text-brand-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+                </svg>
+              </div>
+              <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">Dados do Aluno</h2>
+            </div>
+
+            <Field label="Nome completo" required error={errors.nome?.message}>
+              <input
+                {...register('nome')}
+                placeholder="Ex: Maria da Silva"
+                autoFocus
+                className={`input-base ${errors.nome ? 'input-error' : ''}`}
+              />
             </Field>
 
-            <Field label="Turno" error={errors.turno?.message}>
-              <select {...register('turno')} className={`input-base ${errors.turno ? 'input-error' : ''}`}>
-                <option value="">Selecione…</option>
-                <option value="MANHA">Manhã</option>
-                <option value="TARDE">Tarde</option>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Data de nascimento" required error={errors.dataNascimento?.message}>
+                {/* Campo oculto para registro no RHF */}
+                <input type="hidden" {...register('dataNascimento')} />
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(true)}
+                  className={`input-base flex items-center justify-between text-left ${
+                    errors.dataNascimento ? 'input-error' : ''
+                  } ${!dataNascimento ? 'text-gray-400 dark:text-slate-500' : ''}`}
+                >
+                  <span>{dataNascimento ? fmtDateBR(dataNascimento) : 'Selecionar data'}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-gray-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                  </svg>
+                </button>
+              </Field>
+
+              <Field label="Turno" required error={errors.turno?.message}>
+                <select {...register('turno')} className={`input-base ${errors.turno ? 'input-error' : ''}`}>
+                  <option value="MANHA">Manhã</option>
+                  <option value="TARDE">Tarde</option>
+                </select>
+              </Field>
+            </div>
+
+            <Field label="Situação" error={errors.status?.message}>
+              <select {...register('status')} className="input-base">
+                <option value="PRE_MATRICULA">Pré-Matrícula</option>
+                <option value="LISTA_ESPERA">Lista de Espera</option>
               </select>
             </Field>
+
+            <Field label="Observações" hint="Informações adicionais sobre o aluno (opcional)">
+              <textarea
+                {...register('observacoes')}
+                rows={3}
+                placeholder="Ex: necessidades especiais, alergias, observações pedagógicas…"
+                className="input-base resize-none"
+              />
+            </Field>
           </div>
 
-          <Field label="Situação" error={errors.status?.message}>
-            <select {...register('status')} className={`input-base ${errors.status ? 'input-error' : ''}`}>
-              <option value="PRE_MATRICULA">Pré-Matrícula</option>
-              <option value="LISTA_ESPERA">Lista de Espera</option>
-            </select>
-          </Field>
+          {/* ── Card: Responsável ── */}
+          <div className="card p-6 space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-4 dark:border-slate-800">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600/10 dark:bg-brand-600/20">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 text-brand-600 dark:text-brand-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">Responsável</h2>
+                <p className="text-xs text-gray-400 dark:text-slate-500">Opcional — pode ser adicionado depois</p>
+              </div>
+            </div>
 
-          <Field label="Observações" error={errors.observacoes?.message}>
-            <textarea {...register('observacoes')} rows={3} placeholder="Informações adicionais (opcional)" className={`input-base resize-none ${errors.observacoes ? 'input-error' : ''}`} />
-          </Field>
+            <Field label="Nome do responsável" error={errors.respNome?.message}>
+              <input
+                {...register('respNome')}
+                placeholder="Ex: João da Silva"
+                className="input-base"
+              />
+            </Field>
 
-          {/* Consentimento LGPD */}
-          <div className={`rounded-xl border p-4 ${errors.consentimentoResponsavel ? 'border-crimson-300 bg-crimson-50 dark:border-crimson-700/40 dark:bg-crimson-700/10' : 'border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/50'}`}>
-            <label className="flex cursor-pointer items-start gap-3">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Telefone" error={errors.respTelefone?.message}>
+                <input
+                  {...register('respTelefone')}
+                  placeholder="(00) 00000-0000"
+                  className="input-base"
+                />
+              </Field>
+
+              <Field label="Parentesco" hint="Ex: Mãe, Pai, Avó">
+                <input
+                  {...register('respParentesco')}
+                  placeholder="Ex: Mãe"
+                  className="input-base"
+                />
+              </Field>
+            </div>
+
+            <Field label="E-mail" error={errors.respEmail?.message}>
+              <input
+                {...register('respEmail')}
+                type="email"
+                placeholder="email@exemplo.com"
+                className={`input-base ${errors.respEmail ? 'input-error' : ''}`}
+              />
+            </Field>
+
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
               <input
                 type="checkbox"
-                value="true"
-                {...register('consentimentoResponsavel', { setValueAs: (v) => v === true || v === 'true' })}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-brand-600"
+                {...register('respIsFinanceiro')}
+                className="h-4 w-4 rounded border-gray-300 accent-brand-600"
               />
-              <span className="text-sm text-gray-700 dark:text-slate-300">
-                Confirmo que o responsável legal forneceu <strong>consentimento parental</strong> para o cadastro e tratamento de dados desta criança conforme a <strong>LGPD Art. 14</strong>.
-              </span>
+              <div>
+                <p className="text-sm font-medium text-gray-800 dark:text-slate-200">Responsável financeiro</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">Responsável pelo pagamento das mensalidades</p>
+              </div>
             </label>
-            {errors.consentimentoResponsavel && (
-              <p className="mt-2 text-xs text-crimson-500">{errors.consentimentoResponsavel.message}</p>
-            )}
-          </div>
 
-          {serverError && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
-              {serverError}
+            {/* Info LGPD sutil */}
+            <div className="flex items-start gap-2 rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-slate-800/50">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-slate-500">
+                <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9z" clipRule="evenodd" />
+              </svg>
+              <p className="text-xs text-gray-400 dark:text-slate-500">
+                Ao cadastrar, o responsável legal confirma o consentimento parental conforme <strong className="text-gray-500 dark:text-slate-400">LGPD Art. 14</strong>.
+              </p>
             </div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={mutation.isPending} className="btn-primary flex-1">
-              {mutation.isPending ? (
-                <>
-                  <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Cadastrando…
-                </>
-              ) : 'Cadastrar aluno'}
-            </button>
-            <button type="button" onClick={() => router.push('/alunos')} className="btn-secondary">Cancelar</button>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Erro do servidor */}
+        {serverError && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-4 w-4 shrink-0">
+              <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" clipRule="evenodd" />
+            </svg>
+            {serverError}
+          </div>
+        )}
+
+        {/* DatePicker modal */}
+        {showDatePicker && (
+          <DatePickerModal
+            value={dataNascimento ?? ''}
+            onSelect={(d) => setValue('dataNascimento', d, { shouldValidate: true })}
+            onClose={() => setShowDatePicker(false)}
+          />
+        )}
+
+        {/* Ações */}
+        <div className="mt-5 flex items-center justify-end gap-3">
+          <button type="button" onClick={() => router.push('/alunos')} className="btn-secondary">
+            Cancelar
+          </button>
+          <button type="submit" disabled={submitting} className="btn-primary min-w-36">
+            {submitting ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Cadastrando…
+              </>
+            ) : (
+              'Cadastrar aluno'
+            )}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
