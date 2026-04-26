@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { DatePickerInput } from '@/components/ui/DatePickerInput';
 
 interface AuditLog {
   id: string; userId: string; userName: string; filialId: string | null;
@@ -79,11 +80,11 @@ export default function AuditoriaPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">De</label>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="input-base text-xs" />
+            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="Data inicial" />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">Até</label>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="input-base text-xs" />
+            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="Data final" />
           </div>
         </div>
         <div className="mt-3 flex gap-2">

@@ -56,12 +56,12 @@ export class AuditRepository {
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
       if (filters.dateFrom) {
-        (where.createdAt as Prisma.DateTimeFilter).gte = new Date(filters.dateFrom);
+        // BUG-007: sufixo -03:00 garante interpretação BRT — evita perder registros das 3h primeiras do dia
+        (where.createdAt as Prisma.DateTimeFilter).gte = new Date(filters.dateFrom + 'T00:00:00-03:00');
       }
       if (filters.dateTo) {
-        const to = new Date(filters.dateTo);
-        to.setHours(23, 59, 59, 999);
-        (where.createdAt as Prisma.DateTimeFilter).lte = to;
+        // BUG-F: sufixo -03:00 garante interpretação BRT — evita excluir registros de 21h-24h BRT
+        (where.createdAt as Prisma.DateTimeFilter).lte = new Date(filters.dateTo + 'T23:59:59.999-03:00');
       }
     }
 

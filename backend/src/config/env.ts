@@ -31,6 +31,10 @@ const envSchema = z.object({
 
   // CORS
   FRONTEND_URL: z.string().url().default("http://localhost:3000"),
+
+  // L3: Timezone do cron de inadimplência — configurável por ambiente
+  CRON_TIMEZONE: z.string().default("America/Sao_Paulo"),
 });
 
-export const env = envSchema.parse(process.env);
+// H5: Object.freeze previne mutação do env em runtime
+export const env = Object.freeze(envSchema.parse(process.env));

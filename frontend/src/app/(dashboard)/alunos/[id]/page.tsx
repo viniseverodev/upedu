@@ -1,5 +1,5 @@
-// Perfil completo do aluno — S016/S019/S020/S022/S023 (Sprint 4/5/6)
-// Tabs: Dados Pessoais | Responsáveis | Financeiro | Histórico
+// Perfil completo do aluno — S016/S019/S020 (Sprint 4/5)
+// Tabs: Dados Pessoais | Responsáveis | Histórico
 
 'use client';
 
@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
+import { DatePickerInput } from '@/components/ui/DatePickerInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
@@ -17,12 +18,8 @@ import { useToast } from '@/hooks/useToast';
 import { Toast } from '@/components/ui/Toast';
 import {
   createMatriculaSchema,
-  createMensalidadeSchema,
-  pagarMensalidadeSchema,
   cpfSchema,
   type CreateMatriculaInput,
-  type CreateMensalidadeInput,
-  type PagarMensalidadeInput,
 } from '@/schemas/index';
 
 // Schema local: criar e vincular responsável em um único formulário
@@ -62,7 +59,16 @@ type EditResponsavelInput = z.infer<typeof editResponsavelSchema>;
 interface Responsavel { id: string; nome: string; cpf: string | null; telefone: string | null; email: string | null }
 interface AlunoResponsavel { parentesco: string; isResponsavelFinanceiro: boolean; responsavel: Responsavel }
 interface Matricula { id: string; status: string; turno: string; valorMensalidade: number; dataInicio: string; dataFim: string | null }
-interface Mensalidade { id: string; status: string; mesReferencia: number; anoReferencia: number; valorOriginal: number }
+interface MensalidadeResumo {
+  id: string;
+  mesReferencia: number;
+  anoReferencia: number;
+  status: string;
+  valorOriginal: number;
+  valorPago: number | null;
+  dataPagamento: string | null;
+  dataVencimento: string;
+}
 
 interface AlunoProfile {
   id: string;
@@ -74,7 +80,7 @@ interface AlunoProfile {
   consentimentoTimestamp: string | null;
   responsaveis: AlunoResponsavel[];
   matriculas: Matricula[];
-  mensalidades: Mensalidade[];
+  mensalidades: MensalidadeResumo[];
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -91,18 +97,33 @@ const STATUS_LABELS: Record<string, string> = {
   LISTA_ESPERA: 'Lista de Espera',
   TRANSFERIDO: 'Transferido',
 };
-const MENS_BADGE: Record<string, string> = {
-  PAGO: 'badge-green',
-  PENDENTE: 'badge-yellow',
-  INADIMPLENTE: 'badge-red',
-};
 const MATR_BADGE: Record<string, string> = {
   ATIVA: 'badge-green',
   ENCERRADA: 'badge-gray',
+  CANCELADA: 'badge-red',
 };
-const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-type Tab = 'dados' | 'responsaveis' | 'financeiro' | 'historico';
+const MATR_STATUS_LABEL: Record<string, string> = {
+  ATIVA: 'Ativa',
+  ENCERRADA: 'Encerrada',
+  CANCELADA: 'Cancelada',
+};
+const TURNO_LABEL: Record<string, string> = { MANHA: 'Manhã', TARDE: 'Tarde' };
+const MENS_BADGE: Record<string, string> = {
+  PENDENTE: 'badge-yellow',
+  PARCIAL: 'badge-orange',
+  PAGO: 'badge-green',
+  INADIMPLENTE: 'badge-red',
+  CANCELADA: 'badge-gray',
+};
+const MENS_STATUS_LABEL: Record<string, string> = {
+  PENDENTE: 'Pendente',
+  PARCIAL: 'Parcial',
+  PAGO: 'Pago',
+  INADIMPLENTE: 'Inadimplente',
+  CANCELADA: 'Cancelada',
+};
+const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+type Tab = 'dados' | 'responsaveis' | 'matricula';
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -162,10 +183,6 @@ export default function AlunoPerfilPage() {
   const [confirmRemover, setConfirmRemover] = useState<{ id: string; nome: string } | null>(null);
   const [showMatriculaModal, setShowMatriculaModal] = useState(false);
   const [matriculaError, setMatriculaError] = useState<string | null>(null);
-  const [showMensalidadeModal, setShowMensalidadeModal] = useState(false);
-  const [mensalidadeError, setMensalidadeError] = useState<string | null>(null);
-  const [pagarId, setPagarId] = useState<string | null>(null);
-  const [pagarError, setPagarError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: aluno, isLoading } = useQuery<AlunoProfile>({
@@ -274,43 +291,30 @@ export default function AlunoPerfilPage() {
   });
 
   const now = new Date();
-  const { register: registerMatricula, handleSubmit: handleMatricula, reset: resetMatricula, formState: { errors: errorsMatricula } } =
+  const { register: registerMatricula, handleSubmit: handleMatricula, reset: resetMatricula, control: controlMatricula, formState: { errors: errorsMatricula } } =
     useForm<CreateMatriculaInput>({ resolver: zodResolver(createMatriculaSchema), defaultValues: { alunoId: id, turno: 'MANHA', dataInicio: now.toISOString().split('T')[0] } });
 
   const matriculaMutation = useMutation({
     mutationFn: (data: CreateMatriculaInput) => api.post('/matriculas', { ...data, alunoId: id }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['aluno', id] }); setShowMatriculaModal(false); resetMatricula(); setMatriculaError(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      queryClient.invalidateQueries({ queryKey: ['alunos'] });
+      setShowMatriculaModal(false);
+      resetMatricula();
+      setMatriculaError(null);
+    },
     onError: (error: AxiosError<{ message: string }>) => setMatriculaError(error.response?.data?.message ?? 'Erro ao criar matrícula.'),
-  });
-
-  const { register: registerMensalidade, handleSubmit: handleMensalidade, reset: resetMensalidade, formState: { errors: errorsMensalidade } } =
-    useForm<CreateMensalidadeInput>({ resolver: zodResolver(createMensalidadeSchema), defaultValues: { alunoId: id, mesReferencia: now.getMonth() + 1, anoReferencia: now.getFullYear() } });
-
-  const mensalidadeMutation = useMutation({
-    mutationFn: (data: CreateMensalidadeInput) => api.post('/mensalidades', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['aluno', id] }); setShowMensalidadeModal(false); resetMensalidade(); setMensalidadeError(null); },
-    onError: (error: AxiosError<{ message: string }>) => setMensalidadeError(error.response?.data?.message ?? 'Erro ao gerar mensalidade.'),
-  });
-
-  const { register: registerPagar, handleSubmit: handlePagar, reset: resetPagar, formState: { errors: errorsPagar } } =
-    useForm<PagarMensalidadeInput>({ resolver: zodResolver(pagarMensalidadeSchema), defaultValues: { valorDesconto: 0, dataPagamento: now.toISOString().split('T')[0] } });
-
-  const pagarMutation = useMutation({
-    mutationFn: ({ mensId, data }: { mensId: string; data: PagarMensalidadeInput }) => api.patch(`/mensalidades/${mensId}/pagar`, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['aluno', id] }); setPagarId(null); resetPagar(); setPagarError(null); },
-    onError: (error: AxiosError<{ message: string }>) => setPagarError(error.response?.data?.message ?? 'Erro ao registrar pagamento.'),
   });
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'dados', label: 'Dados Pessoais' },
     { key: 'responsaveis', label: 'Responsáveis' },
-    { key: 'financeiro', label: 'Financeiro' },
-    { key: 'historico', label: 'Histórico' },
+    { key: 'matricula', label: 'Matrículas' },
   ];
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="space-y-4">
         <div className="skeleton h-9 w-64" />
         <div className="skeleton h-10 w-full" />
         <div className="card p-6 space-y-3">
@@ -329,7 +333,7 @@ export default function AlunoPerfilPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="space-y-5">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center gap-3">
@@ -349,12 +353,12 @@ export default function AlunoPerfilPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {aluno.status === 'PRE_MATRICULA' && (
+          {(aluno.status === 'PRE_MATRICULA' || aluno.status === 'INATIVO') && (
             <button
               onClick={() => { setShowMatriculaModal(true); setMatriculaError(null); }}
               className="btn-primary text-sm"
             >
-              Nova Matrícula
+              {aluno.status === 'INATIVO' ? 'Rematricular' : 'Nova Matrícula'}
             </button>
           )}
           <Link href="/alunos" className="btn-ghost text-sm">Voltar</Link>
@@ -460,86 +464,104 @@ export default function AlunoPerfilPage() {
         </div>
       )}
 
-      {/* Tab: Financeiro */}
-      {activeTab === 'financeiro' && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              onClick={() => { setShowMensalidadeModal(true); setMensalidadeError(null); }}
-              className="btn-primary text-sm"
-            >
-              Gerar Mensalidade
-            </button>
+      {/* Tab: Matrículas */}
+      {activeTab === 'matricula' && (
+        <div className="space-y-6">
+          {/* Tabela de matrículas */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Matrículas</p>
+            {aluno.matriculas.length === 0 ? (
+              <div className="empty-state">
+                <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma matrícula registrada.</p>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="table-base">
+                  <thead className="table-head">
+                    <tr>
+                      <th className="table-th">Status</th>
+                      <th className="table-th">Turno</th>
+                      <th className="table-th">Valor/mês</th>
+                      <th className="table-th">Início</th>
+                      <th className="table-th">Encerramento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aluno.matriculas.map((m) => (
+                      <tr key={m.id} className="table-row">
+                        <td className="table-td">
+                          <span className={`badge ${MATR_BADGE[m.status] ?? 'badge-gray'}`}>
+                            {MATR_STATUS_LABEL[m.status] ?? m.status}
+                          </span>
+                        </td>
+                        <td className="table-td">{TURNO_LABEL[m.turno] ?? m.turno}</td>
+                        <td className="table-td">
+                          {Number(m.valorMensalidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </td>
+                        <td className="table-td">{new Date(m.dataInicio).toLocaleDateString('pt-BR')}</td>
+                        <td className="table-td">
+                          {m.dataFim ? new Date(m.dataFim).toLocaleDateString('pt-BR') : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {aluno.mensalidades.length === 0 ? (
-            <div className="empty-state">
-              <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma mensalidade registrada.</p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="table-base">
-                <thead className="table-head">
-                  <tr>
-                    <th className="table-th">Referência</th>
-                    <th className="table-th">Valor</th>
-                    <th className="table-th">Status</th>
-                    <th className="table-th">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {aluno.mensalidades.map((m) => (
-                    <tr key={m.id} className="table-row">
-                      <td className="table-td font-medium">{MESES[m.mesReferencia - 1]}/{m.anoReferencia}</td>
-                      <td className="table-td">
-                        {Number(m.valorOriginal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </td>
-                      <td className="table-td">
-                        <span className={`badge ${MENS_BADGE[m.status] ?? 'badge-gray'}`}>{m.status}</span>
-                      </td>
-                      <td className="table-td">
-                        {(m.status === 'PENDENTE' || m.status === 'INADIMPLENTE') && (
-                          <button
-                            onClick={() => { setPagarId(m.id); setPagarError(null); resetPagar(); }}
-                            className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                          >
-                            Registrar Pagamento
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab: Histórico */}
-      {activeTab === 'historico' && (
-        <div className="space-y-3">
-          {aluno.matriculas.length === 0 ? (
-            <div className="empty-state">
-              <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma matrícula registrada.</p>
-            </div>
-          ) : (
-            aluno.matriculas.map((m) => (
-              <div key={m.id} className="card flex items-center justify-between p-4">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-slate-100">
-                    {m.turno === 'MANHA' ? 'Manhã' : 'Tarde'} —{' '}
-                    {Number(m.valorMensalidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
-                  </p>
-                  <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">
-                    Início: {new Date(m.dataInicio).toLocaleDateString('pt-BR')}
-                    {m.dataFim ? ` · Fim: ${new Date(m.dataFim).toLocaleDateString('pt-BR')}` : ''}
-                  </p>
-                </div>
-                <span className={`badge ${MATR_BADGE[m.status] ?? 'badge-red'}`}>{m.status}</span>
+          {/* Histórico de mensalidades */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+              Histórico de Mensalidades {aluno.mensalidades.length > 0 && <span className="ml-1 font-normal normal-case">(últimas {aluno.mensalidades.length})</span>}
+            </p>
+            {aluno.mensalidades.length === 0 ? (
+              <div className="empty-state">
+                <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma mensalidade registrada.</p>
               </div>
-            ))
-          )}
+            ) : (
+              <div className="table-container">
+                <table className="table-base">
+                  <thead className="table-head">
+                    <tr>
+                      <th className="table-th">Referência</th>
+                      <th className="table-th">Status</th>
+                      <th className="table-th">Valor</th>
+                      <th className="table-th">Pago</th>
+                      <th className="table-th">Data Pgto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aluno.mensalidades.map((mens) => (
+                      <tr key={mens.id} className="table-row">
+                        <td className="table-td font-medium">
+                          {MONTH_NAMES[(mens.mesReferencia - 1)] ?? mens.mesReferencia}/{mens.anoReferencia}
+                        </td>
+                        <td className="table-td">
+                          <span className={`badge ${MENS_BADGE[mens.status] ?? 'badge-gray'}`}>
+                            {MENS_STATUS_LABEL[mens.status] ?? mens.status}
+                          </span>
+                        </td>
+                        <td className="table-td">
+                          {Number(mens.valorOriginal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </td>
+                        <td className="table-td">
+                          {mens.valorPago != null
+                            ? Number(mens.valorPago).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                            : '—'}
+                        </td>
+                        <td className="table-td">
+                          {mens.dataPagamento
+                            ? new Date(mens.dataPagamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                            : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -641,7 +663,18 @@ export default function AlunoPerfilPage() {
             </ModalField>
 
             <ModalField label="Data de Início" error={errorsMatricula.dataInicio?.message}>
-              <input type="date" {...registerMatricula('dataInicio')} className={`input-base ${errorsMatricula.dataInicio ? 'input-error' : ''}`} />
+              <Controller
+                control={controlMatricula}
+                name="dataInicio"
+                render={({ field }) => (
+                  <DatePickerInput
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    hasError={!!errorsMatricula.dataInicio}
+                    placeholder="Selecione a data"
+                  />
+                )}
+              />
             </ModalField>
 
             {matriculaError && <ServerError message={matriculaError} />}
@@ -658,73 +691,6 @@ export default function AlunoPerfilPage() {
         </ModalShell>
       )}
 
-      {/* Modal: Gerar Mensalidade */}
-      {showMensalidadeModal && (
-        <ModalShell title="Gerar Mensalidade" onClose={() => { setShowMensalidadeModal(false); resetMensalidade(); setMensalidadeError(null); }}>
-          <form onSubmit={handleMensalidade((d) => { setMensalidadeError(null); mensalidadeMutation.mutate({ ...d, alunoId: id }); })} noValidate className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <ModalField label="Mês" error={errorsMensalidade.mesReferencia?.message}>
-                <input type="number" min={1} max={12} {...registerMensalidade('mesReferencia', { valueAsNumber: true })} className={`input-base ${errorsMensalidade.mesReferencia ? 'input-error' : ''}`} />
-              </ModalField>
-              <ModalField label="Ano" error={errorsMensalidade.anoReferencia?.message}>
-                <input type="number" min={2020} {...registerMensalidade('anoReferencia', { valueAsNumber: true })} className={`input-base ${errorsMensalidade.anoReferencia ? 'input-error' : ''}`} />
-              </ModalField>
-            </div>
-
-            {mensalidadeError && <ServerError message={mensalidadeError} />}
-
-            <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={mensalidadeMutation.isPending} className="btn-primary flex-1">
-                {mensalidadeMutation.isPending ? 'Gerando…' : 'Gerar Mensalidade'}
-              </button>
-              <button type="button" onClick={() => { setShowMensalidadeModal(false); resetMensalidade(); setMensalidadeError(null); }} className="btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </ModalShell>
-      )}
-
-      {/* Modal: Registrar Pagamento */}
-      {pagarId && (
-        <ModalShell title="Registrar Pagamento" onClose={() => { setPagarId(null); resetPagar(); setPagarError(null); }}>
-          <form onSubmit={handlePagar((d) => { setPagarError(null); pagarMutation.mutate({ mensId: pagarId, data: d }); })} noValidate className="space-y-4">
-            <ModalField label="Valor Pago (R$)" error={errorsPagar.valorPago?.message}>
-              <input type="number" step="0.01" min="0.01" {...registerPagar('valorPago', { valueAsNumber: true })} className={`input-base ${errorsPagar.valorPago ? 'input-error' : ''}`} />
-            </ModalField>
-
-            <ModalField label="Desconto (R$)">
-              <input type="number" step="0.01" min="0" {...registerPagar('valorDesconto', { valueAsNumber: true })} className="input-base" />
-            </ModalField>
-
-            <ModalField label="Forma de Pagamento" error={errorsPagar.formaPagamento?.message}>
-              <select {...registerPagar('formaPagamento')} className={`input-base ${errorsPagar.formaPagamento ? 'input-error' : ''}`}>
-                <option value="">Selecione…</option>
-                <option value="PIX">PIX</option>
-                <option value="BOLETO">Boleto</option>
-                <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                <option value="CARTAO_DEBITO">Cartão de Débito</option>
-                <option value="DINHEIRO">Dinheiro</option>
-              </select>
-            </ModalField>
-
-            <ModalField label="Data do Pagamento" error={errorsPagar.dataPagamento?.message}>
-              <input type="date" {...registerPagar('dataPagamento')} className={`input-base ${errorsPagar.dataPagamento ? 'input-error' : ''}`} />
-            </ModalField>
-
-            {pagarError && <ServerError message={pagarError} />}
-
-            <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={pagarMutation.isPending} className="btn-primary flex-1">
-                {pagarMutation.isPending ? 'Salvando…' : 'Registrar Pagamento'}
-              </button>
-              <button type="button" onClick={() => { setPagarId(null); resetPagar(); setPagarError(null); }} className="btn-secondary">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </ModalShell>
-      )}
       {/* Modal: Confirmar remoção de responsável */}
       {confirmRemover && (
         <ModalShell title="Remover responsável" onClose={() => { setConfirmRemover(null); setDesvinculaError(null); }}>

@@ -23,6 +23,14 @@ export class CategoriasRepository {
     return prisma.categoriaFinanceira.findFirst({ where: { id, filialId } });
   }
 
+  async update(id: string, data: { nome?: string; tipo?: CategoriaFinanceiraTipo }) {
+    return prisma.categoriaFinanceira.update({ where: { id }, data });
+  }
+
+  async softDelete(id: string) {
+    return prisma.categoriaFinanceira.update({ where: { id }, data: { removida: true, removidaEm: new Date() } });
+  }
+
   async delete(id: string) {
     return prisma.categoriaFinanceira.delete({ where: { id } });
   }

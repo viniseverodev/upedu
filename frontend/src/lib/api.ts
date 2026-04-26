@@ -35,7 +35,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response: refresh automático em 401 com Promise queue para requests concorrentes
+// Response: refresh automático em 401 com Promise queue para requests concorrentes.
+// L5: refreshPromise é module-level singleton. Múltiplos 401 simultâneos compartilham a mesma
+// Promise, evitando chamadas duplicadas ao /auth/refresh. O event loop single-threaded do JS
+// garante que o padrão if(!refreshPromise)/set/finally é seguro na prática — race condition
+// teórica apenas em edge cases onde o finally e um novo 401 ocorrem no mesmo tick.
 let refreshPromise: Promise<string> | null = null;
 
 api.interceptors.response.use(

@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
@@ -11,22 +11,8 @@ import { formatDate } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
 import { useToast } from '@/hooks/useToast';
 import { Toast } from '@/components/ui/Toast';
-
-// ---------- Helpers de calendário ----------
-
-const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const DAY_NAMES = ['D','S','T','Q','Q','S','S'];
-
-function pad2(n: number) { return String(n).padStart(2, '0'); }
-function toDateStr(y: number, m: number, d: number) {
-  return `${y}-${pad2(m + 1)}-${pad2(d)}`;
-}
-function fmtBR(s: string) {
-  if (!s) return '—';
-  const [y, m, d] = s.split('-');
-  return `${d}/${m}/${y}`;
-}
+import { AxiosError } from 'axios';
+import { CalendarRangePicker, fmtBR } from '@/components/ui/CalendarRangePicker';
 
 interface Responsavel { id: string; nome: string; telefone: string | null }
 interface AlunoResponsavel { responsavel: Responsavel; isResponsavelFinanceiro: boolean }
@@ -83,166 +69,11 @@ function IcoSearch() {
   );
 }
 
-// ---------- CalendarModal (seleção de intervalo de datas) ----------
-
-interface CalendarModalProps {
-  initialInicio: string;
-  initialFim: string;
-  onApply: (inicio: string, fim: string) => void;
-  onClose: () => void;
-}
-
-function CalendarModal({ initialInicio, initialFim, onApply, onClose }: CalendarModalProps) {
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [start, setStart] = useState(initialInicio);
-  const [end, setEnd] = useState(initialFim);
-  const [hovered, setHovered] = useState('');
-
-  function handleDayClick(d: string) {
-    if (!start || (start && end)) {
-      setStart(d);
-      setEnd('');
-    } else if (d < start) {
-      setEnd(start);
-      setStart(d);
-    } else {
-      setEnd(d);
-    }
-  }
-
-  function inRange(d: string) {
-    const e = end || hovered;
-    if (!start || !e) return false;
-    const [lo, hi] = start <= e ? [start, e] : [e, start];
-    return d > lo && d < hi;
-  }
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-    else setViewMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-    else setViewMonth((m) => m + 1);
-  }
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const canApply = !!(start && end);
-
+function IcoBanknote() {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
-      onClick={onClose}
-    >
-      <div
-        className="w-80 rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Título */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Período de cadastro</p>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Navegação de mês */}
-        <div className="mb-3 flex items-center justify-between">
-          <button
-            onClick={prevMonth}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <span className="text-sm font-medium text-gray-800 dark:text-slate-200">
-            {MONTH_NAMES[viewMonth]} {viewYear}
-          </span>
-          <button
-            onClick={nextMonth}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Grid do calendário */}
-        <div className="grid grid-cols-7 text-center text-xs">
-          {DAY_NAMES.map((d, i) => (
-            <div key={i} className="py-1.5 font-semibold text-gray-400 dark:text-slate-500">{d}</div>
-          ))}
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={`empty-${i}`} />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const d = toDateStr(viewYear, viewMonth, day);
-            const isStart = d === start;
-            const isEnd = d === end;
-            const isSelected = isStart || isEnd;
-            const ranged = inRange(d);
-
-            return (
-              <button
-                key={day}
-                onClick={() => handleDayClick(d)}
-                onMouseEnter={() => !end && setHovered(d)}
-                onMouseLeave={() => setHovered('')}
-                className={[
-                  'relative py-1.5 text-xs font-medium transition-colors',
-                  isSelected
-                    ? 'z-10 rounded-full bg-brand-600 text-white'
-                    : ranged
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
-                      : 'rounded-full text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700',
-                ].join(' ')}
-              >
-                {day}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Resumo */}
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-slate-800">
-          <span className="text-gray-500 dark:text-slate-400">
-            De <strong className="text-gray-800 dark:text-slate-100">{fmtBR(start)}</strong>
-          </span>
-          <span className="text-gray-300 dark:text-slate-600">→</span>
-          <span className="text-gray-500 dark:text-slate-400">
-            Até <strong className="text-gray-800 dark:text-slate-100">{fmtBR(end)}</strong>
-          </span>
-        </div>
-
-        {/* Ações */}
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => canApply && onApply(start, end)}
-            disabled={!canApply}
-            className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Aplicar
-          </button>
-        </div>
-      </div>
-    </div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
+    </svg>
   );
 }
 
@@ -302,9 +133,11 @@ function DeleteModal({
 
 // ---------- Page ----------
 
-export default function AlunosPage() {
+function AlunosContent() {
   const queryClient = useQueryClient();
   const canManage = usePermission('GERENTE_FILIAL');
+  const canAtendente = usePermission('ATENDENTE');
+  const now = new Date();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -348,6 +181,12 @@ export default function AlunosPage() {
   // Exclusão
   const [alunoParaDeletar, setAlunoParaDeletar] = useState<Aluno | null>(null);
 
+  // Gerar mensalidade rápida
+  const [modalGerarMensalidade, setModalGerarMensalidade] = useState<Aluno | null>(null);
+  const [gerarMes, setGerarMes] = useState(now.getMonth() + 1);
+  const [gerarAno, setGerarAno] = useState(now.getFullYear());
+  const [mensalidadeError, setMensalidadeError] = useState<string | null>(null);
+
   const { data: alunos = [], isLoading } = useQuery<Aluno[]>({
     queryKey: ['alunos'],
     queryFn: () => api.get('/alunos').then((r) => r.data),
@@ -360,6 +199,19 @@ export default function AlunosPage() {
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
       setAlunoParaDeletar(null);
       showToast('Aluno removido', `${nome} foi removido com sucesso.`);
+    },
+  });
+
+  const mutGerarMensalidade = useMutation({
+    mutationFn: (data: { alunoId: string; mesReferencia: number; anoReferencia: number }) =>
+      api.post('/mensalidades', data),
+    onSuccess: () => {
+      setModalGerarMensalidade(null);
+      setMensalidadeError(null);
+      router.push('/financeiro/mensalidades');
+    },
+    onError: (err: AxiosError<{ message: string }>) => {
+      setMensalidadeError(err.response?.data?.message ?? 'Erro ao gerar mensalidade.');
     },
   });
 
@@ -562,6 +414,20 @@ export default function AlunosPage() {
                           <IcoPencil />
                         </Link>
                       )}
+                      {canAtendente && (
+                        <button
+                          onClick={() => {
+                            setGerarMes(now.getMonth() + 1);
+                            setGerarAno(now.getFullYear());
+                            setMensalidadeError(null);
+                            setModalGerarMensalidade(aluno);
+                          }}
+                          title="Gerar mensalidade"
+                          className="rounded-lg p-1.5 text-forest-400 transition-colors hover:bg-forest-50 hover:text-forest-600 dark:text-forest-500 dark:hover:bg-forest-900/20 dark:hover:text-forest-400"
+                        >
+                          <IcoBanknote />
+                        </button>
+                      )}
                       {canManage && (
                         <button
                           onClick={() => setAlunoParaDeletar(aluno)}
@@ -580,9 +446,10 @@ export default function AlunosPage() {
         </div>
       )}
 
-      {/* CalendarModal — filtro de período de cadastro */}
+      {/* CalendarRangePicker — filtro de período de cadastro */}
       {showPeriodoModal && (
-        <CalendarModal
+        <CalendarRangePicker
+          title="Período de cadastro"
           initialInicio={periodoInicio}
           initialFim={periodoFim}
           onApply={(ini, fim) => {
@@ -591,6 +458,7 @@ export default function AlunosPage() {
             setShowPeriodoModal(false);
           }}
           onClose={() => setShowPeriodoModal(false)}
+          showShortcuts={false}
         />
       )}
 
@@ -604,7 +472,103 @@ export default function AlunosPage() {
         />
       )}
 
+      {/* Modal: Gerar Mensalidade rápida */}
+      {modalGerarMensalidade && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => { setModalGerarMensalidade(null); setMensalidadeError(null); }}
+        >
+          <div
+            className="card w-full max-w-sm mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Gerar Mensalidade</h2>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">{modalGerarMensalidade.nome}</p>
+              </div>
+              <button
+                onClick={() => { setModalGerarMensalidade(null); setMensalidadeError(null); }}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setMensalidadeError(null);
+                mutGerarMensalidade.mutate({
+                  alunoId: modalGerarMensalidade.id,
+                  mesReferencia: gerarMes,
+                  anoReferencia: gerarAno,
+                });
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Mês</label>
+                  <select
+                    value={gerarMes}
+                    onChange={(e) => setGerarMes(Number(e.target.value))}
+                    className="input-base"
+                  >
+                    {['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m, i) => (
+                      <option key={i + 1} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Ano</label>
+                  <select
+                    value={gerarAno}
+                    onChange={(e) => setGerarAno(Number(e.target.value))}
+                    className="input-base"
+                  >
+                    {Array.from({ length: new Date().getFullYear() + 4 - 2020 }, (_, i) => 2020 + i).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {mensalidadeError && (
+                <div className="flex items-start gap-2 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">
+                  {mensalidadeError}
+                </div>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={mutGerarMensalidade.isPending}
+                  className="btn-primary flex-1"
+                >
+                  {mutGerarMensalidade.isPending ? 'Gerando…' : 'Gerar e ir para Mensalidades'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setModalGerarMensalidade(null); setMensalidadeError(null); }}
+                  className="btn-secondary"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <Toast toast={toast} onClose={hideToast} />
     </div>
+  );
+}
+
+export default function AlunosPage() {
+  return (
+    <Suspense>
+      <AlunosContent />
+    </Suspense>
   );
 }

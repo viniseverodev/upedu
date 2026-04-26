@@ -1,8 +1,12 @@
 // UsersController — handlers HTTP para S009, S010
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { UsersService } from './users.service';
 import { createUserSchema, updateUserSchema } from './users.schema';
+
+// BUG-011: validação de path param UUID
+const uuidParamSchema = z.string().uuid();
 
 export class UsersController {
   private service = new UsersService();
@@ -25,6 +29,7 @@ export class UsersController {
   // S010: PATCH /users/:id — editar usuário
   async update(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     const body = updateUserSchema.parse(request.body);
     const { sub: updaterId, orgId: organizationId, role: updaterRole } = request.user;
     const user = await this.service.update(id, organizationId, updaterId, updaterRole, body, request.ip);

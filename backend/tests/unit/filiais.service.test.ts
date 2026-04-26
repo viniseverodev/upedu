@@ -28,7 +28,7 @@ vi.mock('../../src/middlewares/audit', () => ({
 }));
 
 vi.mock('../../src/config/redis', () => ({
-  redis: { setex: vi.fn(), get: vi.fn().mockResolvedValue(null) },
+  redis: { setex: vi.fn(), get: vi.fn().mockResolvedValue(null), del: vi.fn().mockResolvedValue(1) },
   REDIS_TTL: { ACCESS_TOKEN_BLACKLIST: 900, RATE_LIMIT_LOGIN: 900, KPI_CACHE: 300, FILIAL_CACHE: 3600 },
 }));
 

@@ -10,6 +10,8 @@ import { AlunosRepository } from "./alunos.repository";
 import { createAuditLog } from "../../middlewares/audit";
 import { NotFoundError, ValidationError } from "../../shared/errors/AppError";
 import { decrypt, maskRg } from "../../shared/utils/crypto";
+import { logger } from "../../config/logger";
+import { DashboardService } from "../dashboard/dashboard.service";
 import type {
   CreateAlunoInput,
   UpdateAlunoInput,
@@ -32,16 +34,28 @@ export class AlunosService {
       throw new NotFoundError("Aluno");
     }
 
-    // Descriptografar CPF/RG sem mascaramento
+    // H7/H11: Descriptografar CPF/RG com logging de falha e tipagem correta
     const responsaveisMascarados = aluno.responsaveis.map((vinculo) => {
       const r = vinculo.responsavel;
       let cpf: string | null = null;
       let rg: string | null = null;
       if (r.cpfEnc) {
-        try { cpf = decrypt(Buffer.from(r.cpfEnc as Buffer)).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); } catch { /* sem CPF */ }
+        try {
+          // H11: Buffer.isBuffer verifica tipo em runtime antes de cast
+          const buf = Buffer.isBuffer(r.cpfEnc) ? r.cpfEnc : Buffer.from(r.cpfEnc as Uint8Array);
+          cpf = decrypt(buf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        } catch (err) {
+          // H7: logar falha de decriptografia para diagnóstico sem expor dados ao cliente
+          logger.error({ err, responsavelId: r.id }, '[Alunos] Falha ao decriptografar CPF');
+        }
       }
       if (r.rgEnc) {
-        try { rg = maskRg(decrypt(Buffer.from(r.rgEnc as Buffer))); } catch { /* sem RG */ }
+        try {
+          const buf = Buffer.isBuffer(r.rgEnc) ? r.rgEnc : Buffer.from(r.rgEnc as Uint8Array);
+          rg = maskRg(decrypt(buf));
+        } catch (err) {
+          logger.error({ err, responsavelId: r.id }, '[Alunos] Falha ao decriptografar RG');
+        }
       }
       return {
         ...vinculo,
@@ -245,6 +259,13 @@ export class AlunosService {
       ipAddress: ip,
     });
 
+    // H3: invalidar cache de KPIs das DUAS filiais afetadas pela transferência
+    const now = new Date();
+    await Promise.all([
+      DashboardService.invalidarCache(filialOrigemId, now.getMonth() + 1, now.getFullYear()),
+      DashboardService.invalidarCache(data.filialDestinoId, now.getMonth() + 1, now.getFullYear()),
+    ]);
+
     // Usar findById do service para aplicar mascaramento de CPF/RG (BUG-008: evitar vazamento de cpfEnc/rgEnc)
     const alunoAtualizado = await this.findById(id, data.filialDestinoId);
     return {
@@ -259,9 +280,12 @@ export class AlunosService {
   async exportCsv(filialId: string, status?: AlunoStatus): Promise<string> {
     const alunos = await this.repo.findAllByFilial(filialId, status);
 
-    // C4: prevenir injeção de fórmula CSV — prefixar com tab se valor começa com =, +, -, @
-    const sanitize = (val: string): string =>
-      /^[=+\-@\t\r]/.test(val) ? `\t${val}` : val;
+    // C4: prevenir injeção de fórmula CSV — trim primeiro, depois prefixar com tab se começa com =, +, -, @
+    // M3: trim antes do check para capturar valores com espaço leading (ex: " =DANGEROUS")
+    const sanitize = (val: string): string => {
+      const trimmed = val.trim();
+      return /^[=+\-@\t\r]/.test(trimmed) ? `\t${trimmed}` : trimmed;
+    };
 
     const header = [
       "nome",

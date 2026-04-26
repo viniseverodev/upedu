@@ -47,8 +47,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'upedu-auth',
-      // Persistir user e isAuthenticated; accessToken não é persistido (renovado via refresh)
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      // L1: persistir apenas user — isAuthenticated NÃO é persistido para evitar
+      // estado inconsistente no recarregamento (token nulo + isAuthenticated=true).
+      // O middleware re-valida via refresh token httpOnly ao retornar à aplicação.
+      partialize: (state) => ({ user: state.user }),
       skipHydration: true, // evita mismatch SSR/cliente no Next.js App Router
     }
   )

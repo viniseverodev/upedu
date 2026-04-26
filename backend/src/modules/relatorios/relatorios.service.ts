@@ -7,12 +7,15 @@ import { RelatoriosRepository } from './relatorios.repository';
 export class RelatoriosService {
   private repo = new RelatoriosRepository();
 
-  // S025 — Relatório de inadimplência
-  async inadimplencia(filialId: string, mes: number, ano: number) {
-    const inadimplentes = await this.repo.findInadimplentes(filialId, mes, ano);
+  // S025 — Relatório de inadimplência (M2: paginada)
+  async inadimplencia(filialId: string, mes: number, ano: number, page = 1, pageSize = 100) {
+    const [inadimplentes, total] = await Promise.all([
+      this.repo.findInadimplentes(filialId, mes, ano, page, pageSize),
+      this.repo.countInadimplentes(filialId, mes, ano),
+    ]);
 
     const hoje = new Date();
-    return inadimplentes.map((m) => {
+    const data = inadimplentes.map((m) => {
       const diasAtraso = Math.max(
         0,
         Math.floor((hoje.getTime() - m.dataVencimento.getTime()) / (1000 * 60 * 60 * 24)),
@@ -29,6 +32,8 @@ export class RelatoriosService {
         diasAtraso,
       };
     });
+
+    return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
   // S028 — Fluxo de caixa
@@ -72,9 +77,12 @@ export class RelatoriosService {
   async fluxoCaixaCsv(filialId: string, mes: number, ano: number): Promise<string> {
     const transacoes = await this.repo.findTransacoesPeriodo(filialId, mes, ano);
 
-    // C4: prevenir injeção de fórmula CSV — prefixar com tab se valor começa com =, +, -, @
-    const sanitize = (val: string): string =>
-      /^[=+\-@\t\r]/.test(val) ? `\t${val}` : val;
+    // C4/H2: prevenir injeção de fórmula CSV — trim primeiro (captura " =MALICIOUS()"),
+    // depois prefixar com tab se começa com caractere perigoso
+    const sanitize = (val: string): string => {
+      const trimmed = val.trim();
+      return /^[=+\-@\t\r]/.test(trimmed) ? `\t${trimmed}` : trimmed;
+    };
 
     const header = 'data,tipo,categoria,descricao,valor\n';
     const rows = transacoes.map((t) =>

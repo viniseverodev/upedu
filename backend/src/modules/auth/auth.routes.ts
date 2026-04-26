@@ -15,7 +15,8 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post('/login',           { preHandler: [rateLimitLogin] }, controller.login.bind(controller));
   app.post('/logout',          { preHandler: [authenticate] },   controller.logout.bind(controller));
-  app.post('/refresh',         controller.refresh.bind(controller));
+  // C1: rate limiting no refresh — previne brute-force de refresh tokens por IP
+  app.post('/refresh',         { preHandler: [rateLimitLogin] }, controller.refresh.bind(controller));
   app.post('/change-password', { preHandler: [authenticate] },   controller.changePassword.bind(controller));
   app.patch('/me',             { preHandler: [authenticate] },   controller.updateProfile.bind(controller));
 }

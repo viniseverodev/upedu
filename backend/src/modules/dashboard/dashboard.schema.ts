@@ -17,9 +17,15 @@ const anoOptional = z
   .refine((n) => n >= 2020, { message: 'Ano deve ser >= 2020' })
   .optional();
 
+// C2: validação de calendário para evitar datas impossíveis (ex: 2024-02-31 → overflow silencioso)
 const dataOptional = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato esperado: YYYY-MM-DD')
+  .refine((val) => {
+    const [y, m, d] = val.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+  }, 'Data não existe no calendário')
   .optional();
 
 export const kpisQuerySchema = z.object({

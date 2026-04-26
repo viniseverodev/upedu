@@ -12,7 +12,7 @@ import { redis, REDIS_TTL } from '../../config/redis';
 import { RATE_LIMIT_LOGIN_KEY } from '../../middlewares/rate-limit';
 import { env } from '../../config/env';
 import { createAuditLog } from '../../middlewares/audit';
-import { UnauthorizedError } from '../../shared/errors/AppError';
+import { UnauthorizedError, ConflictError } from '../../shared/errors/AppError';
 import type { LoginInput, UpdateProfileInput } from './auth.schema';
 import type { JwtPayload, RefreshTokenPayload } from '../../middlewares/authenticate';
 
@@ -128,6 +128,8 @@ export class AuthService {
   }
 
   // S003 — Refresh token com rotação obrigatória e detecção de roubo
+  // C1/H1: lock Redis para prevenir race condition — dois requests simultâneos com o mesmo
+  // refresh token não podem ambos gerar novos tokens
   async refresh(rawRefreshToken?: string): Promise<{ accessToken: string; refreshToken: string }> {
     if (!rawRefreshToken) {
       throw new UnauthorizedError('Refresh token não encontrado');
@@ -143,63 +145,75 @@ export class AuthService {
 
     const { sub: userId, jti: jtiRefresh } = decoded;
 
-    // 2. Buscar token ativo correspondente ao jti
-    const activeTokens = await this.repo.findActiveTokensByUser(userId);
-    let matchedToken = null;
-    for (const token of activeTokens) {
-      const match = await bcrypt.compare(jtiRefresh, token.tokenHash);
-      if (match) {
-        matchedToken = token;
-        break;
+    // C1/H1: Adquirir lock distribuído por usuário (TTL 15s para evitar deadlock)
+    const lockKey = `lock:refresh:${userId}`;
+    const lockAcquired = await redis.set(lockKey, '1', 'EX', 15, 'NX');
+    if (!lockAcquired) {
+      throw new UnauthorizedError('Refresh em andamento. Tente novamente em instantes.');
+    }
+
+    try {
+      // 2. Buscar token ativo correspondente ao jti
+      const activeTokens = await this.repo.findActiveTokensByUser(userId);
+      let matchedToken = null;
+      for (const token of activeTokens) {
+        const match = await bcrypt.compare(jtiRefresh, token.tokenHash);
+        if (match) {
+          matchedToken = token;
+          break;
+        }
       }
+
+      // 3. Detecção de roubo: token JWT válido mas não encontrado como ativo
+      //    Significa que o token já foi usado/revogado — possível roubo de sessão
+      if (!matchedToken) {
+        await this.repo.revokeAllUserTokens(userId);
+        await createAuditLog({
+          userId,
+          action: 'SUSPICIOUS_TOKEN_REUSE',
+          entityType: 'User',
+          entityId: userId,
+        });
+        throw new UnauthorizedError('Sessão inválida. Faça login novamente.');
+      }
+
+      // 4. Revogar token atual (rotação obrigatória)
+      await this.repo.revokeTokenById(matchedToken.id);
+
+      // 5. Buscar dados atuais do usuário para o novo access token
+      const user = await this.repo.findById(userId);
+      if (!user || !user.ativo) {
+        throw new UnauthorizedError('Usuário inativo ou não encontrado');
+      }
+
+      // 6. Gerar novo par de tokens
+      const jti = uuidv4();
+      const accessToken = jwt.sign(
+        {
+          sub: user.id,
+          jti,
+          role: user.role,
+          orgId: user.organizationId,
+          primeiroAcesso: user.primeiroAcesso,
+        },
+        env.JWT_SECRET,
+        { expiresIn: env.JWT_EXPIRES_IN as any }
+      );
+
+      const newJtiRefresh = uuidv4();
+      const newRefreshTokenRaw = jwt.sign(
+        { sub: user.id, jti: newJtiRefresh },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: env.JWT_REFRESH_EXPIRES_IN as any }
+      );
+      const newRefreshTokenHash = await bcrypt.hash(newJtiRefresh, BCRYPT_COST);
+      await this.repo.saveRefreshToken(user.id, newRefreshTokenHash);
+
+      return { accessToken, refreshToken: newRefreshTokenRaw };
+    } finally {
+      // Liberar lock independentemente de sucesso ou falha
+      await redis.del(lockKey);
     }
-
-    // 3. Detecção de roubo: token JWT válido mas não encontrado como ativo
-    //    Significa que o token já foi usado/revogado — possível roubo de sessão
-    if (!matchedToken) {
-      await this.repo.revokeAllUserTokens(userId);
-      await createAuditLog({
-        userId,
-        action: 'SUSPICIOUS_TOKEN_REUSE',
-        entityType: 'User',
-        entityId: userId,
-      });
-      throw new UnauthorizedError('Sessão inválida. Faça login novamente.');
-    }
-
-    // 4. Revogar token atual (rotação obrigatória)
-    await this.repo.revokeTokenById(matchedToken.id);
-
-    // 5. Buscar dados atuais do usuário para o novo access token
-    const user = await this.repo.findById(userId);
-    if (!user || !user.ativo) {
-      throw new UnauthorizedError('Usuário inativo ou não encontrado');
-    }
-
-    // 6. Gerar novo par de tokens
-    const jti = uuidv4();
-    const accessToken = jwt.sign(
-      {
-        sub: user.id,
-        jti,
-        role: user.role,
-        orgId: user.organizationId,
-        primeiroAcesso: user.primeiroAcesso,
-      },
-      env.JWT_SECRET,
-      { expiresIn: env.JWT_EXPIRES_IN as any }
-    );
-
-    const newJtiRefresh = uuidv4();
-    const newRefreshTokenRaw = jwt.sign(
-      { sub: user.id, jti: newJtiRefresh },
-      env.JWT_REFRESH_SECRET,
-      { expiresIn: env.JWT_REFRESH_EXPIRES_IN as any }
-    );
-    const newRefreshTokenHash = await bcrypt.hash(newJtiRefresh, BCRYPT_COST);
-    await this.repo.saveRefreshToken(user.id, newRefreshTokenHash);
-
-    return { accessToken, refreshToken: newRefreshTokenRaw };
   }
 
   // S004 — Troca de senha com validação da senha atual
@@ -259,6 +273,16 @@ export class AuthService {
 
   // Atualização de perfil — nome e/ou e-mail do próprio usuário
   async updateProfile(userId: string, input: UpdateProfileInput) {
+    // L4: verificar unicidade de email antes do update — evita P2002 com mensagem genérica "Registro já existe"
+    if (input.email) {
+      const currentUser = await this.repo.findById(userId);
+      if (!currentUser) throw new UnauthorizedError('Usuário não encontrado');
+      const existing = await this.repo.findByEmail(input.email);
+      if (existing && existing.organizationId === currentUser.organizationId && existing.id !== userId) {
+        throw new ConflictError('Email já cadastrado nesta organização');
+      }
+    }
+
     const updated = await this.repo.updateProfile(userId, input);
 
     await createAuditLog({

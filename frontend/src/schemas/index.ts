@@ -33,9 +33,31 @@ export const createAlunoSchema = z.object({
   status: z.enum(['PRE_MATRICULA', 'LISTA_ESPERA']).default('PRE_MATRICULA'),
 });
 
+// L2: CNPJ com verificação de dígito módulo 11 (alinhado com backend/filiais.schema.ts)
+// BUG-002: algoritmo anterior divergia do backend — arrays de pesos fixos garantem consistência
+function validarCnpj(cnpj: string): boolean {
+  const d = cnpj.replace(/\D/g, '');
+  if (d.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(d)) return false;
+  const calc = (weights: number[]) => {
+    let sum = 0;
+    for (let i = 0; i < weights.length; i++) sum += Number(d[i]) * weights[i];
+    const rem = sum % 11;
+    return rem < 2 ? 0 : 11 - rem;
+  };
+  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  return calc(w1) === Number(d[12]) && calc(w2) === Number(d[13]);
+}
+
+const cnpjSchema = z
+  .string()
+  .regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$|^\d{14}$/, 'CNPJ inválido (formato: 00.000.000/0000-00)')
+  .refine(validarCnpj, 'CNPJ inválido (dígitos verificadores)');
+
 export const createFilialSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),
-  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
+  cnpj: cnpjSchema,
   diaVencimento: z.coerce.number().int().min(1).max(28).default(10),
   valorMensalidadeManha: z.coerce.number().positive('Valor deve ser positivo'),
   valorMensalidadeTarde: z.coerce.number().positive('Valor deve ser positivo'),
@@ -43,7 +65,7 @@ export const createFilialSchema = z.object({
 
 export const updateFilialSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
-  cnpj: z.string().min(14).max(18).optional(),
+  cnpj: cnpjSchema.optional(),
   diaVencimento: z.coerce.number().int().min(1).max(28).optional(),
   valorMensalidadeManha: z.coerce.number().positive().optional(),
   valorMensalidadeTarde: z.coerce.number().positive().optional(),
@@ -127,10 +149,12 @@ export const createMensalidadeSchema = z.object({
   anoReferencia: z.number().int().min(2020),
 });
 
-// S023 — Registrar pagamento
+// S023 — Registrar pagamento (suporta múltiplas formas e pagamento parcial)
 export const pagarMensalidadeSchema = z.object({
-  valorPago: z.number().positive('Valor deve ser positivo'),
-  formaPagamento: z.string().min(1, 'Forma de pagamento obrigatória'),
+  splits: z.array(z.object({
+    formaPagamento: z.string().min(1, 'Forma de pagamento obrigatória'),
+    valor: z.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser positivo'),
+  })).min(1, 'Informe ao menos uma forma de pagamento'),
   dataPagamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
   valorDesconto: z.number().min(0).default(0),
 });
@@ -138,6 +162,26 @@ export const pagarMensalidadeSchema = z.object({
 // S024 — Cancelar mensalidade
 export const cancelarMensalidadeSchema = z.object({
   motivoCancelamento: z.string().min(3, 'Motivo obrigatório'),
+});
+
+// Estornar pagamento
+export const estornarMensalidadeSchema = z.object({
+  motivoEstorno: z.string().min(3, 'Motivo obrigatório'),
+});
+
+// Ações em lote
+export const bulkPagarSchema = z.object({
+  formaPagamento: z.string().min(1, 'Forma de pagamento obrigatória'),
+  dataPagamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
+  valorDesconto: z.number().min(0).default(0),
+});
+
+export const bulkCancelarSchema = z.object({
+  motivoCancelamento: z.string().min(3, 'Motivo obrigatório'),
+});
+
+export const bulkEstornarSchema = z.object({
+  motivoGlobal: z.string().optional(),
 });
 
 // S027 — Criar categoria financeira
@@ -169,5 +213,9 @@ export type CreateMatriculaInput = z.infer<typeof createMatriculaSchema>;
 export type CreateMensalidadeInput = z.infer<typeof createMensalidadeSchema>;
 export type PagarMensalidadeInput = z.infer<typeof pagarMensalidadeSchema>;
 export type CancelarMensalidadeInput = z.infer<typeof cancelarMensalidadeSchema>;
+export type EstornarMensalidadeInput = z.infer<typeof estornarMensalidadeSchema>;
+export type BulkPagarInput = z.infer<typeof bulkPagarSchema>;
+export type BulkCancelarInput = z.infer<typeof bulkCancelarSchema>;
+export type BulkEstornarInput = z.infer<typeof bulkEstornarSchema>;
 export type CreateCategoriaInput = z.infer<typeof createCategoriaSchema>;
 export type CreateTransacaoInput = z.infer<typeof createTransacaoSchema>;

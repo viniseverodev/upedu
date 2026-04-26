@@ -40,6 +40,7 @@ enum MatriculaStatus {
 
 enum MensalidadeStatus {
   PENDENTE
+  PARCIAL
   PAGO
   INADIMPLENTE
   CANCELADA
@@ -193,6 +194,10 @@ model AlunoResponsavel {
   responsavel Responsavel @relation(fields: [responsavelId], references: [id])
 
   @@id([alunoId, responsavelId])
+  // L3: índice parcial garantindo no máximo 1 responsável financeiro por aluno no nível do banco
+  // Prisma não suporta partial indexes no schema — aplicar via migration raw:
+  //   CREATE UNIQUE INDEX aluno_resp_financeiro_unique
+  //   ON alunos_responsaveis (aluno_id) WHERE is_responsavel_financeiro = true;
   @@map("alunos_responsaveis")
 }
 
@@ -233,20 +238,37 @@ model Mensalidade {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
-  aluno  Aluno  @relation(fields: [alunoId], references: [id])
-  filial Filial @relation(fields: [filialId], references: [id])
+  aluno     Aluno      @relation(fields: [alunoId], references: [id])
+  filial    Filial     @relation(fields: [filialId], references: [id])
+  pagamentos Pagamento[]
 
   @@unique([alunoId, mesReferencia, anoReferencia]) // IDEMPOTÊNCIA
   @@index([filialId, status, dataVencimento])
   @@map("mensalidades")
 }
 
+model Pagamento {
+  id             String      @id @default(uuid())
+  mensalidadeId  String
+  valor          Decimal     @db.Decimal(10, 2)
+  formaPagamento String
+  dataPagamento  DateTime
+  createdAt      DateTime    @default(now())
+
+  mensalidade    Mensalidade @relation(fields: [mensalidadeId], references: [id])
+
+  @@index([mensalidadeId])
+  @@map("pagamentos")
+}
+
 model CategoriaFinanceira {
-  id        String                  @id @default(uuid())
-  filialId  String
-  nome      String
-  tipo      CategoriaFinanceiraTipo
-  createdAt DateTime                @default(now())
+  id       String                  @id @default(uuid())
+  filialId String
+  nome     String
+  tipo     CategoriaFinanceiraTipo
+  removida  Boolean                 @default(false)
+  removidaEm DateTime?
+  createdAt DateTime               @default(now())
 
   filial     Filial      @relation(fields: [filialId], references: [id])
   transacoes Transacao[]

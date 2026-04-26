@@ -10,6 +10,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '../../shared/errors/AppError';
+import { DashboardService } from '../dashboard/dashboard.service';
 import type { CreateFilialInput, UpdateFilialInput } from './filiais.schema';
 
 export class FiliaisService {
@@ -82,6 +83,11 @@ export class FiliaisService {
       newValues: data as unknown as import('@prisma/client').Prisma.InputJsonValue,
       ipAddress: ip,
     });
+
+    // H6: Invalidar cache de KPIs da filial ao atualizar dados financeiros
+    // (valorMensalidade, diaVencimento, etc. afetam projeções do dashboard)
+    const now = new Date();
+    await DashboardService.invalidarCache(id, now.getMonth() + 1, now.getFullYear());
 
     return updated;
   }

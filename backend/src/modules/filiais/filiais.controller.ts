@@ -1,8 +1,12 @@
 // FiliaisController — handlers HTTP para S006, S007, S008
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { FiliaisService } from './filiais.service';
 import { createFilialSchema, updateFilialSchema } from './filiais.schema';
+
+// BUG-011: validação de path param UUID
+const uuidParamSchema = z.string().uuid();
 
 export class FiliaisController {
   private service = new FiliaisService();
@@ -32,6 +36,7 @@ export class FiliaisController {
   // S007: PATCH /filiais/:id — editar filial
   async update(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     const body = updateFilialSchema.parse(request.body);
     const { sub: userId, orgId: organizationId } = request.user;
     const filial = await this.service.update(id, organizationId, userId, body, request.ip);

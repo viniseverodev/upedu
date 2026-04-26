@@ -9,7 +9,7 @@ export type Turno = 'MANHA' | 'TARDE';
 
 export type MatriculaStatus = 'ATIVA' | 'ENCERRADA' | 'CANCELADA';
 
-export type MensalidadeStatus = 'PENDENTE' | 'PAGO' | 'INADIMPLENTE' | 'CANCELADA';
+export type MensalidadeStatus = 'PENDENTE' | 'PARCIAL' | 'PAGO' | 'INADIMPLENTE' | 'CANCELADA';
 
 export type TransacaoTipo = 'ENTRADA' | 'SAIDA';
 

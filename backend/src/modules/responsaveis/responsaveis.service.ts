@@ -162,30 +162,35 @@ export class ResponsaveisService {
     const responsavel = await this.repo.findById(data.responsavelId);
     if (!responsavel) throw new NotFoundError('Responsável');
 
-    // Verificar se vínculo já existe
-    const vinculoExistente = await this.repo.findVinculo(alunoId, data.responsavelId);
-    if (vinculoExistente) {
-      throw new ValidationError('Responsável já vinculado a este aluno');
-    }
-
-    // Regra: apenas 1 responsável financeiro por aluno
-    // TECH DEBT: race condition teórica em requests simultâneos (check-then-act sem lock).
-    // Mitigação definitiva: partial unique index em alunos_responsaveis(alunoId) WHERE isResponsavelFinanceiro=true.
-    // Requer migration SQL raw (Prisma não suporta partial index via schema).
-    // Deferido para sprint futuro — carga concorrente atual é baixa.
-    if (data.isResponsavelFinanceiro) {
-      const totalFinanceiros = await this.repo.countFinanceiros(alunoId);
-      if (totalFinanceiros >= 1) {
-        throw new ValidationError('Este aluno já possui um responsável financeiro');
+    // C2/M5: todos os checks de unicidade dentro da $transaction para eliminar TOCTOU
+    // (check de vínculo duplicado também movido para dentro — elimina race condition com P2002)
+    const vinculo = await prisma.$transaction(async (tx) => {
+      // M5: check de vínculo duplicado dentro da transaction → mensagem amigável em vez de P2002 genérico
+      const vinculoExistente = await tx.alunoResponsavel.findUnique({
+        where: { alunoId_responsavelId: { alunoId, responsavelId: data.responsavelId } },
+      });
+      if (vinculoExistente) {
+        throw new ValidationError('Responsável já vinculado a este aluno');
       }
-    }
 
-    const vinculo = await this.repo.vincular(
-      alunoId,
-      data.responsavelId,
-      data.parentesco,
-      data.isResponsavelFinanceiro,
-    );
+      if (data.isResponsavelFinanceiro) {
+        const totalFinanceiros = await tx.alunoResponsavel.count({
+          where: { alunoId, isResponsavelFinanceiro: true },
+        });
+        if (totalFinanceiros >= 1) {
+          throw new ValidationError('Este aluno já possui um responsável financeiro');
+        }
+      }
+
+      return tx.alunoResponsavel.create({
+        data: {
+          alunoId,
+          responsavelId: data.responsavelId,
+          parentesco: data.parentesco,
+          isResponsavelFinanceiro: data.isResponsavelFinanceiro,
+        },
+      });
+    });
 
     await createAuditLog({
       userId: linkerId,

@@ -18,6 +18,17 @@
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 
+  /* Remove spinners from number inputs */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 5px;
@@ -113,6 +124,10 @@
 
   .badge-yellow {
     @apply badge bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300;
+  }
+
+  .badge-orange {
+    @apply badge bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300;
   }
 
   .badge-blue {

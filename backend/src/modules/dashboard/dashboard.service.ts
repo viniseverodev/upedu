@@ -4,6 +4,7 @@
 
 import { DashboardRepository } from './dashboard.repository';
 import { redis, REDIS_TTL } from '../../config/redis';
+import { logger } from '../../config/logger';
 
 interface KpisParams {
   mes?: number;
@@ -15,17 +16,23 @@ interface KpisParams {
 function resolvePeriodo(params: KpisParams): { inicio: Date; fim: Date; cacheKey: string | null } {
   // Prioridade: intervalo de datas explícito > mês/ano
   if (params.dataInicio && params.dataFim) {
-    const inicio = new Date(`${params.dataInicio}T00:00:00`);
-    const fim = new Date(`${params.dataFim}T23:59:59.999`);
+    // M4: sufixo -03:00 garante interpretação BRT — evita shift de período em servidor UTC
+    const inicio = new Date(`${params.dataInicio}T00:00:00-03:00`);
+    const fim = new Date(`${params.dataFim}T23:59:59.999-03:00`);
     return { inicio, fim, cacheKey: null }; // sem cache para ranges personalizados
   }
 
   const now = new Date();
   const m = params.mes ?? now.getMonth() + 1;
   const a = params.ano ?? now.getFullYear();
-  const inicio = new Date(a, m - 1, 1);
-  const fim = new Date(a, m, 1);
-  return { inicio, fim, cacheKey: `kpis:filial:__FILIAL__:mes:${a}-${String(m).padStart(2, '0')}` };
+  // BUG-004: sufixo -03:00 garante interpretação BRT — new Date(a, m-1, 1) cria UTC e desvia o período
+  const mesStr = String(m).padStart(2, '0');
+  const nextM = m === 12 ? 1 : m + 1;
+  const nextA = m === 12 ? a + 1 : a;
+  const nextMStr = String(nextM).padStart(2, '0');
+  const inicio = new Date(`${a}-${mesStr}-01T00:00:00-03:00`);
+  const fim = new Date(`${nextA}-${nextMStr}-01T00:00:00-03:00`);
+  return { inicio, fim, cacheKey: `kpis:filial:__FILIAL__:mes:${a}-${mesStr}` };
 }
 
 export class DashboardService {
@@ -69,22 +76,32 @@ export class DashboardService {
     };
 
     if (cacheKey) {
-      await redis.set(cacheKey, JSON.stringify(kpis), 'EX', REDIS_TTL.KPI_CACHE).catch(() => null);
+      // M12: logar falha de escrita no cache para diagnóstico (não bloqueia a resposta)
+      await redis.set(cacheKey, JSON.stringify(kpis), 'EX', REDIS_TTL.KPI_CACHE).catch((err) => {
+        logger.warn({ err, cacheKey }, '[DashboardService] Falha ao escrever cache Redis');
+      });
     }
 
     return kpis;
   }
 
   // S031 — KPIs comparativos de todas as filiais da organização
+  // M4: processa em lotes de 5 para evitar sobrecarga do pool de conexões com N filiais simultâneas
   async getComparativo(orgId: string, params: KpisParams = {}) {
     const filiais = await this.repo.getFilialsByOrg(orgId);
+    const BATCH_SIZE = 5;
+    const resultado: Array<{ filialId: string; filialNome: string }> = [];
 
-    const resultado = await Promise.all(
-      filiais.map(async (filial) => {
-        const kpis = await this.getKpis(filial.id, params);
-        return { filialId: filial.id, filialNome: filial.nome, ...kpis };
-      }),
-    );
+    for (let i = 0; i < filiais.length; i += BATCH_SIZE) {
+      const batch = filiais.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (filial) => {
+          const kpis = await this.getKpis(filial.id, params);
+          return { filialId: filial.id, filialNome: filial.nome, ...kpis };
+        }),
+      );
+      resultado.push(...batchResults);
+    }
 
     return resultado;
   }

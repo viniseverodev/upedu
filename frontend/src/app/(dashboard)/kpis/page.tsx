@@ -11,6 +11,7 @@ import {
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
+import { CalendarRangePicker, fmtBR } from '@/components/ui/CalendarRangePicker';
 
 // ---------- Tipos ----------
 
@@ -163,202 +164,15 @@ const filterInput = [
   'dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-500',
 ].join(' ');
 
-// ---------- CalendarModal ----------
-
-const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const DAY_NAMES = ['D','S','T','Q','Q','S','S'];
-
-function pad2(n: number) { return String(n).padStart(2, '0'); }
-function toDateStr(y: number, m: number, d: number) {
-  return `${y}-${pad2(m + 1)}-${pad2(d)}`;
-}
-function fmtBR(s: string) {
-  if (!s) return '—';
-  const [y, m, d] = s.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-interface CalendarModalProps {
-  initialInicio: string;
-  initialFim: string;
-  onApply: (inicio: string, fim: string) => void;
-  onClose: () => void;
-}
-
-function CalendarModal({ initialInicio, initialFim, onApply, onClose }: CalendarModalProps) {
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [start, setStart] = useState(initialInicio);
-  const [end, setEnd] = useState(initialFim);
-  const [hovered, setHovered] = useState('');
-
-  function handleDayClick(d: string) {
-    if (!start || (start && end)) {
-      setStart(d);
-      setEnd('');
-    } else if (d < start) {
-      setEnd(start);
-      setStart(d);
-    } else {
-      setEnd(d);
-    }
-  }
-
-  function inRange(d: string) {
-    const e = end || hovered;
-    if (!start || !e) return false;
-    const [lo, hi] = start <= e ? [start, e] : [e, start];
-    return d > lo && d < hi;
-  }
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
-  }
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const canApply = !!(start && end);
-
-  return (
-    /* Overlay fixo que cobre a tela, conteúdo ao fundo visível */
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
-      onClick={onClose}
-    >
-      <div
-        className="w-80 rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Título */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Selecionar período</p>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Navegação de mês */}
-        <div className="mb-3 flex items-center justify-between">
-          <button
-            onClick={prevMonth}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <span className="text-sm font-medium text-gray-800 dark:text-slate-200">
-            {MONTH_NAMES[viewMonth]} {viewYear}
-          </span>
-          <button
-            onClick={nextMonth}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Grid do calendário */}
-        <div className="grid grid-cols-7 text-center text-xs">
-          {DAY_NAMES.map((d, i) => (
-            <div key={i} className="py-1.5 font-semibold text-gray-400 dark:text-slate-500">{d}</div>
-          ))}
-
-          {/* Células vazias antes do dia 1 */}
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={`empty-${i}`} />
-          ))}
-
-          {/* Dias do mês */}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const d = toDateStr(viewYear, viewMonth, day);
-            const isStart = d === start;
-            const isEnd = d === end;
-            const isSelected = isStart || isEnd;
-            const ranged = inRange(d);
-
-            return (
-              <button
-                key={day}
-                onClick={() => handleDayClick(d)}
-                onMouseEnter={() => !end && setHovered(d)}
-                onMouseLeave={() => setHovered('')}
-                className={[
-                  'relative py-1.5 text-xs font-medium transition-colors',
-                  isSelected
-                    ? 'z-10 rounded-full bg-brand-600 text-white'
-                    : ranged
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
-                      : 'rounded-full text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700',
-                ].join(' ')}
-              >
-                {day}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Resumo do intervalo selecionado */}
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-slate-800">
-          <span className="text-gray-500 dark:text-slate-400">
-            De <strong className="text-gray-800 dark:text-slate-100">{fmtBR(start)}</strong>
-          </span>
-          <span className="text-gray-300 dark:text-slate-600">→</span>
-          <span className="text-gray-500 dark:text-slate-400">
-            Até <strong className="text-gray-800 dark:text-slate-100">{fmtBR(end)}</strong>
-          </span>
-        </div>
-
-        {/* Ações */}
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => canApply && onApply(start, end)}
-            disabled={!canApply}
-            className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Aplicar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---------- FilterBar ----------
 
 type FilterBarProps = {
   preset: PeriodoPreset;
   setPreset: (p: PeriodoPreset) => void;
-  mes: number;
-  setMes: (m: number) => void;
-  ano: number;
-  setAno: (a: number) => void;
   customInicio: string;
   setCustomInicio: (v: string) => void;
   customFim: string;
   setCustomFim: (v: string) => void;
-  MESES: string[];
   isAdmin: boolean;
   comparativo: KpiFilial[] | undefined;
   filialSelecionada: string;
@@ -366,9 +180,9 @@ type FilterBarProps = {
 };
 
 function FilterBar({
-  preset, setPreset, mes, setMes, ano, setAno,
+  preset, setPreset,
   customInicio, setCustomInicio, customFim, setCustomFim,
-  MESES, isAdmin, comparativo, filialSelecionada, setFilialSelecionada,
+  isAdmin, comparativo, filialSelecionada, setFilialSelecionada,
 }: FilterBarProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -417,49 +231,42 @@ function FilterBar({
           ))}
 
           {/* Botão Período — abre CalendarModal */}
-          <button
-            onClick={() => setCalendarOpen(true)}
-            className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
-              preset === 'personalizado'
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
-            }`}
-          >
-            {preset === 'personalizado' && customInicio && customFim ? periodoLabel : 'Período'}
-          </button>
+          <div className="flex items-center">
+            <button
+              onClick={() => setCalendarOpen(true)}
+              className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
+                preset === 'personalizado'
+                  ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
+                  : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
+              }`}
+            >
+              {preset === 'personalizado' && customInicio && customFim ? periodoLabel : 'Período'}
+            </button>
+            {preset === 'personalizado' && (
+              <button
+                onClick={() => { setPreset('semana'); setCustomInicio(''); setCustomFim(''); }}
+                title="Limpar período"
+                className="ml-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Seletor de mês/ano inline */}
-        {preset === 'mes' && (
-          <>
-            <select
-              value={mes}
-              onChange={(e) => setMes(Number(e.target.value))}
-              className={filterInput}
-            >
-              {MESES.slice(1).map((m, i) => (
-                <option key={i + 1} value={i + 1}>{m}</option>
-              ))}
-            </select>
-            <input
-              type="number"
-              value={ano}
-              onChange={(e) => setAno(Number(e.target.value))}
-              min={2020}
-              max={2099}
-              className={`${filterInput} w-20`}
-            />
-          </>
-        )}
       </div>
 
       {/* Modal de calendário — renderizado fora do flex para não ser cortado */}
       {calendarOpen && (
-        <CalendarModal
+        <CalendarRangePicker
+          title="Selecionar período"
           initialInicio={customInicio}
           initialFim={customFim}
           onApply={handleApplyPeriodo}
           onClose={() => setCalendarOpen(false)}
+          showShortcuts={false}
         />
       )}
     </>
@@ -664,15 +471,10 @@ export default function KpisPage() {
         <FilterBar
           preset={preset}
           setPreset={setPreset}
-          mes={mes}
-          setMes={setMes}
-          ano={ano}
-          setAno={setAno}
           customInicio={customInicio}
           setCustomInicio={setCustomInicio}
           customFim={customFim}
           setCustomFim={setCustomFim}
-          MESES={MESES}
           isAdmin={isAdmin}
           comparativo={comparativo}
           filialSelecionada={filialSelecionada}

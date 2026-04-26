@@ -26,8 +26,10 @@ export class AuthRepository {
     return prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
   }
 
-  // Busca todos os refresh tokens ativos (não revogados, não expirados) de um usuário.
-  // Usado pelo refresh para comparar bcrypt e detectar reutilização de token revogado.
+  // Busca os refresh tokens ativos mais recentes de um usuário.
+  // H1: limite de 10 tokens — evita acúmulo de sessões que causaria O(N×bcrypt) no refresh (DoS vector).
+  // Tokens mais antigos são ignorados: se o usuário tem mais de 10 sessões ativas, as antigas
+  // já deveriam ter sido expiradas ou revogadas — na prática, 10 é generoso o suficiente.
   async findActiveTokensByUser(userId: string) {
     return prisma.refreshToken.findMany({
       where: {
@@ -35,6 +37,8 @@ export class AuthRepository {
         revokedAt: null,
         expiresAt: { gt: new Date() },
       },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
     });
   }
 

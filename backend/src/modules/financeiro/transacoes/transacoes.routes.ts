@@ -1,6 +1,10 @@
 // Rotas de transações financeiras — S027
-// GET  /transacoes?mes=&ano= — listar por período
-// POST /transacoes           — registrar transação (GERENTE+)
+// GET    /transacoes               — listar por período (mes/ano ou dataInicio/dataFim)
+// POST   /transacoes               — registrar transação (GERENTE+)
+// PATCH  /transacoes/bulk          — editar em lote (GERENTE+)
+// DELETE /transacoes/bulk          — excluir em lote (GERENTE+)
+// PATCH  /transacoes/:id           — editar transação (GERENTE+)
+// DELETE /transacoes/:id           — excluir transação (GERENTE+)
 
 import type { FastifyInstance } from 'fastify';
 import { TransacoesController } from './transacoes.controller';
@@ -15,4 +19,11 @@ export async function transacoesRoutes(app: FastifyInstance) {
 
   app.get('/', { preHandler: base }, controller.list.bind(controller));
   app.post('/', { preHandler: gerenteOnly }, controller.create.bind(controller));
+
+  // Bulk antes de /:id para evitar conflito de rota
+  app.patch('/bulk', { preHandler: gerenteOnly }, controller.updateBulk.bind(controller));
+  app.delete('/bulk', { preHandler: gerenteOnly }, controller.removeBulk.bind(controller));
+
+  app.patch('/:id', { preHandler: gerenteOnly }, controller.update.bind(controller));
+  app.delete('/:id', { preHandler: gerenteOnly }, controller.remove.bind(controller));
 }

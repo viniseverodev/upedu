@@ -4,7 +4,7 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import api from '@/lib/api';
 import { updateAlunoSchema, cpfSchema, type UpdateAlunoInput } from '@/schemas/index';
-import { DatePickerModal, fmtDateBR } from '@/components/ui/DatePickerModal';
+import { DatePickerInput } from '@/components/ui/DatePickerInput';
 import { useToast } from '@/hooks/useToast';
 import { Toast } from '@/components/ui/Toast';
 
@@ -82,18 +82,16 @@ export default function EditarAlunoPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [showInativarConfirm, setShowInativarConfirm] = useState(false);
   const [pendingData, setPendingData] = useState<UpdateAlunoInput | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const { data: aluno, isLoading } = useQuery<Aluno>({
     queryKey: ['aluno-edit', id],
     queryFn: () => api.get(`/alunos/${id}`).then((r) => r.data),
   });
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<UpdateAlunoInput>({
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<UpdateAlunoInput>({
     resolver: zodResolver(updateAlunoSchema),
   });
 
-  const dataNascimento = watch('dataNascimento');
 
   useEffect(() => {
     if (aluno) {
@@ -113,6 +111,7 @@ export default function EditarAlunoPage() {
       const nome = variables.nome ?? aluno?.nome ?? 'Aluno';
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
       queryClient.invalidateQueries({ queryKey: ['aluno', id] });
+      queryClient.removeQueries({ queryKey: ['aluno-edit', id] });
       router.push(`/alunos?updated=${encodeURIComponent(nome)}`);
     },
     onError: (error: AxiosError<{ message: string }>) => {
@@ -285,19 +284,18 @@ export default function EditarAlunoPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Data de nascimento" error={errors.dataNascimento?.message}>
-                <input type="hidden" {...register('dataNascimento')} />
-                <button
-                  type="button"
-                  onClick={() => setShowDatePicker(true)}
-                  className={`input-base cursor-pointer flex items-center justify-between text-left ${
-                    errors.dataNascimento ? 'input-error' : ''
-                  } ${!dataNascimento ? 'text-gray-400 dark:text-slate-500' : ''}`}
-                >
-                  <span>{dataNascimento ? fmtDateBR(dataNascimento) : 'Selecionar data'}</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-gray-400">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                  </svg>
-                </button>
+                <Controller
+                  control={control}
+                  name="dataNascimento"
+                  render={({ field }) => (
+                    <DatePickerInput
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      hasError={!!errors.dataNascimento}
+                      placeholder="Selecionar data"
+                    />
+                  )}
+                />
               </Field>
 
               <Field label="Turno" error={errors.turno?.message}>
@@ -309,12 +307,27 @@ export default function EditarAlunoPage() {
             </div>
 
             <Field label="Situação" error={errors.status?.message}>
-              <select {...register('status')} className={`input-base ${errors.status ? 'input-error' : ''}`}>
-                <option value="PRE_MATRICULA">Pré-Matrícula</option>
-                <option value="ATIVO">Ativo</option>
-                <option value="INATIVO">Inativo</option>
-                <option value="LISTA_ESPERA">Lista de Espera</option>
-              </select>
+              {aluno?.status === 'ATIVO' ? (
+                <div className="flex items-center gap-3">
+                  <div className="input-base flex flex-1 cursor-not-allowed items-center gap-2 bg-gray-50 dark:bg-slate-800/50">
+                    <span className="badge badge-green">Ativo</span>
+                    <span className="text-sm text-gray-500 dark:text-slate-400">Matrícula ativa</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setPendingData({ status: 'INATIVO' }); setShowInativarConfirm(true); }}
+                    className="shrink-0 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs font-medium text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700/40 dark:bg-yellow-700/10 dark:text-yellow-400 dark:hover:bg-yellow-700/20"
+                  >
+                    Inativar
+                  </button>
+                </div>
+              ) : (
+                <select {...register('status')} className={`input-base ${errors.status ? 'input-error' : ''}`}>
+                  <option value="PRE_MATRICULA">Pré-Matrícula</option>
+                  <option value="INATIVO">Inativo</option>
+                  <option value="LISTA_ESPERA">Lista de Espera</option>
+                </select>
+              )}
             </Field>
 
             <Field label="Observações" error={errors.observacoes?.message}>
@@ -543,14 +556,6 @@ export default function EditarAlunoPage() {
         </div>
       )}
 
-      {/* DatePickerModal */}
-      {showDatePicker && (
-        <DatePickerModal
-          value={dataNascimento ?? ''}
-          onSelect={(d) => setValue('dataNascimento', d, { shouldValidate: true })}
-          onClose={() => setShowDatePicker(false)}
-        />
-      )}
       <Toast toast={toast} onClose={hideToast} />
     </div>
   );

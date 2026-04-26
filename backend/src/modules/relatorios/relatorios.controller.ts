@@ -7,10 +7,17 @@ import { inadimplenciaQuerySchema, fluxoCaixaQuerySchema } from './relatorios.sc
 export class RelatoriosController {
   private service = new RelatoriosService();
 
-  // S025 — GET /relatorios/inadimplencia?mes=&ano=
+  // S025 — GET /relatorios/inadimplencia?mes=&ano=[&page=&pageSize=]
   async inadimplencia(request: FastifyRequest, reply: FastifyReply) {
     const query = inadimplenciaQuerySchema.parse(request.query);
-    const resultado = await this.service.inadimplencia(request.filialId, query.mes, query.ano);
+    // M2: passa parâmetros de paginação ao service
+    const resultado = await this.service.inadimplencia(
+      request.filialId,
+      query.mes,
+      query.ano,
+      query.page,
+      query.pageSize,
+    );
     return reply.status(200).send(resultado);
   }
 

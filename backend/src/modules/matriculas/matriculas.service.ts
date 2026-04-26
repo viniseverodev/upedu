@@ -4,8 +4,9 @@
 
 import { MatriculasRepository } from './matriculas.repository';
 import { createAuditLog } from '../../middlewares/audit';
-import { NotFoundError, ValidationError } from '../../shared/errors/AppError';
+import { NotFoundError, ValidationError, ConflictError } from '../../shared/errors/AppError';
 import { prisma } from '../../config/database';
+import { Prisma } from '@prisma/client';
 import type { MatriculaStatus, Turno } from '@prisma/client';
 import type { CreateMatriculaInput } from './matriculas.schema';
 
@@ -20,9 +21,9 @@ export class MatriculasService {
       throw new NotFoundError('Aluno');
     }
 
-    // Apenas alunos em PRE_MATRICULA podem ser matriculados
-    if (aluno.status !== 'PRE_MATRICULA') {
-      throw new ValidationError('Apenas alunos com status PRE_MATRICULA podem ser matriculados');
+    // Apenas alunos em PRE_MATRICULA ou INATIVO (rematrícula) podem ser matriculados
+    if (aluno.status !== 'PRE_MATRICULA' && aluno.status !== 'INATIVO') {
+      throw new ValidationError('Apenas alunos com status Pré-Matrícula ou Inativo podem ser matriculados');
     }
 
     // Verificar aluno tem responsável financeiro
@@ -47,26 +48,45 @@ export class MatriculasService {
       ? Number(filial.valorMensalidadeManha)
       : Number(filial.valorMensalidadeTarde);
 
-    // Transação: criar matrícula + atualizar aluno para ATIVO
-    const matricula = await prisma.$transaction(async (tx) => {
-      const created = await tx.matricula.create({
-        data: {
-          alunoId: data.alunoId,
-          filialId,
-          turno: data.turno,
-          valorMensalidade: valorSnapshot,
-          dataInicio: new Date(data.dataInicio),
-          status: 'ATIVA',
-        },
-      });
+    // H9: Transação: criar matrícula + atualizar aluno para ATIVO
+    // Race condition mitigation: a verificação de matrícula ativa e a criação ocorrem na
+    // mesma transação; se dois requests simultâneos passarem a verificação, o segundo
+    // lançará P2002 (caso haja unique constraint) ou será tratado abaixo
+    let matricula;
+    try {
+      matricula = await prisma.$transaction(async (tx) => {
+        // Re-verificar dentro da transação para reduzir janela de race condition
+        const ativaExistente = await tx.matricula.findFirst({
+          where: { alunoId: data.alunoId, status: 'ATIVA' },
+        });
+        if (ativaExistente) {
+          throw new ValidationError('Aluno já possui matrícula ativa');
+        }
 
-      await tx.aluno.update({
-        where: { id: data.alunoId },
-        data: { status: 'ATIVO' },
-      });
+        const created = await tx.matricula.create({
+          data: {
+            alunoId: data.alunoId,
+            filialId,
+            turno: data.turno,
+            valorMensalidade: valorSnapshot,
+            dataInicio: new Date(data.dataInicio),
+            status: 'ATIVA',
+          },
+        });
 
-      return created;
-    });
+        await tx.aluno.update({
+          where: { id: data.alunoId },
+          data: { status: 'ATIVO' },
+        });
+
+        return created;
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictError('Matrícula duplicada. Aluno já possui matrícula ativa.');
+      }
+      throw err;
+    }
 
     await createAuditLog({
       userId: creatorId,

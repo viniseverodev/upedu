@@ -2,13 +2,14 @@
 
 import { z } from 'zod';
 
-export const ROLE_HIERARCHY: Record<string, number> = {
+// C3: Object.freeze previne mutação acidental da hierarquia em runtime
+export const ROLE_HIERARCHY: Record<string, number> = Object.freeze({
   SUPER_ADMIN: 5,
   ADMIN_MATRIZ: 4,
   GERENTE_FILIAL: 3,
   ATENDENTE: 2,
   PROFESSOR: 1,
-};
+});
 
 export const createUserSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(100),

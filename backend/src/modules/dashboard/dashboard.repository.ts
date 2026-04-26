@@ -81,36 +81,50 @@ export class DashboardRepository {
   }
 
   // Evolução mensal: últimos N meses de alunos ativos e receita
+  // M7: meses processados em paralelo (Promise.all no nível do loop) — elimina 2N queries sequenciais
   async evolucaoMensal(filialId: string, meses: number) {
-    const pontos: { mes: string; alunosAtivos: number; receita: number }[] = [];
     const hoje = new Date();
 
-    for (let i = meses - 1; i >= 0; i--) {
-      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-      const inicio = new Date(d.getFullYear(), d.getMonth(), 1);
-      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    const pontos = await Promise.all(
+      Array.from({ length: meses }, (_, idx) => meses - 1 - idx).map(async (i) => {
+        // BUG-I: new Date(year, month, 1) cria meia-noite UTC = 21h BRT do dia anterior
+        // sufixo -03:00 garante interpretação BRT correta nas fronteiras mensais
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const mesStr = String(d.getMonth() + 1).padStart(2, '0');
+        const nextMes = d.getMonth() === 11 ? 1 : d.getMonth() + 2;
+        const nextAno = d.getMonth() === 11 ? d.getFullYear() + 1 : d.getFullYear();
+        const nextMesStr = String(nextMes).padStart(2, '0');
+        const inicio = new Date(`${d.getFullYear()}-${mesStr}-01T00:00:00-03:00`);
+        const fim = new Date(`${nextAno}-${nextMesStr}-01T00:00:00-03:00`);
 
-      const [alunosAtivos, receitaRaw] = await Promise.all([
-        prisma.aluno.count({
-          where: { filialId, status: 'ATIVO', deletedAt: null },
-        }),
-        prisma.mensalidade.aggregate({
-          where: {
-            filialId,
-            status: 'PAGO',
-            dataPagamento: { gte: inicio, lt: fim },
-          },
-          _sum: { valorPago: true },
-        }),
-      ]);
+        const [alunosAtivos, receitaRaw] = await Promise.all([
+          // BUG-006: contar matrículas ativas no período histórico, não alunos com status atual
+          prisma.matricula.count({
+            where: {
+              filialId,
+              status: 'ATIVA',
+              dataInicio: { lte: fim },
+              OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
+            },
+          }),
+          prisma.mensalidade.aggregate({
+            where: {
+              filialId,
+              status: 'PAGO',
+              dataPagamento: { gte: inicio, lt: fim },
+            },
+            _sum: { valorPago: true },
+          }),
+        ]);
 
-      const label = inicio.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-      pontos.push({
-        mes: label.replace('.', '').replace(' ', '/'),
-        alunosAtivos,
-        receita: Number(receitaRaw._sum.valorPago ?? 0),
-      });
-    }
+        const label = inicio.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        return {
+          mes: label.replace('.', '').replace(' ', '/'),
+          alunosAtivos,
+          receita: Number(receitaRaw._sum.valorPago ?? 0),
+        };
+      }),
+    );
 
     return pontos;
   }

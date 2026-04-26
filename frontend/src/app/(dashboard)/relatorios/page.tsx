@@ -12,6 +12,13 @@ interface Inadimplente {
   responsavelTelefone: string | null; valorOriginal: number;
   dataVencimento: string; diasAtraso: number;
 }
+interface InadimplentesResponse {
+  data: Inadimplente[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
 interface FluxoCaixa {
   mes: number; ano: number; receitaMensalidades: number;
   totalReceitas: number; totalDespesas: number; saldo: number;
@@ -27,11 +34,13 @@ export default function RelatoriosPage() {
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
 
-  const { data: inadimplentes = [], isLoading: loadingInad } = useQuery<Inadimplente[]>({
+  // BUG-J: backend retorna { data, total, page, pageSize, totalPages } — não um array direto
+  const { data: inadimplentesResp, isLoading: loadingInad } = useQuery<InadimplentesResponse>({
     queryKey: ['relatorios', 'inadimplencia', mes, ano],
     queryFn: () => api.get(`/relatorios/inadimplencia?mes=${mes}&ano=${ano}`).then((r) => r.data),
     enabled: aba === 'inadimplencia',
   });
+  const inadimplentes = inadimplentesResp?.data ?? [];
 
   const { data: fluxo, isLoading: loadingFluxo } = useQuery<FluxoCaixa>({
     queryKey: ['relatorios', 'fluxo-caixa', mes, ano],

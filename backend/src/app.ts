@@ -7,6 +7,7 @@ import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { errorHandler } from './shared/errors/error-handler';
+import { rateLimitUser } from './middlewares/rate-limit';
 import { env } from './config/env';
 
 // Rotas
@@ -24,9 +25,8 @@ import { relatoriosRoutes } from './modules/relatorios/relatorios.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 
 export async function buildApp() {
-  // BUG-020: trustProxy para que request.ip reflita o IP real do cliente via X-Forwarded-For
-  // (sem isso, todos os audit logs registram o IP do container nginx em vez do cliente)
-  const app = Fastify({ logger: true, trustProxy: true });
+  // H2: trustProxy: 1 — confia apenas no primeiro hop (nginx), não em X-Forwarded-For arbitrário do cliente
+  const app = Fastify({ logger: true, trustProxy: 1 });
 
   // Zod type provider — ADR-001
   app.setValidatorCompiler(validatorCompiler);
@@ -40,6 +40,14 @@ export async function buildApp() {
 
   // Error handler centralizado
   app.setErrorHandler(errorHandler);
+
+  // M13: Expõe o requestId (gerado pelo Fastify) no header de resposta para correlação de logs
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('x-request-id', _request.id);
+  });
+
+  // H3: Rate limiting global por usuário autenticado (após autenticação ser injetada no request)
+  app.addHook('preHandler', rateLimitUser);
 
   // Rotas com prefixo /api/v1
   const API_PREFIX = '/api/v1';

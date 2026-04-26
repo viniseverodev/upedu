@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { AlunosService } from './alunos.service';
 import { createAlunoSchema, updateAlunoSchema, transferirAlunoSchema } from './alunos.schema';
 
+// BUG-011: validação de path param UUID
+const uuidParamSchema = z.string().uuid();
+
 // BUG-013: validar status como enum para retornar 422 em vez de 500
 const listQuerySchema = z.object({
   status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA', 'TRANSFERIDO']).optional(),
@@ -23,6 +26,7 @@ export class AlunosController {
   // S016 — GET /alunos/:id
   async findById(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     const aluno = await this.service.findById(id, request.filialId);
     return reply.status(200).send(aluno);
   }
@@ -37,6 +41,7 @@ export class AlunosController {
   // S013 — PATCH /alunos/:id
   async update(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     const body = updateAlunoSchema.parse(request.body);
     const aluno = await this.service.update(id, request.filialId, request.user.sub, body, request.ip);
     return reply.status(200).send(aluno);
@@ -45,6 +50,7 @@ export class AlunosController {
   // S013 — DELETE /alunos/:id (soft delete)
   async softDelete(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     await this.service.softDelete(id, request.filialId, request.user.sub, request.ip);
     return reply.status(204).send();
   }
@@ -52,6 +58,7 @@ export class AlunosController {
   // S014 — PATCH /alunos/:id/promover
   async promover(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     const aluno = await this.service.promover(id, request.filialId, request.user.sub, request.ip);
     return reply.status(200).send(aluno);
   }
@@ -59,6 +66,7 @@ export class AlunosController {
   // S015 — PATCH /alunos/:id/transferir
   async transferir(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
+    if (!uuidParamSchema.safeParse(id).success) return reply.status(422).send({ error: 'VALIDATION_ERROR', message: 'ID inválido' });
     const body = transferirAlunoSchema.parse(request.body);
     const aluno = await this.service.transferir(id, request.filialId, request.user.sub, body, request.ip);
     return reply.status(200).send(aluno);
