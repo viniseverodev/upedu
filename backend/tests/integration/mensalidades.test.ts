@@ -153,7 +153,7 @@ describe('POST /api/v1/mensalidades', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    expect(res.json().message).toContain('já existe');
+    expect(res.json().message.toLowerCase()).toContain('já existe');
   });
 
   it('aluno sem matrícula ativa — retorna 422', async () => {
@@ -202,8 +202,7 @@ describe('PATCH /api/v1/mensalidades/:id/pagar', () => {
       url: `/api/v1/mensalidades/${mensalidadeId}/pagar`,
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
       payload: {
-        valorPago: 450.00,
-        formaPagamento: 'PIX',
+        splits: [{ formaPagamento: 'PIX', valor: 450.00 }],
         dataPagamento: '2025-03-08',
         valorDesconto: 0,
       },
@@ -221,7 +220,7 @@ describe('PATCH /api/v1/mensalidades/:id/pagar', () => {
       method: 'PATCH',
       url: `/api/v1/mensalidades/${mensalidadeId}/pagar`,
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
-      payload: { valorPago: 450, formaPagamento: 'PIX', dataPagamento: '2025-03-08' },
+      payload: { splits: [{ formaPagamento: 'PIX', valor: 450 }], dataPagamento: '2025-03-08' },
     });
 
     expect(res.statusCode).toBe(422);
@@ -243,8 +242,7 @@ describe('PATCH /api/v1/mensalidades/:id/pagar', () => {
       url: `/api/v1/mensalidades/${novaMensId}/pagar`,
       headers: { authorization: `Bearer ${atendenteToken}`, 'x-filial-id': FILIAL_ID },
       payload: {
-        valorPago: 400,
-        formaPagamento: 'BOLETO',
+        splits: [{ formaPagamento: 'BOLETO', valor: 400 }],
         dataPagamento: '2025-04-08',
         valorDesconto: 50,
       },

@@ -141,7 +141,7 @@ describe('POST /api/v1/matriculas', () => {
     });
 
     expect(res.statusCode).toBe(422);
-    expect(res.json().message).toContain('PRE_MATRICULA');
+    expect(res.json().message).toContain('Pré-Matrícula');
   });
 
   it('aluno sem responsável financeiro — retorna 422', async () => {
