@@ -6,7 +6,7 @@ export function Toast({ toast, onClose }: { toast: ToastState | null; onClose: (
   if (!toast) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-5 py-3.5 shadow-2xl dark:border-emerald-800 dark:bg-slate-900">
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-5 py-3.5 shadow-2xl dark:border-emerald-800 dark:bg-[#0c0e14]">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
         <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
           <path
@@ -17,12 +17,12 @@ export function Toast({ toast, onClose }: { toast: ToastState | null; onClose: (
         </svg>
       </div>
       <div>
-        <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{toast.title}</p>
-        {toast.sub && <p className="text-xs text-gray-500 dark:text-slate-400">{toast.sub}</p>}
+        <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{toast.title}</p>
+        {toast.sub && <p className="text-xs text-stone-500 dark:text-slate-400">{toast.sub}</p>}
       </div>
       <button
         onClick={onClose}
-        className="ml-2 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+        className="ml-2 rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.1] dark:hover:text-slate-300"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

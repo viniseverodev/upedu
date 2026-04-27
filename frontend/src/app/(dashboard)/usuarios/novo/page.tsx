@@ -32,7 +32,7 @@ const ROLES_BY_LEVEL: Record<string, { value: string; label: string }[]> = {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
@@ -76,11 +76,11 @@ export default function NovoUsuarioPage() {
             </svg>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Usuário criado!</h2>
-            <p className="mt-1 text-sm text-gray-400 dark:text-slate-500">Compartilhe a senha temporária. O usuário deverá trocá-la no primeiro acesso.</p>
+            <h2 className="text-lg font-bold text-stone-900 dark:text-slate-100">Usuário criado!</h2>
+            <p className="mt-1 text-sm text-stone-400 dark:text-slate-500">Compartilhe a senha temporária. O usuário deverá trocá-la no primeiro acesso.</p>
           </div>
-          <div className="w-full rounded-xl border border-gray-200 bg-gray-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-800">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Senha temporária</p>
+          <div className="w-full rounded-xl border border-stone-200 bg-stone-50 px-6 py-4 dark:border-slate-700 dark:bg-white/[0.06]">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Senha temporária</p>
             <p className="font-mono text-2xl font-bold tracking-widest text-brand-600 dark:text-brand-300">{tempPassword}</p>
           </div>
           <div className="flex items-start gap-2 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-700 dark:border-yellow-700/40 dark:bg-yellow-700/10 dark:text-yellow-300">
@@ -98,7 +98,7 @@ export default function NovoUsuarioPage() {
   if (!canManage) {
     return (
       <div className="empty-state mt-12">
-        <p className="text-sm text-gray-400 dark:text-slate-500">Sem permissão para criar usuários.</p>
+        <p className="text-sm text-stone-400 dark:text-slate-500">Sem permissão para criar usuários.</p>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export default function NovoUsuarioPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Novo Usuário</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">Uma senha temporária será gerada automaticamente.</p>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">Uma senha temporária será gerada automaticamente.</p>
         </div>
       </div>
 
@@ -130,14 +130,14 @@ export default function NovoUsuarioPage() {
           </Field>
 
           <Field label="Filiais de acesso" error={errors.filialIds?.message}>
-            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-3 dark:border-slate-700">
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-stone-200 p-3 dark:border-slate-700">
               {filiais.length === 0 ? (
-                <p className="text-xs text-gray-400">Nenhuma filial disponível.</p>
+                <p className="text-xs text-stone-400">Nenhuma filial disponível.</p>
               ) : (
                 filiais.map((f) => (
                   <label key={f.id} className="flex cursor-pointer items-center gap-2.5">
-                    <input type="checkbox" value={f.id} {...register('filialIds')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
-                    <span className="text-sm text-gray-700 dark:text-slate-300">{f.nome}</span>
+                    <input type="checkbox" value={f.id} {...register('filialIds')} className="h-4 w-4 rounded border-stone-300 accent-brand-600" />
+                    <span className="text-sm text-stone-700 dark:text-slate-300">{f.nome}</span>
                   </label>
                 ))
               )}

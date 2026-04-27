@@ -24,7 +24,7 @@ interface Filial {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
@@ -90,7 +90,7 @@ export default function EditarFilialPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Editar Filial</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{filial?.nome}</p>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">{filial?.nome}</p>
         </div>
       </div>
 
@@ -146,14 +146,14 @@ export default function EditarFilialPage() {
           </div>
 
           {/* Toggle de ativação */}
-          <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-slate-700">
+          <div className="flex items-center gap-3 rounded-xl border border-stone-200 p-3 dark:border-slate-700">
             <input
               {...register('ativo')}
               type="checkbox"
               id="ativo"
-              className="h-4 w-4 rounded border-gray-300 accent-brand-600"
+              className="h-4 w-4 rounded border-stone-300 accent-brand-600"
             />
-            <label htmlFor="ativo" className="text-sm text-gray-700 dark:text-slate-300">Filial ativa</label>
+            <label htmlFor="ativo" className="text-sm text-stone-700 dark:text-slate-300">Filial ativa</label>
           </div>
 
           {serverError && (

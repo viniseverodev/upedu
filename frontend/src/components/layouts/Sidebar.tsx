@@ -13,7 +13,7 @@ import api from '@/lib/api';
 
 function IcoDashboard() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25zM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25z" />
     </svg>
   );
@@ -21,17 +21,15 @@ function IcoDashboard() {
 
 function IcoStudents() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
     </svg>
   );
 }
 
-
-
 function IcoCurrency() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
     </svg>
   );
@@ -39,7 +37,7 @@ function IcoCurrency() {
 
 function IcoCreditCard() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5z" />
     </svg>
   );
@@ -47,7 +45,7 @@ function IcoCreditCard() {
 
 function IcoChartBar() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125z" />
     </svg>
   );
@@ -55,7 +53,7 @@ function IcoChartBar() {
 
 function IcoExclamation() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
     </svg>
   );
@@ -63,7 +61,7 @@ function IcoExclamation() {
 
 function IcoBuilding() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
     </svg>
   );
@@ -71,7 +69,7 @@ function IcoBuilding() {
 
 function IcoUsers() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0z" />
     </svg>
   );
@@ -79,7 +77,7 @@ function IcoUsers() {
 
 function IcoShield() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
     </svg>
   );
@@ -87,7 +85,7 @@ function IcoShield() {
 
 function IcoLogout() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
     </svg>
   );
@@ -95,7 +93,7 @@ function IcoLogout() {
 
 function IcoMenu() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
     </svg>
   );
@@ -125,7 +123,6 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   visible: boolean;
-  matchPrefix?: string; // para active check de relatórios (mesma rota, tabs diferentes)
 }
 
 interface NavSection {
@@ -133,47 +130,43 @@ interface NavSection {
   items: NavItem[];
 }
 
-// ---------- Componentes ----------
+// ---------- Sub-componentes ----------
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <p className="mb-1 mt-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-600">
+    <p className="mb-1 mt-4 px-3 text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400 dark:text-slate-600">
       {label}
     </p>
   );
 }
 
-function NavLink({
-  item,
-  collapsed,
-  isActive,
-}: {
-  item: NavItem;
-  collapsed: boolean;
-  isActive: boolean;
-}) {
+function NavLink({ item, collapsed, isActive }: { item: NavItem; collapsed: boolean; isActive: boolean }) {
   return (
     <Link
       href={item.href}
       title={collapsed ? item.label : undefined}
-      className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+      className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
         isActive
-          ? 'bg-brand-600 text-white shadow-sm'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+          ? 'bg-brand-50 text-brand-700 dark:bg-white/[0.10] dark:text-white'
+          : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-100'
       }`}
     >
-      <span className={isActive ? 'text-white' : ''}>{item.icon}</span>
+      {/* Indicador lateral ativo */}
+      {isActive && (
+        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-brand-500 dark:bg-brand-400" />
+      )}
+      <span className={isActive
+        ? 'text-brand-600 dark:text-white'
+        : 'text-stone-400 group-hover:text-stone-600 dark:text-slate-500 dark:group-hover:text-slate-200'
+      }>
+        {item.icon}
+      </span>
       {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
   );
 }
 
-function SettingsDropdownItem({
-  href,
-  icon,
-  label,
-  onClick,
-}: {
+function SettingsDropdownItem({ href, icon, label, onClick }: {
   href: string;
   icon: React.ReactNode;
   label: string;
@@ -183,9 +176,9 @@ function SettingsDropdownItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:text-slate-300 dark:hover:bg-white/[0.08] dark:hover:text-white"
     >
-      <span className="text-gray-500 dark:text-slate-400">{icon}</span>
+      <span className="text-stone-400 dark:text-slate-500">{icon}</span>
       {label}
     </Link>
   );
@@ -201,13 +194,12 @@ export function Sidebar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
-  const canManageUsers = usePermission('ADMIN_MATRIZ');
+  const canManageUsers   = usePermission('ADMIN_MATRIZ');
   const canManageFiliais = usePermission('ADMIN_MATRIZ');
   const canViewFinanceiro = usePermission('GERENTE_FILIAL');
   const canViewAuditoria = usePermission('ADMIN_MATRIZ');
   const canViewRelatorios = usePermission('GERENTE_FILIAL');
 
-  // Fechar dropdown ao clicar fora
   useEffect(() => {
     if (!settingsOpen) return;
     const handler = (e: MouseEvent) => {
@@ -221,10 +213,7 @@ export function Sidebar() {
 
   const logoutMutation = useMutation({
     mutationFn: () => api.post('/auth/logout'),
-    onSettled: () => {
-      clearAuth();
-      router.push('/login');
-    },
+    onSettled: () => { clearAuth(); router.push('/login'); },
   });
 
   const sections: NavSection[] = [
@@ -238,14 +227,14 @@ export function Sidebar() {
       label: 'Financeiro',
       items: [
         { label: 'Mensalidades', href: '/financeiro/mensalidades', icon: <IcoCurrency />, visible: canViewFinanceiro },
-        { label: 'Transações', href: '/financeiro/transacoes', icon: <IcoCreditCard />, visible: canViewFinanceiro },
+        { label: 'Transações',   href: '/financeiro/transacoes',   icon: <IcoCreditCard />, visible: canViewFinanceiro },
       ],
     },
     {
       label: 'Relatórios',
       items: [
-        { label: 'Inadimplência', href: '/relatorios', icon: <IcoExclamation />, visible: canViewRelatorios },
-        { label: 'Fluxo de Caixa', href: '/relatorios', icon: <IcoChartBar />, visible: canViewRelatorios },
+        { label: 'Inadimplência',   href: '/relatorios', icon: <IcoExclamation />, visible: canViewRelatorios },
+        { label: 'Fluxo de Caixa', href: '/relatorios', icon: <IcoChartBar />,    visible: canViewRelatorios },
       ],
     },
   ];
@@ -261,28 +250,27 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`flex h-full flex-col border-r border-gray-200 bg-white transition-all duration-300 dark:border-slate-800 dark:bg-slate-900 ${
-        collapsed ? 'w-[72px]' : 'w-[240px]'
+      className={`flex h-full flex-col border-r border-stone-200 bg-white transition-all duration-300 dark:border-white/[0.06] dark:bg-[#0c0e14] ${
+        collapsed ? 'w-[68px]' : 'w-[232px]'
       }`}
     >
       {/* Logo + Toggle */}
-      <div className={`flex h-16 shrink-0 items-center border-b border-gray-200 dark:border-slate-800 ${collapsed ? 'justify-center px-4' : 'justify-between px-5'}`}>
+      <div className={`flex h-16 shrink-0 items-center border-b border-stone-200 dark:border-white/[0.06] ${
+        collapsed ? 'justify-center px-3' : 'justify-between px-4'
+      }`}>
         {!collapsed && (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                <path d="M11.7 2.805a.75.75 0 0 1 .6 0A60.65 60.65 0 0 1 22.83 8.72a.75.75 0 0 1-.231 1.337 49.948 49.948 0 0 0-9.902 3.912l-.003.002-.34.18a.75.75 0 0 1-.707 0A50.88 50.88 0 0 0 7.5 12.173v-.224c0-.131.067-.248.172-.311a54.615 54.615 0 0 1 4.653-2.52.75.75 0 0 0-.65-1.352 56.123 56.123 0 0 0-4.78 2.589 1.858 1.858 0 0 0-.859 1.228 49.803 49.803 0 0 0-4.634-1.527.75.75 0 0 1-.231-1.337A60.653 60.653 0 0 1 11.7 2.805z" />
-                <path d="M13.06 15.473a48.45 48.45 0 0 1 7.666-3.282c.134 1.414.22 2.843.255 4.284a.75.75 0 0 1-.46.711 47.87 47.87 0 0 0-8.105 4.342.75.75 0 0 1-.832 0 47.87 47.87 0 0 0-8.104-4.342.75.75 0 0 1-.461-.71c.035-1.442.121-2.87.255-4.286A48.4 48.4 0 0 1 6 13.18v1.27a1.5 1.5 0 0 0-.14 2.508c-.09.38-.222.753-.397 1.11.452.213.901.434 1.346.66a6.727 6.727 0 0 0 .551-1.608 1.5 1.5 0 0 0 .14-2.67v-.645a48.549 48.549 0 0 1 3.44 1.667 2.25 2.25 0 0 0 2.12 0z" />
-              </svg>
-            </div>
-            <span className="text-[15px] font-bold tracking-tight text-gray-900 dark:text-slate-100">
-              UpEdu
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-sidebar-light.png" alt="UP" className="block dark:hidden h-7 w-7 object-contain" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-sidebar-dark.png" alt="UP" className="hidden dark:block h-7 w-7 object-contain" />
+            <span className="text-[15px] font-bold tracking-tight text-stone-900 dark:text-white">UP Contraturno</span>
           </div>
         )}
         <button
           onClick={toggle}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.08] dark:hover:text-slate-200"
           aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           <IcoMenu />
@@ -290,8 +278,8 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
-        {/* Dashboard — standalone */}
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3">
+        {/* Dashboard */}
         <ul className="space-y-0.5">
           <li>
             <NavLink
@@ -302,7 +290,7 @@ export function Sidebar() {
           </li>
         </ul>
 
-        {/* Seções agrupadas */}
+        {/* Seções */}
         {sections.map((section) => {
           const visibleItems = section.items.filter((i) => i.visible);
           if (visibleItems.length === 0) return null;
@@ -322,76 +310,47 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer: avatar + engrenagem + logout */}
-      <div className="shrink-0 border-t border-gray-200 px-3 py-3 dark:border-slate-800">
-        {/* Linha de usuário + engrenagem */}
+      {/* Footer */}
+      <div className="shrink-0 border-t border-stone-200 px-2.5 py-3 dark:border-white/[0.06]">
         {!collapsed ? (
           <div className="relative mb-1" ref={settingsRef}>
-            <div className="flex items-center gap-2 rounded-xl px-2 py-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+              {/* Avatar com gradiente */}
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-bold text-white shadow-sm">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-gray-900 dark:text-slate-100">{user?.nome}</p>
-                <p className="truncate text-[11px] text-gray-400 dark:text-slate-500">
+                <p className="truncate text-[13px] font-semibold text-stone-800 dark:text-slate-200">{user?.nome}</p>
+                <p className="truncate text-[11px] text-stone-400 dark:text-slate-500">
                   {user?.role.replace(/_/g, ' ')}
                 </p>
               </div>
-              {/* Botão engrenagem */}
               <button
                 onClick={() => setSettingsOpen((v) => !v)}
                 title="Configurações"
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
                   settingsOpen
                     ? 'bg-brand-600 text-white'
-                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300'
+                    : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.08] dark:hover:text-slate-200'
                 }`}
               >
                 <IcoGear />
               </button>
             </div>
 
-            {/* Dropdown de configurações */}
             {settingsOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-gray-200 bg-white p-1.5 shadow-card dark:border-slate-700 dark:bg-slate-800">
-                <p className="mb-1 px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-stone-200 bg-white p-1.5 shadow-card-lg dark:border-white/[0.08] dark:bg-[#161923]">
+                <p className="mb-1 px-2 pt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400 dark:text-slate-600">
                   Configurações
                 </p>
-                <SettingsDropdownItem
-                  href="/perfil"
-                  icon={<IcoPerson />}
-                  label="Perfil"
-                  onClick={() => setSettingsOpen(false)}
-                />
-                {canManageFiliais && (
-                  <SettingsDropdownItem
-                    href="/filiais"
-                    icon={<IcoBuilding />}
-                    label="Filiais"
-                    onClick={() => setSettingsOpen(false)}
-                  />
-                )}
-                {canManageUsers && (
-                  <SettingsDropdownItem
-                    href="/usuarios"
-                    icon={<IcoUsers />}
-                    label="Usuários"
-                    onClick={() => setSettingsOpen(false)}
-                  />
-                )}
-                {canViewAuditoria && (
-                  <SettingsDropdownItem
-                    href="/auditoria"
-                    icon={<IcoShield />}
-                    label="Auditoria"
-                    onClick={() => setSettingsOpen(false)}
-                  />
-                )}
+                <SettingsDropdownItem href="/perfil"    icon={<IcoPerson />}   label="Perfil"     onClick={() => setSettingsOpen(false)} />
+                {canManageFiliais && <SettingsDropdownItem href="/filiais"  icon={<IcoBuilding />} label="Filiais"    onClick={() => setSettingsOpen(false)} />}
+                {canManageUsers   && <SettingsDropdownItem href="/usuarios" icon={<IcoUsers />}   label="Usuários"   onClick={() => setSettingsOpen(false)} />}
+                {canViewAuditoria && <SettingsDropdownItem href="/auditoria" icon={<IcoShield />} label="Auditoria"  onClick={() => setSettingsOpen(false)} />}
               </div>
             )}
           </div>
         ) : (
-          /* Collapsed: apenas o ícone de engrenagem centralizado */
           <div className="relative mb-1 flex justify-center" ref={settingsRef}>
             <button
               onClick={() => setSettingsOpen((v) => !v)}
@@ -399,37 +358,34 @@ export function Sidebar() {
               className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
                 settingsOpen
                   ? 'bg-brand-600 text-white'
-                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300'
+                  : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-slate-300'
               }`}
             >
               <IcoGear />
             </button>
 
             {settingsOpen && (
-              <div className="absolute bottom-full left-1/2 mb-1 w-44 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-1.5 shadow-card dark:border-slate-700 dark:bg-slate-800">
-                <p className="mb-1 px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
-                  Configurações
-                </p>
-                <SettingsDropdownItem href="/perfil" icon={<IcoPerson />} label="Perfil" onClick={() => setSettingsOpen(false)} />
-                {canManageFiliais && <SettingsDropdownItem href="/filiais" icon={<IcoBuilding />} label="Filiais" onClick={() => setSettingsOpen(false)} />}
-                {canManageUsers && <SettingsDropdownItem href="/usuarios" icon={<IcoUsers />} label="Usuários" onClick={() => setSettingsOpen(false)} />}
+              <div className="absolute bottom-0 left-full ml-2 w-44 rounded-xl border border-stone-200 bg-white p-1.5 shadow-card-lg dark:border-white/[0.08] dark:bg-[#161923]">
+                <p className="mb-1 px-2 pt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400 dark:text-slate-600">Configurações</p>
+                <SettingsDropdownItem href="/perfil"    icon={<IcoPerson />}   label="Perfil"    onClick={() => setSettingsOpen(false)} />
+                {canManageFiliais && <SettingsDropdownItem href="/filiais"  icon={<IcoBuilding />} label="Filiais"   onClick={() => setSettingsOpen(false)} />}
+                {canManageUsers   && <SettingsDropdownItem href="/usuarios" icon={<IcoUsers />}   label="Usuários"  onClick={() => setSettingsOpen(false)} />}
                 {canViewAuditoria && <SettingsDropdownItem href="/auditoria" icon={<IcoShield />} label="Auditoria" onClick={() => setSettingsOpen(false)} />}
               </div>
             )}
           </div>
         )}
 
-        {/* Sair */}
         <button
           onClick={() => logoutMutation.mutate()}
           disabled={logoutMutation.isPending}
           title={collapsed ? 'Sair' : undefined}
-          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300 ${collapsed ? 'justify-center' : ''}`}
+          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-stone-500 transition-all hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-200 ${
+            collapsed ? 'justify-center' : ''
+          }`}
         >
           <IcoLogout />
-          {!collapsed && (
-            <span>{logoutMutation.isPending ? 'Saindo…' : 'Sair'}</span>
-          )}
+          {!collapsed && <span>{logoutMutation.isPending ? 'Saindo…' : 'Sair'}</span>}
         </button>
       </div>
     </aside>

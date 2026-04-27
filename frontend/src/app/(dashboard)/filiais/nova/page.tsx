@@ -14,7 +14,7 @@ import { createFilialSchema, type CreateFilialInput } from '@/schemas/index';
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
@@ -43,7 +43,7 @@ export default function NovaFilialPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Nova Filial</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">Preencha os dados da nova unidade.</p>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">Preencha os dados da nova unidade.</p>
         </div>
       </div>
 

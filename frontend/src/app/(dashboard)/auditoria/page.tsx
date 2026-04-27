@@ -54,7 +54,7 @@ export default function AuditoriaPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Auditoria</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
             Registro de todas as ações do sistema
           </p>
         </div>
@@ -68,22 +68,22 @@ export default function AuditoriaPage() {
 
       {/* Filtros */}
       <div className="card p-5">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Filtros</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Filtros</p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">Entidade</label>
+            <label className="mb-1.5 block text-xs font-medium text-stone-600 dark:text-slate-400">Entidade</label>
             <input value={entityType} onChange={(e) => setEntityType(e.target.value)} placeholder="Aluno, Matricula…" className="input-base text-xs" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">ID do Usuário</label>
+            <label className="mb-1.5 block text-xs font-medium text-stone-600 dark:text-slate-400">ID do Usuário</label>
             <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="UUID" className="input-base text-xs" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">De</label>
+            <label className="mb-1.5 block text-xs font-medium text-stone-600 dark:text-slate-400">De</label>
             <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="Data inicial" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-slate-400">Até</label>
+            <label className="mb-1.5 block text-xs font-medium text-stone-600 dark:text-slate-400">Até</label>
             <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="Data final" />
           </div>
         </div>
@@ -115,20 +115,20 @@ export default function AuditoriaPage() {
               <tbody>
                 {data.data.map((log) => (
                   <tr key={log.id} className="table-row">
-                    <td className="table-td whitespace-nowrap text-xs text-gray-400 dark:text-slate-500">
+                    <td className="table-td whitespace-nowrap text-xs text-stone-400 dark:text-slate-500">
                       {new Date(log.createdAt).toLocaleString('pt-BR')}
                     </td>
-                    <td className="table-td font-medium text-gray-900 dark:text-slate-100">{log.userName}</td>
+                    <td className="table-td font-medium text-stone-900 dark:text-slate-100">{log.userName}</td>
                     <td className="table-td">
                       <span className={`badge ${ACTION_BADGE[log.action] ?? 'badge-gray'}`}>
                         {log.action}
                       </span>
                     </td>
                     <td className="table-td">{log.entityType}</td>
-                    <td className="table-td max-w-[140px] truncate font-mono text-xs text-gray-400 dark:text-slate-500">
+                    <td className="table-td max-w-[140px] truncate font-mono text-xs text-stone-400 dark:text-slate-500">
                       {log.entityId}
                     </td>
-                    <td className="table-td text-xs text-gray-400 dark:text-slate-500">{log.ipAddress ?? '—'}</td>
+                    <td className="table-td text-xs text-stone-400 dark:text-slate-500">{log.ipAddress ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -137,7 +137,7 @@ export default function AuditoriaPage() {
 
           {/* Paginação */}
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400 dark:text-slate-500">
+            <p className="text-xs text-stone-400 dark:text-slate-500">
               {data.total} registros · página {data.page} de {data.totalPages}
             </p>
             <div className="flex gap-2">
@@ -152,7 +152,7 @@ export default function AuditoriaPage() {
         </>
       ) : (
         <div className="empty-state">
-          <p className="text-sm text-gray-400 dark:text-slate-500">Nenhum registro encontrado com os filtros aplicados.</p>
+          <p className="text-sm text-stone-400 dark:text-slate-500">Nenhum registro encontrado com os filtros aplicados.</p>
         </div>
       )}
     </div>

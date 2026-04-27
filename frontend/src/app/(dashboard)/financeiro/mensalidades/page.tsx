@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { DatePickerInput } from '@/components/ui/DatePickerInput';
@@ -210,12 +211,12 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="w-80 rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
+      <div className="w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]" onClick={(e) => e.stopPropagation()}>
 
         {/* Título + fechar */}
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{title}</p>
-          <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300">
+          <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{title}</p>
+          <button onClick={onClose} className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
@@ -231,7 +232,7 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
               className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
                 start === s.ini && end === s.fim
                   ? 'border-brand-600 bg-brand-600 text-white'
-                  : 'border-gray-200 text-gray-500 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
+                  : 'border-stone-200 text-stone-500 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
               }`}
             >
               {s.label}
@@ -241,7 +242,7 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
 
         {/* Navegação */}
         <div className="mb-3 flex items-center justify-between">
-          <button onClick={prevNav} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200">
+          <button onClick={prevNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
@@ -252,13 +253,13 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
               <>
                 <button
                   onClick={() => setViewMode('month')}
-                  className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                  className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
                 >
                   {MONTH_NAMES[viewMonth]}
                 </button>
                 <button
                   onClick={() => setViewMode('year')}
-                  className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                  className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
                 >
                   {viewYear}
                 </button>
@@ -267,19 +268,19 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
             {viewMode === 'month' && (
               <button
                 onClick={() => setViewMode('year')}
-                className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
               >
                 {viewYear}
               </button>
             )}
             {viewMode === 'year' && (
-              <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">
+              <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">
                 {yearPage} – {yearPage + 11}
               </span>
             )}
           </div>
 
-          <button onClick={nextNav} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200">
+          <button onClick={nextNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
@@ -290,7 +291,7 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
         {viewMode === 'day' && (
           <div className="grid grid-cols-7 text-center text-xs">
             {DAY_NAMES.map((d, i) => (
-              <div key={i} className="py-1.5 font-semibold text-gray-400 dark:text-slate-500">{d}</div>
+              <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
             ))}
             {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
             {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -310,7 +311,7 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
                       ? 'z-10 rounded-full bg-brand-600 text-white'
                       : ranged
                         ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
-                        : 'rounded-full text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700',
+                        : 'rounded-full text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
                   ].join(' ')}
                 >
                   {day}
@@ -330,7 +331,7 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
                 className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
                   i === viewMonth
                     ? 'bg-brand-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                    : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
                 }`}
               >
                 {name.slice(0, 3)}
@@ -349,7 +350,7 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
                 className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
                   y === viewYear
                     ? 'bg-brand-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                    : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
                 }`}
               >
                 {y}
@@ -359,15 +360,15 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
         )}
 
         {/* Resumo seleção */}
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-slate-800">
-          <span className="text-gray-500 dark:text-slate-400">De <strong className="text-gray-800 dark:text-slate-100">{fmtBR(start)}</strong></span>
-          <span className="text-gray-300 dark:text-slate-600">→</span>
-          <span className="text-gray-500 dark:text-slate-400">Até <strong className="text-gray-800 dark:text-slate-100">{fmtBR(end)}</strong></span>
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2 text-xs dark:bg-white/[0.06]">
+          <span className="text-stone-500 dark:text-slate-400">De <strong className="text-stone-800 dark:text-slate-100">{fmtBR(start)}</strong></span>
+          <span className="text-stone-300 dark:text-slate-600">→</span>
+          <span className="text-stone-500 dark:text-slate-400">Até <strong className="text-stone-800 dark:text-slate-100">{fmtBR(end)}</strong></span>
         </div>
 
         {/* Ações */}
         <div className="mt-3 flex gap-2">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+          <button onClick={onClose} className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/[0.1]">
             Cancelar
           </button>
           <button onClick={() => canApply && onApply(start, end)} disabled={!canApply} className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
@@ -389,18 +390,18 @@ function MotivoTooltip({ motivo }: { motivo: string | null }) {
       onMouseEnter={() => motivo && setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">
         Motivo:
       </span>
-      <span className="max-w-[12rem] truncate text-xs text-gray-500 dark:text-slate-400">
+      <span className="max-w-[12rem] truncate text-xs text-stone-500 dark:text-slate-400">
         {motivo ?? '—'}
       </span>
       {open && motivo && (
-        <span className="absolute bottom-full right-0 z-30 mb-2 w-72 rounded-xl border border-gray-100 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+        <span className="absolute bottom-full right-0 z-30 mb-2 w-72 rounded-xl border border-stone-100 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-[#0c0e14]">
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">
             Motivo do cancelamento
           </span>
-          <span className="block text-xs leading-relaxed text-gray-700 dark:text-slate-300">
+          <span className="block text-xs leading-relaxed text-stone-700 dark:text-slate-300">
             {motivo}
           </span>
         </span>
@@ -422,7 +423,7 @@ function ResponsavelInfo({ resp }: {
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onClick={() => setOpen((v) => !v)}
-        className="ml-1.5 inline-flex items-center justify-center rounded-full p-0.5 text-gray-300 transition-colors hover:text-brand-500 dark:text-slate-600 dark:hover:text-brand-400"
+        className="ml-1.5 inline-flex items-center justify-center rounded-full p-0.5 text-stone-300 transition-colors hover:text-brand-500 dark:text-slate-600 dark:hover:text-brand-400"
         title="Ver responsável financeiro"
       >
         <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -431,27 +432,27 @@ function ResponsavelInfo({ resp }: {
       </button>
 
       {open && (
-        <span className="absolute bottom-full left-0 z-30 mb-2 w-52 rounded-xl border border-gray-100 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+        <span className="absolute bottom-full left-0 z-30 mb-2 w-52 rounded-xl border border-stone-100 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-[#0c0e14]">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">
             Responsável financeiro
           </span>
           {resp ? (
             <>
-              <span className="block text-sm font-semibold text-gray-800 dark:text-slate-100">{resp.nome}</span>
+              <span className="block text-sm font-semibold text-stone-800 dark:text-slate-100">{resp.nome}</span>
               {resp.parentesco && (
-                <span className="mt-0.5 block text-xs text-gray-400 dark:text-slate-500">{resp.parentesco}</span>
+                <span className="mt-0.5 block text-xs text-stone-400 dark:text-slate-500">{resp.parentesco}</span>
               )}
               {resp.telefone && (
-                <span className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 shrink-0 text-gray-300 dark:text-slate-600">
+                <span className="mt-1.5 flex items-center gap-1.5 text-xs text-stone-500 dark:text-slate-400">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 shrink-0 text-stone-300 dark:text-slate-600">
                     <path fillRule="evenodd" d="M2 3.5A1.5 1.5 0 0 1 3.5 2h1.148a1.5 1.5 0 0 1 1.465 1.175l.716 3.223a1.5 1.5 0 0 1-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 0 0 6.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 0 1 1.767-1.052l3.223.716A1.5 1.5 0 0 1 18 16.352V17.5a1.5 1.5 0 0 1-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 0 1 2.43 8.326 13.019 13.019 0 0 1 2 5V3.5Z" clipRule="evenodd" />
                   </svg>
                   {resp.telefone}
                 </span>
               )}
               {resp.email && (
-                <span className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 shrink-0 text-gray-300 dark:text-slate-600">
+                <span className="mt-1 flex items-center gap-1.5 text-xs text-stone-500 dark:text-slate-400">
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 shrink-0 text-stone-300 dark:text-slate-600">
                     <path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" />
                     <path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" />
                   </svg>
@@ -460,7 +461,7 @@ function ResponsavelInfo({ resp }: {
               )}
             </>
           ) : (
-            <span className="block text-xs text-gray-400 dark:text-slate-500">
+            <span className="block text-xs text-stone-400 dark:text-slate-500">
               Nenhum responsável financeiro cadastrado
             </span>
           )}
@@ -473,12 +474,12 @@ function ResponsavelInfo({ resp }: {
 // ---------- Modal genérico ----------
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="card w-full max-w-md mx-4 p-6">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{title}</h2>
-          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">{title}</h2>
+          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-white/[0.06]">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
@@ -486,7 +487,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -516,7 +518,7 @@ function AlunoCombobox({ alunos, value, onChange, error }: {
   return (
     <div ref={ref} className="relative">
       <div className={`input-base flex cursor-text items-center gap-2 ${error ? 'input-error' : ''}`} onClick={() => setOpen(true)}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-gray-400 dark:text-slate-500">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-stone-400 dark:text-slate-500">
           <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" />
         </svg>
         <input
@@ -525,10 +527,10 @@ function AlunoCombobox({ alunos, value, onChange, error }: {
           value={open ? query : (selected?.nome ?? '')}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => { setOpen(true); setQuery(''); }}
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-slate-500"
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400 dark:placeholder:text-slate-500"
         />
         {selected && !open && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onChange(''); setQuery(''); }} className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
+          <button type="button" onClick={(e) => { e.stopPropagation(); onChange(''); setQuery(''); }} className="shrink-0 text-stone-400 hover:text-stone-600 dark:hover:text-slate-300">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
@@ -536,16 +538,16 @@ function AlunoCombobox({ alunos, value, onChange, error }: {
         )}
       </div>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#0c0e14]">
           <div className="max-h-52 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400 dark:text-slate-500">Nenhum aluno encontrado.</p>
+              <p className="px-3 py-2 text-sm text-stone-400 dark:text-slate-500">Nenhum aluno encontrado.</p>
             ) : (
               filtered.map((a) => (
                 <button key={a.id} type="button" onClick={() => { onChange(a.id); setOpen(false); setQuery(''); }}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-800 ${a.id === value ? 'font-semibold text-brand-600 dark:text-brand-400' : 'text-gray-800 dark:text-slate-200'}`}>
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-stone-50 dark:hover:bg-white/[0.06] ${a.id === value ? 'font-semibold text-brand-600 dark:text-brand-400' : 'text-stone-800 dark:text-slate-200'}`}>
                   <span>{a.nome}</span>
-                  <span className="text-xs text-gray-400 dark:text-slate-500">{TURNO_LABEL[a.turno] ?? a.turno}</span>
+                  <span className="text-xs text-stone-400 dark:text-slate-500">{TURNO_LABEL[a.turno] ?? a.turno}</span>
                 </button>
               ))
             )}
@@ -578,17 +580,17 @@ function YearPicker({ value, onChange }: { value: number; onChange: (y: number) 
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} className="input-base flex w-full items-center justify-between">
-        <span className="text-sm text-gray-900 dark:text-slate-100">{value}</span>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-400">
+        <span className="text-sm text-stone-900 dark:text-slate-100">{value}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-stone-400">
           <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
         </svg>
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-stone-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-[#0c0e14]">
           <div className="grid grid-cols-3 gap-1">
             {years.map((y) => (
               <button key={y} type="button" onClick={() => { onChange(y); setOpen(false); }}
-                className={`rounded-lg py-1.5 text-sm font-medium transition-colors ${y === value ? 'bg-brand-600 text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+                className={`rounded-lg py-1.5 text-sm font-medium transition-colors ${y === value ? 'bg-brand-600 text-white' : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.06]'}`}>
                 {y}
               </button>
             ))}
@@ -913,7 +915,7 @@ function MensalidadesContent() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Mensalidades</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
             {isLoading ? '…' : `${mensalidadesFiltradas.length} de ${mensalidades.length} resultado${mensalidades.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -943,11 +945,11 @@ function MensalidadesContent() {
         <div className="card p-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-forest-500 dark:text-forest-300">Pagos</p>
           <p className="mt-1 text-2xl font-bold text-forest-500 dark:text-forest-300">{totais.PAGO}</p>
-          <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">{formatCurrency(totais.receitaPago)}</p>
+          <p className="mt-0.5 text-xs text-stone-400 dark:text-slate-500">{formatCurrency(totais.receitaPago)}</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Em aberto</p>
-          <p className="mt-1 text-xl font-bold text-gray-700 dark:text-slate-200">{formatCurrency(totais.emAberto)}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Em aberto</p>
+          <p className="mt-1 text-xl font-bold text-stone-700 dark:text-slate-200">{formatCurrency(totais.emAberto)}</p>
         </div>
       </div>
 
@@ -955,8 +957,8 @@ function MensalidadesContent() {
       <div className="card p-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Busca por nome */}
-          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-gray-400">
+          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-stone-400">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
             </svg>
             <input
@@ -964,7 +966,7 @@ function MensalidadesContent() {
               placeholder="Buscar por nome do aluno…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder-gray-400 dark:text-slate-100 dark:placeholder-slate-500"
+              className="w-full bg-transparent text-sm text-stone-900 outline-none placeholder-stone-400 dark:text-slate-100 dark:placeholder-slate-500"
             />
           </div>
 
@@ -975,7 +977,7 @@ function MensalidadesContent() {
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
                 periodoInicio !== defaultInicio || periodoFim !== defaultFim
                   ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200'
+                  : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200'
               }`}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0">
@@ -987,7 +989,7 @@ function MensalidadesContent() {
               <button
                 onClick={() => { setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
                 title="Redefinir para o mês atual"
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600 dark:border-slate-700 dark:text-slate-500 dark:hover:border-slate-600 dark:hover:text-slate-300"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-stone-200 text-stone-400 transition-colors hover:border-stone-300 hover:text-stone-600 dark:border-slate-700 dark:text-slate-500 dark:hover:border-slate-600 dark:hover:text-slate-300"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -1000,7 +1002,7 @@ function MensalidadesContent() {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
               Limpar
             </button>
@@ -1016,7 +1018,7 @@ function MensalidadesContent() {
               className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-all ${
                 statusFilter === s
                   ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
               }`}
             >
               {s === '' ? 'Todos' : STATUS_LABEL[s]}
@@ -1030,10 +1032,10 @@ function MensalidadesContent() {
         <div className="skeleton h-64" />
       ) : mensalidadesFiltradas.length === 0 ? (
         <div className="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-slate-700">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-stone-300 dark:text-slate-700">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
           </svg>
-          <p className="text-sm font-medium text-gray-500 dark:text-slate-400">
+          <p className="text-sm font-medium text-stone-500 dark:text-slate-400">
             {hasActiveFilters ? 'Nenhum resultado para os filtros aplicados.' : `Nenhuma mensalidade entre ${fmtBR(periodoInicio)} e ${fmtBR(periodoFim)}.`}
           </p>
           {hasActiveFilters && (
@@ -1052,7 +1054,7 @@ function MensalidadesContent() {
                     type="checkbox"
                     checked={allPageSelected}
                     onChange={toggleAll}
-                    className="h-4 w-4 rounded border-gray-300 accent-brand-600"
+                    className="h-4 w-4 rounded border-stone-300 accent-brand-600"
                     title="Selecionar todos"
                   />
                 </th>
@@ -1074,29 +1076,29 @@ function MensalidadesContent() {
                       type="checkbox"
                       checked={selected.has(m.id)}
                       onChange={() => toggleOne(m.id)}
-                      className="h-4 w-4 rounded border-gray-300 accent-brand-600"
+                      className="h-4 w-4 rounded border-stone-300 accent-brand-600"
                     />
                   </td>
-                  <td className="table-td font-medium text-gray-900 dark:text-slate-100">
+                  <td className="table-td font-medium text-stone-900 dark:text-slate-100">
                     <span className="inline-flex items-center">
                       {m.aluno.nome}
                       <ResponsavelInfo resp={m.aluno.responsavelFinanceiro} />
                     </span>
                   </td>
-                  <td className="table-td text-xs text-gray-500 dark:text-slate-400">{TURNO_LABEL[m.aluno.turno] ?? m.aluno.turno}</td>
+                  <td className="table-td text-xs text-stone-500 dark:text-slate-400">{TURNO_LABEL[m.aluno.turno] ?? m.aluno.turno}</td>
                   <td className="table-td text-xs">{formatMesAno(m.mesReferencia, m.anoReferencia)}</td>
                   <td className="table-td text-xs">{formatDate(m.dataVencimento)}</td>
                   <td className="table-td">
                     <span className={STATUS_BADGE[m.status]}>{STATUS_LABEL[m.status]}</span>
                   </td>
-                  <td className="table-td text-right text-sm font-semibold text-gray-800 dark:text-slate-200">
+                  <td className="table-td text-right text-sm font-semibold text-stone-800 dark:text-slate-200">
                     {formatCurrency(m.valorOriginal - m.valorDesconto)}
                   </td>
                   <td className="table-td text-right text-sm">
                     {m.valorPago !== null ? (
                       <span className="font-semibold text-forest-500 dark:text-forest-300">{formatCurrency(m.valorPago)}</span>
                     ) : (
-                      <span className="text-gray-300 dark:text-slate-600">—</span>
+                      <span className="text-stone-300 dark:text-slate-600">—</span>
                     )}
                   </td>
                   <td className="table-td">
@@ -1128,12 +1130,12 @@ function MensalidadesContent() {
                       {(m.status === 'PAGO' || m.status === 'PARCIAL') && (
                         <div className="flex items-center gap-2">
                           {m.status === 'PAGO' && m.dataPagamento && (
-                            <span className="text-xs text-gray-400 dark:text-slate-500">
+                            <span className="text-xs text-stone-400 dark:text-slate-500">
                               {formatDate(m.dataPagamento)} · {m.formaPagamento}
                             </span>
                           )}
                           {m.status === 'PARCIAL' && (
-                            <span className="text-xs text-gray-400 dark:text-slate-500">
+                            <span className="text-xs text-stone-400 dark:text-slate-500">
                               {formatCurrency(m.valorPago ?? 0)} de {formatCurrency(m.valorOriginal - m.valorDesconto)}
                             </span>
                           )}
@@ -1162,11 +1164,11 @@ function MensalidadesContent() {
       {/* ── Barra flutuante de ações em lote ── */}
       {someSelected && (
         <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-3 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-            <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+          <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-5 py-3 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]">
+            <span className="text-sm font-semibold text-stone-700 dark:text-slate-200">
               {selected.size} selecionado{selected.size !== 1 ? 's' : ''}
             </span>
-            <div className="h-4 w-px bg-gray-200 dark:bg-slate-700" />
+            <div className="h-4 w-px bg-stone-200 dark:bg-slate-700" />
             {canAtendente && allPagaveis && (
               <button
                 onClick={() => { setServerError(null); abrirProximoDaFila(selectedItems, selectedItems.length); }}
@@ -1202,11 +1204,11 @@ function MensalidadesContent() {
               </button>
             )}
             {!allPagaveis && !allEstornaveis && !allCancelaveis && (
-              <span className="text-xs text-gray-400 dark:text-slate-500">Selecione itens com o mesmo status para ações em lote</span>
+              <span className="text-xs text-stone-400 dark:text-slate-500">Selecione itens com o mesmo status para ações em lote</span>
             )}
             <button
               onClick={() => setSelected(new Set())}
-              className="ml-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700"
+              className="ml-1 rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1]"
               title="Limpar seleção"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -1235,16 +1237,16 @@ function MensalidadesContent() {
 
           {/* Toggle motivos individuais — só exibido com 2+ itens */}
           {bulkCancelarItems.length > 1 && (
-            <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+            <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-stone-200 px-4 py-3 transition-colors hover:bg-stone-50 dark:border-slate-700 dark:hover:bg-white/[0.08]">
               <input
                 type="checkbox"
                 checked={bulkCancelarIndividual}
                 onChange={(e) => { setBulkCancelarIndividual(e.target.checked); setServerError(null); }}
-                className="h-4 w-4 rounded border-gray-300 accent-brand-600"
+                className="h-4 w-4 rounded border-stone-300 accent-brand-600"
               />
               <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-slate-200">Motivos diferentes por item</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500">Defina um motivo específico para cada mensalidade</p>
+                <p className="text-sm font-medium text-stone-800 dark:text-slate-200">Motivos diferentes por item</p>
+                <p className="text-xs text-stone-400 dark:text-slate-500">Defina um motivo específico para cada mensalidade</p>
               </div>
             </label>
           )}
@@ -1253,7 +1255,7 @@ function MensalidadesContent() {
             {/* Motivo único */}
             {!bulkCancelarIndividual && (
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
                   Motivo do cancelamento <span className="text-crimson-500">*</span>
                 </label>
                 <textarea
@@ -1270,9 +1272,9 @@ function MensalidadesContent() {
             {bulkCancelarIndividual && (
               <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
                 {bulkCancelarItems.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-gray-100 p-3 dark:border-slate-800">
-                    <p className="mb-1.5 text-xs font-semibold text-gray-700 dark:text-slate-300">
-                      {item.nome} <span className="font-normal text-gray-400 dark:text-slate-500">· {item.ref}</span>
+                  <div key={item.id} className="rounded-xl border border-stone-100 p-3 dark:border-slate-800">
+                    <p className="mb-1.5 text-xs font-semibold text-stone-700 dark:text-slate-300">
+                      {item.nome} <span className="font-normal text-stone-400 dark:text-slate-500">· {item.ref}</span>
                     </p>
                     <textarea
                       rows={2}
@@ -1328,16 +1330,16 @@ function MensalidadesContent() {
           </div>
 
           {/* Toggle motivos individuais — só exibido com 2+ itens */}
-          {bulkEstornarItems.length > 1 && <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+          {bulkEstornarItems.length > 1 && <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-stone-200 px-4 py-3 transition-colors hover:bg-stone-50 dark:border-slate-700 dark:hover:bg-white/[0.08]">
             <input
               type="checkbox"
               checked={bulkEstornarIndividual}
               onChange={(e) => { setBulkEstornarIndividual(e.target.checked); setServerError(null); }}
-              className="h-4 w-4 rounded border-gray-300 accent-brand-600"
+              className="h-4 w-4 rounded border-stone-300 accent-brand-600"
             />
             <div>
-              <p className="text-sm font-medium text-gray-800 dark:text-slate-200">Motivos diferentes por item</p>
-              <p className="text-xs text-gray-400 dark:text-slate-500">Defina um motivo específico para cada pagamento</p>
+              <p className="text-sm font-medium text-stone-800 dark:text-slate-200">Motivos diferentes por item</p>
+              <p className="text-xs text-stone-400 dark:text-slate-500">Defina um motivo específico para cada pagamento</p>
             </div>
           </label>}
 
@@ -1345,7 +1347,7 @@ function MensalidadesContent() {
             {/* Motivo único */}
             {!bulkEstornarIndividual && (
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
                   Motivo do estorno <span className="text-crimson-500">*</span>
                 </label>
                 <textarea
@@ -1362,9 +1364,9 @@ function MensalidadesContent() {
             {bulkEstornarIndividual && (
               <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
                 {bulkEstornarItems.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-gray-100 p-3 dark:border-slate-800">
-                    <p className="mb-1.5 text-xs font-semibold text-gray-700 dark:text-slate-300">
-                      {item.nome} <span className="font-normal text-gray-400 dark:text-slate-500">· {item.ref}</span>
+                  <div key={item.id} className="rounded-xl border border-stone-100 p-3 dark:border-slate-800">
+                    <p className="mb-1.5 text-xs font-semibold text-stone-700 dark:text-slate-300">
+                      {item.nome} <span className="font-normal text-stone-400 dark:text-slate-500">· {item.ref}</span>
                     </p>
                     <textarea
                       rows={2}
@@ -1409,7 +1411,7 @@ function MensalidadesContent() {
         <Modal title="Gerar Mensalidade" onClose={() => { setModalGerar(false); formGerar.reset(); setServerError(null); }}>
           <form onSubmit={formGerar.handleSubmit((d) => { setServerError(null); mutGerar.mutate(d); })} noValidate className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Aluno</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Aluno</label>
               <AlunoCombobox
                 alunos={alunos}
                 value={formGerar.watch('alunoId') ?? ''}
@@ -1422,13 +1424,13 @@ function MensalidadesContent() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Mês</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Mês</label>
                 <select {...formGerar.register('mesReferencia', { valueAsNumber: true })} className="input-base">
                   {MESES.slice(1).map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Ano</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Ano</label>
                 <YearPicker
                   value={formGerar.watch('anoReferencia') ?? now.getFullYear()}
                   onChange={(y) => formGerar.setValue('anoReferencia', y, { shouldValidate: true })}
@@ -1476,7 +1478,7 @@ function MensalidadesContent() {
             title={tituloModal}
             onClose={() => { setPagarFila([]); setPagarFilaTotal(0); setModalPagar(null); formPagar.reset({ splits: [{ formaPagamento: '', valor: 0 }], dataPagamento: hoje, valorDesconto: 0 }); setServerError(null); }}
           >
-            <p className="mb-4 text-xs text-gray-400 dark:text-slate-500">
+            <p className="mb-4 text-xs text-stone-400 dark:text-slate-500">
               Referência: {formatMesAno(modalPagar.mesReferencia, modalPagar.anoReferencia)} · Vencimento: {formatDate(modalPagar.dataVencimento)}
             </p>
 
@@ -1487,13 +1489,13 @@ function MensalidadesContent() {
                 <div className="space-y-1.5">
                   {modalPagar.pagamentos.map((p) => (
                     <div key={p.id} className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600 dark:text-slate-400">{p.formaPagamento} · {fmtBR(p.dataPagamento.slice(0, 10))}</span>
+                      <span className="text-stone-600 dark:text-slate-400">{p.formaPagamento} · {fmtBR(p.dataPagamento.slice(0, 10))}</span>
                       <span className="font-semibold text-forest-600 dark:text-forest-400">{formatCurrency(p.valor)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t border-brand-100 pt-2 dark:border-brand-800/40">
-                  <span className="text-xs font-semibold text-gray-600 dark:text-slate-400">Saldo devedor</span>
+                  <span className="text-xs font-semibold text-stone-600 dark:text-slate-400">Saldo devedor</span>
                   <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{formatCurrency(saldoDevedor)}</span>
                 </div>
               </div>
@@ -1509,7 +1511,7 @@ function MensalidadesContent() {
             >
               {/* Splits de pagamento */}
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
                   Formas de pagamento
                 </label>
                 <div className="space-y-2">
@@ -1557,7 +1559,7 @@ function MensalidadesContent() {
                         <button
                           type="button"
                           onClick={() => removeSplit(idx)}
-                          className="mt-2 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-crimson-500 dark:hover:bg-slate-700"
+                          className="mt-2 rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-crimson-500 dark:hover:bg-white/[0.1]"
                         >
                           <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                             <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -1582,13 +1584,13 @@ function MensalidadesContent() {
               {/* Desconto — apenas no primeiro pagamento */}
               {!isParcial && (
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Desconto (R$)</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Desconto (R$)</label>
                   <input type="number" step="0.01" min="0" {...formPagar.register('valorDesconto', { valueAsNumber: true })} className="input-base" />
                 </div>
               )}
 
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Data do pagamento</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Data do pagamento</label>
                 <Controller
                   control={formPagar.control}
                   name="dataPagamento"
@@ -1606,13 +1608,13 @@ function MensalidadesContent() {
 
               {/* Resumo em tempo real */}
               {totalNovosPagamentos > 0 && (
-                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                <div className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-3 dark:border-slate-700 dark:bg-white/[0.06]">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-slate-400">Total a registrar agora</span>
-                    <span className="font-semibold text-gray-800 dark:text-slate-200">{formatCurrency(totalNovosPagamentos)}</span>
+                    <span className="text-stone-500 dark:text-slate-400">Total a registrar agora</span>
+                    <span className="font-semibold text-stone-800 dark:text-slate-200">{formatCurrency(totalNovosPagamentos)}</span>
                   </div>
                   <div className="mt-1 flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-slate-400">Status após confirmação</span>
+                    <span className="text-stone-500 dark:text-slate-400">Status após confirmação</span>
                     <span className={`font-semibold ${novoStatus === 'PAGO' ? 'text-forest-600 dark:text-forest-400' : 'text-amber-600 dark:text-amber-400'}`}>
                       {novoStatus === 'PAGO' ? '✓ Pago' : '◑ Parcial'}
                     </span>
@@ -1660,7 +1662,7 @@ function MensalidadesContent() {
             className="space-y-4"
           >
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
                 Motivo do estorno <span className="text-crimson-500">*</span>
               </label>
               <textarea
@@ -1699,12 +1701,12 @@ function MensalidadesContent() {
       {/* Modal: Cancelar (GERENTE+) */}
       {modalCancelar && (
         <Modal title={`Cancelar — ${modalCancelar.aluno.nome}`} onClose={() => { setModalCancelar(null); formCancelar.reset(); setServerError(null); }}>
-          <p className="mb-4 text-xs text-gray-400 dark:text-slate-500">
+          <p className="mb-4 text-xs text-stone-400 dark:text-slate-500">
             Referência: {formatMesAno(modalCancelar.mesReferencia, modalCancelar.anoReferencia)}
           </p>
           <form onSubmit={formCancelar.handleSubmit((d) => { setServerError(null); mutCancelar.mutate({ id: modalCancelar.id, data: d }); })} noValidate className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
                 Motivo do cancelamento <span className="text-crimson-500">*</span>
               </label>
               <textarea

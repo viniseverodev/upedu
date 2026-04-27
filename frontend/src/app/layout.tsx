@@ -3,19 +3,33 @@
 
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { Onest } from 'next/font/google';
 import { Providers } from './providers';
 import './globals.css';
+
+const onest = Onest({
+  subsets: ['latin'],
+  variable: '--font-onest',
+  display: 'swap',
+});
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'UpEdu — Gestão Escolar',
   description: 'Sistema de gestão para escolas de reforço',
+  icons: {
+    icon: [
+      { url: '/03-dark.png', media: '(prefers-color-scheme: dark)' },
+      { url: '/06-light.png', media: '(prefers-color-scheme: light)' },
+    ],
+    apple: '/06-light.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className={onest.variable} suppressHydrationWarning>
       <head>
         {/* Previne FOUC: aplica classe 'dark' antes da hidratação do React */}
         <script

@@ -4,6 +4,7 @@
 
 import Link from 'next/link';
 import { useState, useMemo, useEffect, useRef, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
@@ -90,31 +91,31 @@ function DeleteModal({
   onCancel: () => void;
   loading: boolean;
 }) {
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-crimson-50 text-crimson-500 dark:bg-crimson-900/30 dark:text-crimson-400">
           <IcoTrash />
         </div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">
           Remover aluno
         </h2>
-        <p className="mt-1.5 text-sm text-gray-500 dark:text-slate-400">
+        <p className="mt-1.5 text-sm text-stone-500 dark:text-slate-400">
           Tem certeza que deseja remover{' '}
-          <strong className="text-gray-800 dark:text-slate-200">{aluno.nome}</strong>?
+          <strong className="text-stone-800 dark:text-slate-200">{aluno.nome}</strong>?
           Esta ação não pode ser desfeita.
         </p>
         <div className="mt-5 flex gap-3">
           <button
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/[0.1]"
           >
             Cancelar
           </button>
@@ -127,7 +128,8 @@ function DeleteModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -250,7 +252,7 @@ function AlunosContent() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Alunos</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
             {isLoading
               ? '…'
               : `${alunosFiltrados.length} de ${alunos.length} aluno${alunos.length !== 1 ? 's' : ''}`}
@@ -270,27 +272,27 @@ function AlunosContent() {
       <div className="card p-4">
         <div className="flex flex-wrap items-end gap-3">
           {/* Busca por nome / responsável */}
-          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
-            <span className="shrink-0 text-gray-400"><IcoSearch /></span>
+          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
+            <span className="shrink-0 text-stone-400"><IcoSearch /></span>
             <input
               type="text"
               placeholder="Buscar por nome ou responsável…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder-gray-400 dark:text-slate-100 dark:placeholder-slate-500"
+              className="w-full bg-transparent text-sm text-stone-900 outline-none placeholder-stone-400 dark:text-slate-100 dark:placeholder-slate-500"
             />
           </div>
 
           {/* Turno */}
-          <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-0.5 text-xs dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex rounded-xl border border-stone-200 bg-stone-50 p-0.5 text-xs dark:border-slate-700 dark:bg-white/[0.06]">
             {[['', 'Todos'], ['MANHA', 'Manhã'], ['TARDE', 'Tarde']].map(([v, l]) => (
               <button
                 key={v}
                 onClick={() => setTurnoFilter(v)}
                 className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
                   turnoFilter === v
-                    ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                    : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
+                    ? 'bg-white text-stone-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
+                    : 'text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300'
                 }`}
               >
                 {l}
@@ -304,7 +306,7 @@ function AlunosContent() {
             className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
               periodoInicio || periodoFim
                 ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200'
+                : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200'
             }`}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0">
@@ -321,7 +323,7 @@ function AlunosContent() {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
               Limpar
             </button>
@@ -337,7 +339,7 @@ function AlunosContent() {
               className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-all ${
                 statusFilter === s
                   ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
               }`}
             >
               {s === '' ? 'Todos os status' : STATUS_LABELS[s]}
@@ -353,11 +355,11 @@ function AlunosContent() {
         </div>
       ) : alunosFiltrados.length === 0 ? (
         <div className="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-slate-700">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-stone-300 dark:text-slate-700">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
           </svg>
-          <p className="text-sm font-medium text-gray-500 dark:text-slate-400">Nenhum aluno encontrado</p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-slate-600">
+          <p className="text-sm font-medium text-stone-500 dark:text-slate-400">Nenhum aluno encontrado</p>
+          <p className="mt-1 text-xs text-stone-400 dark:text-slate-600">
             {hasActiveFilters ? 'Tente ajustar os filtros.' : 'Cadastre um novo aluno para começar.'}
           </p>
         </div>
@@ -377,10 +379,10 @@ function AlunosContent() {
             <tbody>
               {alunosFiltrados.map((aluno) => (
                 <tr key={aluno.id} className="table-row">
-                  <td className="table-td font-semibold text-gray-900 dark:text-slate-100">
+                  <td className="table-td font-semibold text-stone-900 dark:text-slate-100">
                     {aluno.nome}
                   </td>
-                  <td className="table-td tabular-nums text-gray-600 dark:text-slate-400">
+                  <td className="table-td tabular-nums text-stone-600 dark:text-slate-400">
                     {formatDate(aluno.dataNascimento)}
                   </td>
                   <td className="table-td">
@@ -388,7 +390,7 @@ function AlunosContent() {
                       {aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'}
                     </span>
                   </td>
-                  <td className="table-td text-gray-600 dark:text-slate-400">
+                  <td className="table-td text-stone-600 dark:text-slate-400">
                     {(aluno.responsaveis.find((ar) => ar.isResponsavelFinanceiro) ?? aluno.responsaveis[0])?.responsavel.nome ?? '—'}
                   </td>
                   <td className="table-td">
@@ -473,7 +475,7 @@ function AlunosContent() {
       )}
 
       {/* Modal: Gerar Mensalidade rápida */}
-      {modalGerarMensalidade && (
+      {modalGerarMensalidade && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={() => { setModalGerarMensalidade(null); setMensalidadeError(null); }}
@@ -484,12 +486,12 @@ function AlunosContent() {
           >
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Gerar Mensalidade</h2>
-                <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">{modalGerarMensalidade.nome}</p>
+                <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">Gerar Mensalidade</h2>
+                <p className="mt-0.5 text-xs text-stone-400 dark:text-slate-500">{modalGerarMensalidade.nome}</p>
               </div>
               <button
                 onClick={() => { setModalGerarMensalidade(null); setMensalidadeError(null); }}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-white/[0.06]"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -510,7 +512,7 @@ function AlunosContent() {
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Mês</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Mês</label>
                   <select
                     value={gerarMes}
                     onChange={(e) => setGerarMes(Number(e.target.value))}
@@ -522,7 +524,7 @@ function AlunosContent() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Ano</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Ano</label>
                   <select
                     value={gerarAno}
                     onChange={(e) => setGerarAno(Number(e.target.value))}
@@ -557,7 +559,8 @@ function AlunosContent() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <Toast toast={toast} onClose={hideToast} />

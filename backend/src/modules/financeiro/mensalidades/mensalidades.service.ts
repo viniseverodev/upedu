@@ -22,9 +22,7 @@ export class MensalidadesService {
 
   // S022 — Listar mensalidades da filial por período (dataVencimento)
   async list(filialId: string, dataInicio: Date, dataFim: Date) {
-    // BUG-H: sufixo -03:00 garante interpretação BRT — setHours() criava 23:59:59 UTC = 20:59:59 BRT
-    const fim = new Date(dataFim + 'T23:59:59.999-03:00');
-    const items = await this.repo.findByFilialAndPeriod(filialId, dataInicio, fim);
+    const items = await this.repo.findByFilialAndPeriod(filialId, dataInicio, dataFim);
     return items.map((m) => {
       const respVinculo = m.aluno.responsaveis?.[0];
       return {

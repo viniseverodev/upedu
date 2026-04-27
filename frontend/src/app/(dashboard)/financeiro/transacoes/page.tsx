@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { DatePickerInput } from '@/components/ui/DatePickerInput';
@@ -122,11 +123,11 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="w-80 rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
+      <div className="w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]" onClick={(e) => e.stopPropagation()}>
 
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{title}</p>
-          <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300">
+          <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{title}</p>
+          <button onClick={onClose} className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
@@ -141,7 +142,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
               className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
                 start === s.ini && end === s.fim
                   ? 'border-brand-600 bg-brand-600 text-white'
-                  : 'border-gray-200 text-gray-500 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
+                  : 'border-stone-200 text-stone-500 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
               }`}
             >
               {s.label}
@@ -150,7 +151,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
         </div>
 
         <div className="mb-3 flex items-center justify-between">
-          <button onClick={prevNav} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200">
+          <button onClick={prevNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
@@ -158,24 +159,24 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
           <div className="flex items-center gap-1">
             {viewMode === 'day' && (
               <>
-                <button onClick={() => setViewMode('month')} className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
+                <button onClick={() => setViewMode('month')} className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
                   {MONTH_NAMES[viewMonth]}
                 </button>
-                <button onClick={() => setViewMode('year')} className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
+                <button onClick={() => setViewMode('year')} className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
                   {viewYear}
                 </button>
               </>
             )}
             {viewMode === 'month' && (
-              <button onClick={() => setViewMode('year')} className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
+              <button onClick={() => setViewMode('year')} className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
                 {viewYear}
               </button>
             )}
             {viewMode === 'year' && (
-              <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{yearPage} – {yearPage + 11}</span>
+              <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">{yearPage} – {yearPage + 11}</span>
             )}
           </div>
-          <button onClick={nextNav} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200">
+          <button onClick={nextNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
@@ -185,7 +186,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
         {viewMode === 'day' && (
           <div className="grid grid-cols-7 text-center text-xs">
             {DAY_NAMES.map((d, i) => (
-              <div key={i} className="py-1.5 font-semibold text-gray-400 dark:text-slate-500">{d}</div>
+              <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
             ))}
             {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
             {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -205,7 +206,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
                       ? 'z-10 rounded-full bg-brand-600 text-white'
                       : ranged
                         ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
-                        : 'rounded-full text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700',
+                        : 'rounded-full text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
                   ].join(' ')}
                 >
                   {day}
@@ -222,7 +223,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
                 key={i}
                 onClick={() => { setViewMonth(i); setViewMode('day'); }}
                 className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                  i === viewMonth ? 'bg-brand-600 text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                  i === viewMonth ? 'bg-brand-600 text-white' : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
                 }`}
               >
                 {name.slice(0, 3)}
@@ -238,7 +239,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
                 key={y}
                 onClick={() => { setViewYear(y); setYearPage(Math.floor(y / 12) * 12); setViewMode('month'); }}
                 className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                  y === viewYear ? 'bg-brand-600 text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                  y === viewYear ? 'bg-brand-600 text-white' : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
                 }`}
               >
                 {y}
@@ -247,14 +248,14 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-slate-800">
-          <span className="text-gray-500 dark:text-slate-400">De <strong className="text-gray-800 dark:text-slate-100">{fmtBR(start)}</strong></span>
-          <span className="text-gray-300 dark:text-slate-600">→</span>
-          <span className="text-gray-500 dark:text-slate-400">Até <strong className="text-gray-800 dark:text-slate-100">{fmtBR(end)}</strong></span>
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2 text-xs dark:bg-white/[0.06]">
+          <span className="text-stone-500 dark:text-slate-400">De <strong className="text-stone-800 dark:text-slate-100">{fmtBR(start)}</strong></span>
+          <span className="text-stone-300 dark:text-slate-600">→</span>
+          <span className="text-stone-500 dark:text-slate-400">Até <strong className="text-stone-800 dark:text-slate-100">{fmtBR(end)}</strong></span>
         </div>
 
         <div className="mt-3 flex gap-2">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+          <button onClick={onClose} className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/[0.1]">
             Cancelar
           </button>
           <button onClick={() => canApply && onApply(start, end)} disabled={!canApply} className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
@@ -269,12 +270,12 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
 // ---------- Modal genérico ----------
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="card w-full max-w-md mx-4 p-6">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{title}</h2>
-          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">{title}</h2>
+          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-white/[0.06]">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
@@ -282,7 +283,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -293,7 +295,7 @@ function CategoriaRemovidaInfo({ removidaEm }: { removidaEm: string | null }) {
   const r = new Date(removidaEm);
   const localDateStr = toDateStr(r.getFullYear(), r.getMonth(), r.getDate());
   return (
-    <p className="mt-1 text-[11px] text-gray-400 dark:text-slate-500">
+    <p className="mt-1 text-[11px] text-stone-400 dark:text-slate-500">
       {fmtBR(localDateStr)} às {r.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
     </p>
   );
@@ -360,38 +362,38 @@ function TransacaoDetalhesModal({
           </p>
         </div>
         <div className="px-6 py-5">
-          <div className="divide-y divide-gray-100 dark:divide-slate-800">
+          <div className="divide-y divide-stone-100 dark:divide-slate-800">
             <div className="flex items-start justify-between gap-4 py-3">
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Categoria</span>
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Categoria</span>
               <div className="min-w-0 text-right">
                 <span className={`inline-block max-w-full truncate align-middle ${transacao.categoria.tipo === 'RECEITA' ? 'badge-green' : 'badge-red'}`}>
                   {transacao.categoria.nome}
                 </span>
                 {transacao.categoria.removida && (
                   <>
-                    <span className="ml-1.5 inline-block rounded-full bg-gray-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase text-gray-400 dark:bg-slate-800 dark:text-slate-500">Removida</span>
+                    <span className="ml-1.5 inline-block rounded-full bg-stone-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase text-stone-400 dark:bg-white/[0.06] dark:text-slate-500">Removida</span>
                     <CategoriaRemovidaInfo removidaEm={transacao.categoria.removidaEm} />
                   </>
                 )}
               </div>
             </div>
             <div className="flex items-center justify-between gap-4 py-3">
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Data</span>
-              <span className="text-sm font-medium text-gray-800 dark:text-slate-200">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Data</span>
+              <span className="text-sm font-medium text-stone-800 dark:text-slate-200">
                 {fmtBR(transacao.dataTransacao.slice(0, 10))}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 py-3">
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Registrado em</span>
-              <span className="text-sm font-medium text-gray-800 dark:text-slate-200">
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Registrado em</span>
+              <span className="text-sm font-medium text-stone-800 dark:text-slate-200">
                 {fmtBR(registradoEmDateStr)}
-                <span className="mx-1.5 text-gray-300 dark:text-slate-600">·</span>
+                <span className="mx-1.5 text-stone-300 dark:text-slate-600">·</span>
                 {registradoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             <div className="flex items-start justify-between gap-4 py-3">
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Descrição</span>
-              <span className="text-right text-sm font-medium text-gray-800 dark:text-slate-200">{transacao.descricao}</span>
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Descrição</span>
+              <span className="text-right text-sm font-medium text-stone-800 dark:text-slate-200">{transacao.descricao}</span>
             </div>
           </div>
           <div className="mt-5 flex gap-2">
@@ -589,7 +591,7 @@ export default function TransacoesPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Transações</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
             {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}
           </p>
         </div>
@@ -600,7 +602,7 @@ export default function TransacoesPage() {
             className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
               periodoAlterado
                 ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300'
             }`}
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -647,7 +649,7 @@ export default function TransacoesPage() {
       {isLoading ? <div className="skeleton h-64" /> :
        transacoes.length === 0 ? (
         <div className="empty-state">
-          <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma transação em {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}.</p>
+          <p className="text-sm text-stone-400 dark:text-slate-500">Nenhuma transação em {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}.</p>
         </div>
        ) : (
         <div className="table-container">
@@ -659,7 +661,7 @@ export default function TransacoesPage() {
                     type="checkbox"
                     checked={todosSelecionados}
                     onChange={toggleTodos}
-                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    className="h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
                   />
                 </th>
                 <th className="table-th">Data</th>
@@ -677,11 +679,11 @@ export default function TransacoesPage() {
                       type="checkbox"
                       checked={selecionados.has(t.id)}
                       onChange={() => toggleItem(t.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                      className="h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
                     />
                   </td>
                   <td className="table-td text-xs">{formatDate(t.dataTransacao.slice(0, 10))}</td>
-                  <td className="table-td font-medium text-gray-900 dark:text-slate-100">{t.descricao}</td>
+                  <td className="table-td font-medium text-stone-900 dark:text-slate-100">{t.descricao}</td>
                   <td className="table-td">
                     <span className={t.categoria.tipo === 'RECEITA' ? 'badge-green' : 'badge-red'}>
                       {t.categoria.nome}{t.categoria.removida ? ' (Removida)' : ''}
@@ -696,7 +698,7 @@ export default function TransacoesPage() {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setDetalhes(t)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300"
                         title="Ver detalhes"
                       >
                         <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -706,7 +708,7 @@ export default function TransacoesPage() {
                       </button>
                       <button
                         onClick={() => abrirEditar(t)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300"
                         title="Editar"
                       >
                         <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -716,7 +718,7 @@ export default function TransacoesPage() {
                       </button>
                       <button
                         onClick={() => setConfirmDelete(t)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-crimson-50 hover:text-crimson-600 dark:hover:bg-crimson-900/20 dark:hover:text-crimson-400"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-crimson-50 hover:text-crimson-600 dark:hover:bg-crimson-900/20 dark:hover:text-crimson-400"
                         title="Excluir"
                       >
                         <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -735,14 +737,14 @@ export default function TransacoesPage() {
       {/* Barra de ações em lote */}
       {algumSelecionado && (
         <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-3 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-            <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
+          <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-5 py-3 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]">
+            <span className="text-sm font-semibold text-stone-700 dark:text-slate-300">
               {selecionados.size} selecionada{selecionados.size !== 1 ? 's' : ''}
             </span>
-            <div className="h-4 w-px bg-gray-200 dark:bg-slate-700" />
+            <div className="h-4 w-px bg-stone-200 dark:bg-slate-700" />
             <button
               onClick={() => { setShowBulkEdit(true); setServerError(null); resetBulkEdit(); }}
-              className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-white/[0.06]"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                 <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65z" />
@@ -761,7 +763,7 @@ export default function TransacoesPage() {
             </button>
             <button
               onClick={() => setSelecionados(new Set())}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-white/[0.06]"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -797,14 +799,14 @@ export default function TransacoesPage() {
         <Modal title="Nova Transação" onClose={() => { setShowTransacaoModal(false); reset(); setServerError(null); }}>
           <form onSubmit={handleSubmit((d) => { setServerError(null); createMutation.mutate(d); })} noValidate className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Tipo</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Tipo</label>
               <select {...register('tipo')} className={`input-base ${errors.tipo ? 'input-error' : ''}`}>
                 <option value="ENTRADA">Entrada (Receita)</option>
                 <option value="SAIDA">Saída (Despesa)</option>
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Categoria</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Categoria</label>
               <select {...register('categoriaId')} className={`input-base ${errors.categoriaId ? 'input-error' : ''}`}>
                 <option value="">Selecione…</option>
                 {categorias.filter((c) => !c.removida).map((c) => <option key={c.id} value={c.id}>{c.nome} ({c.tipo})</option>)}
@@ -812,18 +814,18 @@ export default function TransacoesPage() {
               {errors.categoriaId && <p className="mt-1 text-xs text-crimson-500">{errors.categoriaId.message}</p>}
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Descrição</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Descrição</label>
               <input {...register('descricao')} className={`input-base ${errors.descricao ? 'input-error' : ''}`} />
               {errors.descricao && <p className="mt-1 text-xs text-crimson-500">{errors.descricao.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Valor (R$)</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Valor (R$)</label>
                 <input type="number" step="0.01" min="0.01" {...register('valor', { valueAsNumber: true })} className={`input-base ${errors.valor ? 'input-error' : ''}`} />
                 {errors.valor && <p className="mt-1 text-xs text-crimson-500">{errors.valor.message}</p>}
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Data</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Data</label>
                 <Controller
                   control={control}
                   name="dataTransacao"
@@ -849,32 +851,32 @@ export default function TransacoesPage() {
         <Modal title="Editar Transação" onClose={() => { setEditando(null); resetEdit(); setServerError(null); }}>
           <form onSubmit={handleEdit((d) => { setServerError(null); updateMutation.mutate({ id: editando.id, data: d }); })} noValidate className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Tipo</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Tipo</label>
               <select {...registerEdit('tipo')} className="input-base">
                 <option value="ENTRADA">Entrada (Receita)</option>
                 <option value="SAIDA">Saída (Despesa)</option>
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Categoria</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Categoria</label>
               <select {...registerEdit('categoriaId')} defaultValue={editando.categoria ? undefined : ''} className="input-base">
                 <option value="">Manter atual</option>
                 {categorias.filter((c) => !c.removida).map((c) => <option key={c.id} value={c.id}>{c.nome} ({c.tipo})</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Descrição</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Descrição</label>
               <input {...registerEdit('descricao')} className={`input-base ${errorsEdit.descricao ? 'input-error' : ''}`} />
               {errorsEdit.descricao && <p className="mt-1 text-xs text-crimson-500">{errorsEdit.descricao.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Valor (R$)</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Valor (R$)</label>
                 <input type="number" step="0.01" min="0.01" {...registerEdit('valor', { valueAsNumber: true })} className={`input-base ${errorsEdit.valor ? 'input-error' : ''}`} />
                 {errorsEdit.valor && <p className="mt-1 text-xs text-crimson-500">{errorsEdit.valor.message}</p>}
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Data</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Data</label>
                 <Controller
                   control={controlEdit}
                   name="dataTransacao"
@@ -899,9 +901,9 @@ export default function TransacoesPage() {
       {confirmDelete && (
         <Modal title="Excluir transação" onClose={() => { setConfirmDelete(null); setServerError(null); }}>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-slate-400">
+            <p className="text-sm text-stone-600 dark:text-slate-400">
               Tem certeza que deseja excluir a transação{' '}
-              <strong className="text-gray-900 dark:text-slate-100">{confirmDelete.descricao}</strong>{' '}
+              <strong className="text-stone-900 dark:text-slate-100">{confirmDelete.descricao}</strong>{' '}
               de{' '}
               <strong className={confirmDelete.tipo === 'ENTRADA' ? 'text-forest-600' : 'text-crimson-600'}>
                 {formatCurrency(confirmDelete.valor)}
@@ -927,9 +929,9 @@ export default function TransacoesPage() {
       {showBulkDelete && (
         <Modal title="Excluir transações" onClose={() => { setShowBulkDelete(false); setServerError(null); }}>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-slate-400">
+            <p className="text-sm text-stone-600 dark:text-slate-400">
               Tem certeza que deseja excluir{' '}
-              <strong className="text-gray-900 dark:text-slate-100">{selecionados.size} transação{selecionados.size !== 1 ? 'ões' : ''}</strong>?
+              <strong className="text-stone-900 dark:text-slate-100">{selecionados.size} transação{selecionados.size !== 1 ? 'ões' : ''}</strong>?
               Esta ação não pode ser desfeita.
             </p>
             {serverError && <div className="flex items-start gap-2 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm text-crimson-600 dark:border-crimson-700/40 dark:bg-crimson-700/10 dark:text-crimson-300">{serverError}</div>}
@@ -951,11 +953,11 @@ export default function TransacoesPage() {
       {showBulkEdit && (
         <Modal title={`Editar ${selecionados.size} transação${selecionados.size !== 1 ? 'ões' : ''}`} onClose={() => { setShowBulkEdit(false); resetBulkEdit(); setServerError(null); }}>
           <form onSubmit={handleBulkEdit(submitBulkEdit)} noValidate className="space-y-4">
-            <p className="text-xs text-gray-500 dark:text-slate-400">
+            <p className="text-xs text-stone-500 dark:text-slate-400">
               Deixe os campos em branco para manter os valores existentes. Apenas os campos preenchidos serão alterados.
             </p>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Tipo</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Tipo</label>
               <select {...registerBulkEdit('tipo')} className="input-base">
                 <option value="">Manter atual</option>
                 <option value="ENTRADA">Entrada (Receita)</option>
@@ -963,14 +965,14 @@ export default function TransacoesPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Categoria</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Categoria</label>
               <select {...registerBulkEdit('categoriaId')} className="input-base">
                 <option value="">Manter atual</option>
                 {categorias.filter((c) => !c.removida).map((c) => <option key={c.id} value={c.id}>{c.nome} ({c.tipo})</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Data</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Data</label>
               <Controller
                 control={controlBulkEdit}
                 name="dataTransacao"
@@ -997,12 +999,12 @@ export default function TransacoesPage() {
           <form onSubmit={handleCat((d) => { setServerErrorCat(null); categoriaMutation.mutate(d); })} noValidate className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Nome</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Nome</label>
                 <input {...registerCat('nome')} placeholder="Ex: Aluguel" className={`input-base ${errorsCat.nome ? 'input-error' : ''}`} />
                 {errorsCat.nome && <p className="mt-1 text-xs text-crimson-500">{errorsCat.nome.message}</p>}
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Tipo</label>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Tipo</label>
                 <select {...registerCat('tipo')} className="input-base">
                   <option value="RECEITA">Receita</option>
                   <option value="DESPESA">Despesa</option>
@@ -1019,17 +1021,17 @@ export default function TransacoesPage() {
 
           {/* Lista de categorias existentes */}
           {categorias.filter((c) => !c.removida).length > 0 && (
-            <div className="mt-5 border-t border-gray-200 pt-4 dark:border-slate-800">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Categorias existentes</p>
+            <div className="mt-5 border-t border-stone-200 pt-4 dark:border-slate-800">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Categorias existentes</p>
               <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
                 {categorias.filter((c) => !c.removida).map((c) => (
-                  <div key={c.id} className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                    <span className="text-sm font-medium text-gray-700 truncate dark:text-slate-300">{c.nome}</span>
+                  <div key={c.id} className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-stone-50 dark:hover:bg-white/[0.08]">
+                    <span className="text-sm font-medium text-stone-700 truncate dark:text-slate-300">{c.nome}</span>
                     <div className="flex shrink-0 items-center gap-1.5 ml-2">
                       <span className={c.tipo === 'RECEITA' ? 'badge-green' : 'badge-red'}>{c.tipo === 'RECEITA' ? 'Receita' : 'Despesa'}</span>
                       <button
                         onClick={() => { setEditandoCategoria(c); setServerErrorCat(null); resetEditCat({ nome: c.nome, tipo: c.tipo as 'RECEITA' | 'DESPESA' }); }}
-                        className="flex h-6 w-6 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+                        className="flex h-6 w-6 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300"
                         title="Editar"
                       >
                         <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -1038,7 +1040,7 @@ export default function TransacoesPage() {
                       </button>
                       <button
                         onClick={() => { setConfirmDeleteCategoria(c); setServerErrorCat(null); }}
-                        className="flex h-6 w-6 items-center justify-center rounded-lg text-gray-400 hover:bg-crimson-50 hover:text-crimson-600 dark:hover:bg-crimson-900/20 dark:hover:text-crimson-400"
+                        className="flex h-6 w-6 items-center justify-center rounded-lg text-stone-400 hover:bg-crimson-50 hover:text-crimson-600 dark:hover:bg-crimson-900/20 dark:hover:text-crimson-400"
                         title="Remover"
                       >
                         <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -1059,12 +1061,12 @@ export default function TransacoesPage() {
         <Modal title="Editar Categoria" onClose={() => { setEditandoCategoria(null); resetEditCat(); setServerErrorCat(null); }}>
           <form onSubmit={handleEditCat((d) => { setServerErrorCat(null); updateCategoriaMutation.mutate({ id: editandoCategoria.id, data: d }); })} noValidate className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Nome</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Nome</label>
               <input {...registerEditCat('nome')} className={`input-base ${errorsEditCat.nome ? 'input-error' : ''}`} />
               {errorsEditCat.nome && <p className="mt-1 text-xs text-crimson-500">{errorsEditCat.nome.message}</p>}
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Tipo</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">Tipo</label>
               <select {...registerEditCat('tipo')} className="input-base">
                 <option value="RECEITA">Receita</option>
                 <option value="DESPESA">Despesa</option>
@@ -1087,11 +1089,11 @@ export default function TransacoesPage() {
       {confirmDeleteCategoria && (
         <Modal title="Remover categoria" onClose={() => { setConfirmDeleteCategoria(null); setServerErrorCat(null); }}>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-slate-400">
+            <p className="text-sm text-stone-600 dark:text-slate-400">
               Deseja remover a categoria{' '}
-              <strong className="text-gray-900 dark:text-slate-100">{confirmDeleteCategoria.nome}</strong>?
+              <strong className="text-stone-900 dark:text-slate-100">{confirmDeleteCategoria.nome}</strong>?
             </p>
-            <p className="text-xs text-gray-400 dark:text-slate-500">
+            <p className="text-xs text-stone-400 dark:text-slate-500">
               Se houver transações vinculadas, a categoria será mantida na listagem marcada como <strong>Removida</strong> e não estará disponível para novas transações.
             </p>
             {serverErrorCat && (

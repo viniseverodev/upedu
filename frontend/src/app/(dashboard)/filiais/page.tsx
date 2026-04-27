@@ -30,7 +30,7 @@ export default function FiliaisPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Filiais</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
             {isLoading ? '…' : `${filiais.length} filial${filiais.length !== 1 ? 'is' : ''} cadastrada${filiais.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -50,10 +50,10 @@ export default function FiliaisPage() {
         </div>
       ) : filiais.length === 0 ? (
         <div className="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-slate-700">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-stone-300 dark:text-slate-700">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
           </svg>
-          <p className="text-sm font-medium text-gray-500 dark:text-slate-400">Nenhuma filial cadastrada</p>
+          <p className="text-sm font-medium text-stone-500 dark:text-slate-400">Nenhuma filial cadastrada</p>
         </div>
       ) : (
         <div className="table-container">
@@ -72,7 +72,7 @@ export default function FiliaisPage() {
             <tbody>
               {filiais.map((filial) => (
                 <tr key={filial.id} className="table-row">
-                  <td className="table-td font-semibold text-gray-900 dark:text-slate-100">{filial.nome}</td>
+                  <td className="table-td font-semibold text-stone-900 dark:text-slate-100">{filial.nome}</td>
                   <td className="table-td font-mono text-xs">{formatCnpj(filial.cnpj)}</td>
                   <td className="table-td">Dia {filial.diaVencimento}</td>
                   <td className="table-td text-right">{formatCurrency(filial.valorMensalidadeManha)}</td>

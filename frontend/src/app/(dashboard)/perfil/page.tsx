@@ -48,7 +48,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
         {label}
       </label>
       {children}
@@ -113,9 +113,9 @@ export default function PerfilPage() {
             {initials}
           </div>
           <div>
-            <p className="text-base font-semibold text-gray-900 dark:text-slate-100">{user?.nome}</p>
-            <p className="text-sm text-gray-500 dark:text-slate-400">{user?.email}</p>
-            <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">
+            <p className="text-base font-semibold text-stone-900 dark:text-slate-100">{user?.nome}</p>
+            <p className="text-sm text-stone-500 dark:text-slate-400">{user?.email}</p>
+            <p className="mt-0.5 text-xs text-stone-400 dark:text-slate-500">
               {user?.role.replace(/_/g, ' ')}
             </p>
           </div>
@@ -126,7 +126,7 @@ export default function PerfilPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Dados pessoais */}
         <div className="card p-6">
-          <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">Dados Pessoais</h2>
+          <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">Dados Pessoais</h2>
           <form
             onSubmit={dadosForm.handleSubmit((data) => dadosMutation.mutate(data))}
             className="space-y-4"
@@ -170,7 +170,7 @@ export default function PerfilPage() {
 
         {/* Alterar senha */}
         <div className="card p-6">
-          <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">Alterar Senha</h2>
+          <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">Alterar Senha</h2>
           <form
             onSubmit={senhaForm.handleSubmit((data) => senhaMutation.mutate(data))}
             className="space-y-4"

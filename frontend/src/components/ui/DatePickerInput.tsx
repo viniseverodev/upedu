@@ -134,27 +134,27 @@ export function DatePickerInput({
         className={[
           'input-base flex w-full items-center justify-between text-left',
           hasError ? 'input-error' : '',
-          !value ? 'text-gray-400 dark:text-slate-500' : '',
+          !value ? 'text-stone-400 dark:text-slate-500' : '',
           disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
           className,
         ].filter(Boolean).join(' ')}
       >
         <span>{value ? fmtBR(value) : placeholder}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-gray-400 dark:text-slate-500">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-stone-400 dark:text-slate-500">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
         </svg>
       </button>
 
       {/* Dropdown calendário */}
       {open && (
-        <div className="absolute z-50 mt-1.5 w-72 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <div className="absolute z-50 mt-1.5 w-72 rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]">
 
           {/* Navegação */}
           <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
               onClick={prevNav}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -167,14 +167,14 @@ export function DatePickerInput({
                   <button
                     type="button"
                     onClick={() => setViewMode('month')}
-                    className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                    className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
                   >
                     {MONTH_NAMES[viewMonth]}
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewMode('year')}
-                    className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                    className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
                   >
                     {viewYear}
                   </button>
@@ -184,13 +184,13 @@ export function DatePickerInput({
                 <button
                   type="button"
                   onClick={() => setViewMode('year')}
-                  className="rounded px-1 text-sm font-semibold text-gray-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+                  className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
                 >
                   {viewYear}
                 </button>
               )}
               {viewMode === 'year' && (
-                <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">
+                <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">
                   {yearPage} – {yearPage + 11}
                 </span>
               )}
@@ -199,7 +199,7 @@ export function DatePickerInput({
             <button
               type="button"
               onClick={nextNav}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -211,7 +211,7 @@ export function DatePickerInput({
           {viewMode === 'day' && (
             <div className="grid grid-cols-7 text-center text-xs">
               {DAY_NAMES.map((d, i) => (
-                <div key={i} className="py-1.5 font-semibold text-gray-400 dark:text-slate-500">{d}</div>
+                <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
               ))}
               {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
               {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -230,7 +230,7 @@ export function DatePickerInput({
                         ? 'bg-brand-600 text-white'
                         : isToday
                           ? 'text-brand-600 font-bold dark:text-brand-400'
-                          : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700',
+                          : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
                     ].join(' ')}
                   >
                     {day}
@@ -251,7 +251,7 @@ export function DatePickerInput({
                   className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
                     i === viewMonth
                       ? 'bg-brand-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                      : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
                   }`}
                 >
                   {name.slice(0, 3)}
@@ -271,7 +271,7 @@ export function DatePickerInput({
                   className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
                     y === viewYear
                       ? 'bg-brand-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                      : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
                   }`}
                 >
                   {y}
@@ -281,11 +281,11 @@ export function DatePickerInput({
           )}
 
           {/* Rodapé: hoje + limpar */}
-          <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-slate-700">
+          <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3 dark:border-slate-700/60">
             <button
               type="button"
               onClick={() => { onChange(''); setOpen(false); }}
-              className="text-xs font-medium text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
+              className="text-xs font-medium text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300"
             >
               Limpar
             </button>

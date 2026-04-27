@@ -36,7 +36,7 @@ export default function UsuariosPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Usuários</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
             {isLoading ? '…' : `${users.length} usuário${users.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -56,7 +56,7 @@ export default function UsuariosPage() {
         </div>
       ) : users.length === 0 ? (
         <div className="empty-state">
-          <p className="text-sm font-medium text-gray-500 dark:text-slate-400">Nenhum usuário cadastrado</p>
+          <p className="text-sm font-medium text-stone-500 dark:text-slate-400">Nenhum usuário cadastrado</p>
         </div>
       ) : (
         <div className="table-container">
@@ -80,7 +80,7 @@ export default function UsuariosPage() {
                         {user.nome.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-slate-100">{user.nome}</p>
+                        <p className="font-semibold text-stone-900 dark:text-slate-100">{user.nome}</p>
                         {user.primeiroAcesso && (
                           <span className="badge-yellow text-[10px]">1º acesso pendente</span>
                         )}

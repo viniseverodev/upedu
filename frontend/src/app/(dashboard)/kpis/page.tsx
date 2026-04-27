@@ -86,8 +86,8 @@ function StatCard({
       </div>
       <div>
         <p className={`text-3xl font-bold ${accentText}`}>{value}</p>
-        <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">{label}</p>
-        {sub && <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">{sub}</p>}
+        <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">{label}</p>
+        {sub && <p className="mt-0.5 text-xs text-stone-400 dark:text-slate-500">{sub}</p>}
       </div>
     </div>
   );
@@ -158,10 +158,10 @@ function IcoArrowDown() {
 // ---------- Estilos compartilhados (sem w-full / block) ----------
 
 const filterInput = [
-  'rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900',
+  'rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-900',
   'shadow-sm outline-none transition-all',
   'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
-  'dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-500',
+  'dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-100 dark:focus:border-brand-500',
 ].join(' ');
 
 // ---------- FilterBar ----------
@@ -215,15 +215,15 @@ function FilterBar({
         )}
 
         {/* Grupo de presets de período */}
-        <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-0.5 text-xs dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex rounded-xl border border-stone-200 bg-stone-50 p-0.5 text-xs dark:border-slate-700 dark:bg-white/[0.06]">
           {(['hoje', 'semana', 'mes'] as PeriodoPreset[]).map((p) => (
             <button
               key={p}
               onClick={() => setPreset(p)}
               className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
                 preset === p
-                  ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                  : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
+                  ? 'bg-white text-stone-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
+                  : 'text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300'
               }`}
             >
               {p === 'hoje' ? 'Hoje' : p === 'semana' ? 'Semana' : 'Mês'}
@@ -236,8 +236,8 @@ function FilterBar({
               onClick={() => setCalendarOpen(true)}
               className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
                 preset === 'personalizado'
-                  ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                  : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
+                  ? 'bg-white text-stone-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
+                  : 'text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300'
               }`}
             >
               {preset === 'personalizado' && customInicio && customFim ? periodoLabel : 'Período'}
@@ -246,7 +246,7 @@ function FilterBar({
               <button
                 onClick={() => { setPreset('semana'); setCustomInicio(''); setCustomFim(''); }}
                 title="Limpar período"
-                className="ml-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                className="ml-1 rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -291,16 +291,16 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label, currency = false }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+    <div className="rounded-xl border border-stone-200 bg-white px-3 py-2.5 shadow-lg dark:border-slate-700 dark:bg-white/[0.06]">
       {label && (
-        <p className="mb-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400">{label}</p>
+        <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">{label}</p>
       )}
       <div className="space-y-1">
         {payload.map((item) => (
           <div key={item.name} className="flex items-center gap-2">
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-xs text-gray-600 dark:text-slate-300">{item.name}</span>
-            <span className="ml-auto pl-4 text-xs font-semibold text-gray-900 dark:text-slate-100">
+            <span className="text-xs text-stone-600 dark:text-slate-300">{item.name}</span>
+            <span className="ml-auto pl-4 text-xs font-semibold text-stone-900 dark:text-slate-100">
               {currency ? formatCurrency(item.value) : item.value}
             </span>
           </div>
@@ -465,7 +465,7 @@ export default function KpisPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{periodoLabel}</p>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">{periodoLabel}</p>
         </div>
 
         <FilterBar
@@ -578,7 +578,7 @@ export default function KpisPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Alunos ativos ao longo do tempo */}
           <div className="card p-5">
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">
+            <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">
               Evolução de alunos ativos
             </h2>
             <ResponsiveContainer width="100%" height={220}>
@@ -589,7 +589,7 @@ export default function KpisPage() {
                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-stone-200 dark:text-slate-700" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 2' }} />
@@ -609,7 +609,7 @@ export default function KpisPage() {
 
           {/* Receita ao longo do tempo */}
           <div className="card p-5">
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">
+            <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">
               Evolução de receita
             </h2>
             <ResponsiveContainer width="100%" height={220}>
@@ -620,7 +620,7 @@ export default function KpisPage() {
                     <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-stone-200 dark:text-slate-700" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis
                   tick={{ fontSize: 11 }}
@@ -650,15 +650,15 @@ export default function KpisPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
           {/* Gráfico: Alunos por turno */}
           <div className="card p-5">
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">
+            <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">
               Alunos por turno e fila de espera
             </h2>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartDataAlunos} margin={{ top: 0, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-stone-200 dark:text-slate-700" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-gray-100/60 dark:text-slate-700/60' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-stone-100/60 dark:text-slate-700/60' }} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                 <Bar dataKey="Manhã" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 <Bar dataKey="Tarde" fill="#a855f7" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -669,15 +669,15 @@ export default function KpisPage() {
 
           {/* Gráfico: Receita por filial */}
           <div className="card p-5">
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">
+            <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">
               Receita por filial
             </h2>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartDataReceita} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-stone-200 dark:text-slate-700" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'currentColor', className: 'text-gray-100/60 dark:text-slate-700/60' }} />
+                <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'currentColor', className: 'text-stone-100/60 dark:text-slate-700/60' }} />
                 <Bar dataKey="Receita" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={48} />
               </BarChart>
             </ResponsiveContainer>
@@ -685,15 +685,15 @@ export default function KpisPage() {
 
           {/* Gráfico: Entradas e saídas por filial */}
           <div className="card p-5 lg:col-span-2 xl:col-span-1">
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">
+            <h2 className="mb-4 text-sm font-semibold text-stone-900 dark:text-slate-100">
               Entradas e saídas por filial
             </h2>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartDataTransacoes} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-stone-200 dark:text-slate-700" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'currentColor', className: 'text-gray-100/60 dark:text-slate-700/60' }} />
+                <Tooltip content={<CustomTooltip currency />} cursor={{ fill: 'currentColor', className: 'text-stone-100/60 dark:text-slate-700/60' }} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                 <Bar dataKey="Entradas" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 <Bar dataKey="Saídas" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={40} />

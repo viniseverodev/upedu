@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { z } from 'zod';
 import api from '@/lib/api';
 import { updateAlunoSchema, cpfSchema, type UpdateAlunoInput } from '@/schemas/index';
@@ -65,7 +66,7 @@ interface Aluno {
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
@@ -249,7 +250,7 @@ export default function EditarAlunoPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Editar Aluno</h1>
-          <p className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">{aluno?.nome}</p>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">{aluno?.nome}</p>
         </div>
       </div>
 
@@ -269,13 +270,13 @@ export default function EditarAlunoPage() {
 
           {/* ── Coluna esq: Dados do aluno ── */}
           <div className="card p-6 space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-4 dark:border-slate-800">
+            <div className="flex items-center gap-2.5 border-b border-stone-100 pb-4 dark:border-slate-800">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600/10 dark:bg-brand-600/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 text-brand-600 dark:text-brand-400">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.905 59.905 0 0 1 12 3.493a59.902 59.902 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
                 </svg>
               </div>
-              <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">Dados do Aluno</h2>
+              <h2 className="text-sm font-semibold text-stone-800 dark:text-slate-200">Dados do Aluno</h2>
             </div>
 
             <Field label="Nome completo" error={errors.nome?.message}>
@@ -309,9 +310,9 @@ export default function EditarAlunoPage() {
             <Field label="Situação" error={errors.status?.message}>
               {aluno?.status === 'ATIVO' ? (
                 <div className="flex items-center gap-3">
-                  <div className="input-base flex flex-1 cursor-not-allowed items-center gap-2 bg-gray-50 dark:bg-slate-800/50">
+                  <div className="input-base flex flex-1 cursor-not-allowed items-center gap-2 bg-stone-50 dark:bg-white/[0.06]">
                     <span className="badge badge-green">Ativo</span>
-                    <span className="text-sm text-gray-500 dark:text-slate-400">Matrícula ativa</span>
+                    <span className="text-sm text-stone-500 dark:text-slate-400">Matrícula ativa</span>
                   </div>
                   <button
                     type="button"
@@ -337,13 +338,13 @@ export default function EditarAlunoPage() {
 
           {/* ── Coluna dir: Responsáveis ── */}
           <div className="card p-6 space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-gray-100 pb-4 dark:border-slate-800">
+            <div className="flex items-center gap-2.5 border-b border-stone-100 pb-4 dark:border-slate-800">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600/10 dark:bg-brand-600/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 text-brand-600 dark:text-brand-400">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>
               </div>
-              <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">Responsáveis</h2>
+              <h2 className="text-sm font-semibold text-stone-800 dark:text-slate-200">Responsáveis</h2>
             </div>
 
             {/* Lista de responsáveis existentes */}
@@ -352,22 +353,22 @@ export default function EditarAlunoPage() {
             )}
 
             {(aluno?.responsaveis ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-slate-500">Nenhum responsável vinculado.</p>
+              <p className="text-sm text-stone-400 dark:text-slate-500">Nenhum responsável vinculado.</p>
             ) : (
               <div className={`space-y-2 ${(aluno?.responsaveis ?? []).length > 3 ? 'max-h-[17rem] overflow-y-auto pr-1' : ''}`}>
                 {(aluno?.responsaveis ?? []).map((ar) => (
-                  <div key={ar.responsavel.id} className="rounded-xl border border-gray-200 p-3 dark:border-slate-700">
+                  <div key={ar.responsavel.id} className="rounded-xl border border-stone-200 p-3 dark:border-slate-700">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{ar.responsavel.nome}</span>
+                          <span className="text-sm font-medium text-stone-900 dark:text-slate-100">{ar.responsavel.nome}</span>
                           {ar.isResponsavelFinanceiro && (
                             <span className="badge badge-blue text-xs">Financeiro</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">{ar.parentesco}</p>
-                        {ar.responsavel.telefone && <p className="text-xs text-gray-500 dark:text-slate-400">{ar.responsavel.telefone}</p>}
-                        {ar.responsavel.email && <p className="text-xs text-gray-500 dark:text-slate-400">{ar.responsavel.email}</p>}
+                        <p className="text-xs text-stone-500 dark:text-slate-400">{ar.parentesco}</p>
+                        {ar.responsavel.telefone && <p className="text-xs text-stone-500 dark:text-slate-400">{ar.responsavel.telefone}</p>}
+                        {ar.responsavel.email && <p className="text-xs text-stone-500 dark:text-slate-400">{ar.responsavel.email}</p>}
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <button
@@ -392,8 +393,8 @@ export default function EditarAlunoPage() {
             )}
 
             {/* Formulário inline: adicionar responsável */}
-            <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-slate-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Adicionar responsável</p>
+            <div className="space-y-3 border-t border-stone-100 pt-4 dark:border-slate-800">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Adicionar responsável</p>
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Nome" error={errorsAdd.nome?.message}>
@@ -418,8 +419,8 @@ export default function EditarAlunoPage() {
               </div>
 
               <label className="flex cursor-pointer items-center gap-2.5">
-                <input type="checkbox" {...registerAdd('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
-                <span className="text-sm text-gray-700 dark:text-slate-300">Responsável financeiro</span>
+                <input type="checkbox" {...registerAdd('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-stone-300 accent-brand-600" />
+                <span className="text-sm text-stone-700 dark:text-slate-300">Responsável financeiro</span>
               </label>
 
               {adicionarError && <p className="text-xs text-crimson-500">{adicionarError}</p>}
@@ -477,12 +478,12 @@ export default function EditarAlunoPage() {
       </form>
 
       {/* Modal: Editar dados do responsável */}
-      {editingResp && (
+      {editingResp && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="card w-full max-w-sm p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Editar Responsável</h2>
-              <button onClick={() => { setEditingResp(null); resetEditResp(); setEditRespError(null); }} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">Editar Responsável</h2>
+              <button onClick={() => { setEditingResp(null); resetEditResp(); setEditRespError(null); }} className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 dark:hover:bg-white/[0.06]">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                 </svg>
@@ -505,8 +506,8 @@ export default function EditarAlunoPage() {
                 <input {...registerEdit('email')} type="email" className={`input-base ${errorsEditResp.email ? 'input-error' : ''}`} />
               </Field>
               <label className="flex cursor-pointer items-center gap-2.5">
-                <input type="checkbox" {...registerEdit('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
-                <span className="text-sm text-gray-700 dark:text-slate-300">Responsável financeiro</span>
+                <input type="checkbox" {...registerEdit('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-stone-300 accent-brand-600" />
+                <span className="text-sm text-stone-700 dark:text-slate-300">Responsável financeiro</span>
               </label>
               {editRespError && <p className="text-xs text-crimson-500">{editRespError}</p>}
               <div className="flex gap-3 pt-1">
@@ -519,16 +520,17 @@ export default function EditarAlunoPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Modal: Confirmar remoção de responsável */}
-      {confirmRemover && (
+      {confirmRemover && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="card w-full max-w-sm p-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Remover responsável</h2>
-            <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
-              Tem certeza que deseja remover <span className="font-medium text-gray-900 dark:text-slate-100">{confirmRemover.nome}</span> como responsável deste aluno?
+            <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">Remover responsável</h2>
+            <p className="mt-2 text-sm text-stone-500 dark:text-slate-400">
+              Tem certeza que deseja remover <span className="font-medium text-stone-900 dark:text-slate-100">{confirmRemover.nome}</span> como responsável deste aluno?
             </p>
             {desvinculaError && <p className="mt-2 text-xs text-crimson-500">{desvinculaError}</p>}
             <div className="mt-5 flex gap-3">
@@ -553,7 +555,8 @@ export default function EditarAlunoPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <Toast toast={toast} onClose={hideToast} />

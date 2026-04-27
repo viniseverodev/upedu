@@ -6,6 +6,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { DatePickerInput } from '@/components/ui/DatePickerInput';
@@ -126,12 +127,12 @@ const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Se
 type Tab = 'dados' | 'responsaveis' | 'matricula';
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="card w-full max-w-md p-6">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-slate-300">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-slate-100">{title}</h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.06] dark:hover:text-slate-300">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="h-5 w-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
@@ -139,14 +140,15 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 function ModalField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
@@ -155,9 +157,9 @@ function ModalField({ label, error, children }: { label: string; error?: string;
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-gray-100 py-3 last:border-0 dark:border-slate-800">
-      <span className="text-sm text-gray-500 dark:text-slate-400">{label}</span>
-      <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{value}</span>
+    <div className="flex items-center justify-between border-b border-stone-100 py-3 last:border-0 dark:border-slate-800">
+      <span className="text-sm text-stone-500 dark:text-slate-400">{label}</span>
+      <span className="text-sm font-medium text-stone-900 dark:text-slate-100">{value}</span>
     </div>
   );
 }
@@ -327,7 +329,7 @@ export default function AlunoPerfilPage() {
   if (!aluno) {
     return (
       <div className="empty-state mt-12">
-        <p className="text-sm text-gray-400 dark:text-slate-500">Aluno não encontrado.</p>
+        <p className="text-sm text-stone-400 dark:text-slate-500">Aluno não encontrado.</p>
       </div>
     );
   }
@@ -346,7 +348,7 @@ export default function AlunoPerfilPage() {
               <span className={`badge ${STATUS_BADGE[aluno.status] ?? 'badge-gray'}`}>
                 {STATUS_LABELS[aluno.status] ?? aluno.status}
               </span>
-              <span className="text-xs text-gray-400 dark:text-slate-500">
+              <span className="text-xs text-stone-400 dark:text-slate-500">
                 {aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'}
               </span>
             </div>
@@ -367,15 +369,15 @@ export default function AlunoPerfilPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-slate-700 dark:bg-slate-800/50">
+      <div className="flex gap-1 rounded-xl border border-stone-200 bg-stone-50 p-1 dark:border-slate-700 dark:bg-white/[0.06]">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'
-                : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300'
+                ? 'bg-white text-stone-900 shadow-sm dark:bg-[#0c0e14] dark:text-slate-100'
+                : 'text-stone-500 hover:text-stone-700 dark:text-slate-400 dark:hover:text-slate-300'
             }`}
           >
             {tab.label}
@@ -419,7 +421,7 @@ export default function AlunoPerfilPage() {
 
           {aluno.responsaveis.length === 0 ? (
             <div className="empty-state">
-              <p className="text-sm text-gray-400 dark:text-slate-500">Nenhum responsável vinculado.</p>
+              <p className="text-sm text-stone-400 dark:text-slate-500">Nenhum responsável vinculado.</p>
             </div>
           ) : (
             aluno.responsaveis.map((ar) => (
@@ -427,17 +429,17 @@ export default function AlunoPerfilPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-slate-100">{ar.responsavel.nome}</span>
+                      <span className="font-medium text-stone-900 dark:text-slate-100">{ar.responsavel.nome}</span>
                       {ar.isResponsavelFinanceiro && (
                         <span className="badge badge-blue">Responsável Financeiro</span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{ar.parentesco}</p>
+                    <p className="mt-0.5 text-sm text-stone-500 dark:text-slate-400">{ar.parentesco}</p>
                     {ar.responsavel.telefone && (
-                      <p className="mt-0.5 text-sm text-gray-600 dark:text-slate-400">{ar.responsavel.telefone}</p>
+                      <p className="mt-0.5 text-sm text-stone-600 dark:text-slate-400">{ar.responsavel.telefone}</p>
                     )}
                     {ar.responsavel.email && (
-                      <p className="text-sm text-gray-600 dark:text-slate-400">{ar.responsavel.email}</p>
+                      <p className="text-sm text-stone-600 dark:text-slate-400">{ar.responsavel.email}</p>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -469,10 +471,10 @@ export default function AlunoPerfilPage() {
         <div className="space-y-6">
           {/* Tabela de matrículas */}
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Matrículas</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">Matrículas</p>
             {aluno.matriculas.length === 0 ? (
               <div className="empty-state">
-                <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma matrícula registrada.</p>
+                <p className="text-sm text-stone-400 dark:text-slate-500">Nenhuma matrícula registrada.</p>
               </div>
             ) : (
               <div className="table-container">
@@ -512,12 +514,12 @@ export default function AlunoPerfilPage() {
 
           {/* Histórico de mensalidades */}
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">
               Histórico de Mensalidades {aluno.mensalidades.length > 0 && <span className="ml-1 font-normal normal-case">(últimas {aluno.mensalidades.length})</span>}
             </p>
             {aluno.mensalidades.length === 0 ? (
               <div className="empty-state">
-                <p className="text-sm text-gray-400 dark:text-slate-500">Nenhuma mensalidade registrada.</p>
+                <p className="text-sm text-stone-400 dark:text-slate-500">Nenhuma mensalidade registrada.</p>
               </div>
             ) : (
               <div className="table-container">
@@ -590,8 +592,8 @@ export default function AlunoPerfilPage() {
             </ModalField>
 
             <label className="flex cursor-pointer items-center gap-2.5">
-              <input type="checkbox" {...registerAdicionar('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
-              <span className="text-sm text-gray-700 dark:text-slate-300">Responsável financeiro</span>
+              <input type="checkbox" {...registerAdicionar('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-stone-300 accent-brand-600" />
+              <span className="text-sm text-stone-700 dark:text-slate-300">Responsável financeiro</span>
             </label>
 
             {adicionarError && <ServerError message={adicionarError} />}
@@ -633,8 +635,8 @@ export default function AlunoPerfilPage() {
             </ModalField>
 
             <label className="flex cursor-pointer items-center gap-2.5">
-              <input type="checkbox" {...registerEdit('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-gray-300 accent-brand-600" />
-              <span className="text-sm text-gray-700 dark:text-slate-300">Responsável financeiro</span>
+              <input type="checkbox" {...registerEdit('isResponsavelFinanceiro')} className="h-4 w-4 rounded border-stone-300 accent-brand-600" />
+              <span className="text-sm text-stone-700 dark:text-slate-300">Responsável financeiro</span>
             </label>
 
             {editError && <ServerError message={editError} />}
@@ -694,8 +696,8 @@ export default function AlunoPerfilPage() {
       {/* Modal: Confirmar remoção de responsável */}
       {confirmRemover && (
         <ModalShell title="Remover responsável" onClose={() => { setConfirmRemover(null); setDesvinculaError(null); }}>
-          <p className="text-sm text-gray-500 dark:text-slate-400">
-            Tem certeza que deseja remover <span className="font-medium text-gray-900 dark:text-slate-100">{confirmRemover.nome}</span> como responsável deste aluno?
+          <p className="text-sm text-stone-500 dark:text-slate-400">
+            Tem certeza que deseja remover <span className="font-medium text-stone-900 dark:text-slate-100">{confirmRemover.nome}</span> como responsável deste aluno?
           </p>
           {desvinculaError && <p className="mt-2 text-xs text-crimson-500">{desvinculaError}</p>}
           <div className="mt-5 flex gap-3">

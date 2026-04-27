@@ -69,15 +69,15 @@ export default function RelatoriosPage() {
       </div>
 
       {/* Abas */}
-      <div className="flex gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex gap-1 rounded-xl border border-stone-200 bg-stone-50 p-1 dark:border-slate-800 dark:bg-[#0c0e14]">
         {(['inadimplencia', 'fluxo'] as Aba[]).map((a) => (
           <button
             key={a}
             onClick={() => setAba(a)}
             className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
               aba === a
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-800 dark:text-slate-100'
-                : 'text-gray-500 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-300'
+                ? 'bg-white text-stone-900 shadow-sm dark:bg-white/[0.06] dark:text-slate-100'
+                : 'text-stone-500 hover:text-stone-700 dark:text-slate-500 dark:hover:text-slate-300'
             }`}
           >
             {a === 'inadimplencia' ? 'Inadimplência' : 'Fluxo de Caixa'}
@@ -90,11 +90,11 @@ export default function RelatoriosPage() {
         loadingInad ? <div className="skeleton h-64" /> :
         inadimplentes.length === 0 ? (
           <div className="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mx-auto mb-3 h-12 w-12 text-stone-300 dark:text-slate-700">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
             </svg>
-            <p className="text-sm font-medium text-gray-500 dark:text-slate-400">Sem inadimplentes em {MESES[mes]}/{ano}</p>
-            <p className="mt-1 text-xs text-gray-400 dark:text-slate-600">Todos os alunos estão em dia!</p>
+            <p className="text-sm font-medium text-stone-500 dark:text-slate-400">Sem inadimplentes em {MESES[mes]}/{ano}</p>
+            <p className="mt-1 text-xs text-stone-400 dark:text-slate-600">Todos os alunos estão em dia!</p>
           </div>
         ) : (
           <div className="table-container">
@@ -111,10 +111,10 @@ export default function RelatoriosPage() {
               <tbody>
                 {inadimplentes.map((item) => (
                   <tr key={item.mensalidadeId} className="table-row">
-                    <td className="table-td font-semibold text-gray-900 dark:text-slate-100">{item.alunoNome}</td>
+                    <td className="table-td font-semibold text-stone-900 dark:text-slate-100">{item.alunoNome}</td>
                     <td className="table-td">
                       <p>{item.responsavelNome ?? '—'}</p>
-                      {item.responsavelTelefone && <p className="text-xs text-gray-400">{item.responsavelTelefone}</p>}
+                      {item.responsavelTelefone && <p className="text-xs text-stone-400">{item.responsavelTelefone}</p>}
                     </td>
                     <td className="table-td text-right font-medium">{formatCurrency(item.valorOriginal)}</td>
                     <td className="table-td">{formatDate(item.dataVencimento)}</td>
@@ -154,13 +154,13 @@ export default function RelatoriosPage() {
 
             {fluxo.porCategoria.length > 0 && (
               <div className="card p-5">
-                <h3 className="mb-4 text-sm font-semibold text-gray-700 dark:text-slate-300">Detalhamento por Categoria</h3>
+                <h3 className="mb-4 text-sm font-semibold text-stone-700 dark:text-slate-300">Detalhamento por Categoria</h3>
                 <div className="space-y-2.5">
                   {fluxo.porCategoria.map((c, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className={`h-2 w-2 rounded-full ${c.tipo === 'RECEITA' ? 'bg-forest-500' : 'bg-crimson-500'}`} />
-                        <span className="text-sm text-gray-700 dark:text-slate-300">{c.nome}</span>
+                        <span className="text-sm text-stone-700 dark:text-slate-300">{c.nome}</span>
                         <span className={`badge ${c.tipo === 'RECEITA' ? 'badge-green' : 'badge-red'}`}>{c.tipo}</span>
                       </div>
                       <span className={`text-sm font-semibold ${c.tipo === 'RECEITA' ? 'text-forest-500 dark:text-forest-300' : 'text-crimson-500 dark:text-crimson-300'}`}>

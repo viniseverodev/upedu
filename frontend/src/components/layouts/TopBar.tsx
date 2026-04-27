@@ -8,7 +8,7 @@ function getGreeting() {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return 'Bom dia';
   if (h >= 12 && h < 18) return 'Boa tarde';
-  return 'Boa noite'; // 18h–4h59
+  return 'Boa noite';
 }
 
 function formatDateLong() {
@@ -16,33 +16,32 @@ function formatDateLong() {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
   });
 }
 
 export function TopBar() {
   const user = useAuthStore((s) => s.user);
+  const firstName = user?.nome.split(' ')[0] ?? '';
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-slate-800 dark:bg-slate-900">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-stone-200 bg-white px-6 dark:border-slate-800/80 dark:bg-[#0c0e14]">
       {/* Left — saudação */}
       <div className="min-w-0">
         {user && (
-          <p className="truncate text-sm font-semibold text-gray-900 dark:text-slate-100">
-            {getGreeting()}, {user.nome.split(' ')[0]}!{' '}
-            <span className="hidden font-normal text-gray-400 dark:text-slate-500 sm:inline">
-              · {formatDateLong()}
+          <p className="truncate text-sm font-medium text-stone-800 dark:text-slate-200">
+            {getGreeting()},{' '}
+            <span className="font-semibold">{firstName}</span>
+            <span className="hidden text-stone-400 dark:text-slate-600 sm:inline">
+              {' '}·{' '}{formatDateLong()}
             </span>
           </p>
         )}
       </div>
 
-      {/* Right — filial, tema, avatar */}
+      {/* Right */}
       <div className="flex shrink-0 items-center gap-2">
         <FilialSelector />
-
-        <div className="mx-1 h-6 w-px bg-gray-200 dark:bg-slate-700" />
-
+        <div className="mx-1 h-5 w-px bg-stone-200 dark:bg-slate-700/60" />
         <ThemeToggle />
       </div>
     </header>

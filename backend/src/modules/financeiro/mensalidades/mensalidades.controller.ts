@@ -52,7 +52,7 @@ export class MensalidadesController {
     // BUG-010: normalizar "hoje" para BRT — new Date() em servidor UTC pode retornar dia errado
     const hojeStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
     const fim = query.dataFim
-      ? new Date(query.dataFim + 'T00:00:00-03:00')
+      ? new Date(query.dataFim + 'T23:59:59.999-03:00')
       : new Date(hojeStr + 'T23:59:59.999-03:00');
     const ini = query.dataInicio
       ? new Date(query.dataInicio + 'T00:00:00-03:00')
