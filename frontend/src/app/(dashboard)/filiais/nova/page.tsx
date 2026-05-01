@@ -32,7 +32,7 @@ export default function NovaFilialPage() {
 
   const mutation = useMutation({
     mutationFn: (data: CreateFilialInput) => api.post('/filiais', data),
-    onSuccess: () => router.push('/filiais'),
+    onSuccess: (_, vars) => router.push(`/filiais?created=${encodeURIComponent(vars.nome)}`),
     onError: (error: AxiosError<{ message: string }>) => {
       setServerError(error.response?.data?.message ?? 'Erro ao cadastrar filial.');
     },

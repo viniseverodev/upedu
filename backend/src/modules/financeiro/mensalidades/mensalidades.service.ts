@@ -27,6 +27,7 @@ export class MensalidadesService {
       const respVinculo = m.aluno.responsaveis?.[0];
       return {
         ...this.toResponse(m),
+        oficinaNome: m.matriculaOficina?.turma?.oficina?.nome ?? null,
         aluno: {
           id: m.aluno.id,
           nome: m.aluno.nome,
@@ -283,11 +284,30 @@ export class MensalidadesService {
     if (mensalidade.status === 'PAGO') {
       throw new ValidationError('Mensalidade paga não pode ser cancelada. Use estorno.');
     }
+    if (mensalidade.status === 'PARCIAL') {
+      throw new ValidationError('Mensalidade parcialmente paga não pode ser cancelada. Use estorno.');
+    }
     if (mensalidade.status === 'CANCELADA') {
       throw new ValidationError('Mensalidade já está cancelada');
     }
 
-    const updated = await this.repo.update(id, { status: 'CANCELADA', motivoCancelamento });
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.mensalidade.update({
+        where: { id },
+        data: { status: 'CANCELADA', motivoCancelamento },
+      });
+
+      // Se for mensalidade de oficina, desmatricular o aluno da turma automaticamente
+      if (mensalidade.tipo === 'OFICINA' && mensalidade.matriculaOficinaId) {
+        await tx.matriculaOficina.delete({
+          where: { id: mensalidade.matriculaOficinaId },
+        }).catch((e: { code?: string }) => {
+          if (e.code !== 'P2025') throw e; // Ignora apenas "registro não encontrado"
+        });
+      }
+
+      return result;
+    });
 
     await createAuditLog({
       userId,
@@ -299,6 +319,7 @@ export class MensalidadesService {
         acao: 'CANCELAR',
         motivoCancelamento,
         statusAnterior: mensalidade.status,
+        desmatriculadoOficina: mensalidade.tipo === 'OFICINA' && !!mensalidade.matriculaOficinaId,
       } as unknown as import('@prisma/client').Prisma.InputJsonValue,
       ipAddress: ip,
     });
@@ -329,8 +350,8 @@ export class MensalidadesService {
       await prisma.$transaction(
         itemsParaPagar.flatMap((item) => {
           const valorOriginal = Number(item.valorOriginal);
-          const valorPago = data.valorDesconto > 0 && valorOriginal - data.valorDesconto > 0
-            ? valorOriginal - data.valorDesconto
+          const valorPago = data.valorDesconto > 0
+            ? Math.max(0, valorOriginal - data.valorDesconto)
             : valorOriginal;
           return [
             prisma.pagamento.create({
@@ -377,15 +398,21 @@ export class MensalidadesService {
     const motivoMap = new Map(data.items.map((i) => [i.id, i.motivoCancelamento]));
     const dbItems = await this.repo.findManyByIds(ids, filialId);
 
-    // BUG-008: Promise.all elimina N awaits sequenciais — cada update era uma viagem separada ao banco
-    const elegiveis = dbItems.filter((item) => item.status !== 'PAGO' && item.status !== 'CANCELADA');
+    // M2: cancelamento + desmatricula em uma única transação atômica
+    const elegiveis = dbItems.filter((item) => item.status !== 'PAGO' && item.status !== 'CANCELADA' && item.status !== 'PARCIAL');
     const results = { success: elegiveis.length, skipped: dbItems.length - elegiveis.length };
-    await Promise.all(
-      elegiveis.map((item) => {
-        const motivo = motivoMap.get(item.id) ?? '';
-        return this.repo.update(item.id, { status: 'CANCELADA', motivoCancelamento: motivo });
-      }),
-    );
+
+    if (elegiveis.length > 0) {
+      await prisma.$transaction([
+        ...elegiveis.map((item) => {
+          const motivo = motivoMap.get(item.id) ?? '';
+          return prisma.mensalidade.update({ where: { id: item.id }, data: { status: 'CANCELADA', motivoCancelamento: motivo } });
+        }),
+        ...elegiveis
+          .filter((item) => item.tipo === 'OFICINA' && item.matriculaOficinaId)
+          .map((item) => prisma.matriculaOficina.deleteMany({ where: { id: item.matriculaOficinaId! } })),
+      ]);
+    }
 
     await createAuditLog({
       userId,
@@ -467,6 +494,7 @@ export class MensalidadesService {
     id: string;
     alunoId: string;
     filialId: string;
+    tipo: string;
     status: string;
     mesReferencia: number;
     anoReferencia: number;
@@ -485,6 +513,7 @@ export class MensalidadesService {
       id: m.id,
       alunoId: m.alunoId,
       filialId: m.filialId,
+      tipo: m.tipo,
       status: m.status,
       mesReferencia: m.mesReferencia,
       anoReferencia: m.anoReferencia,

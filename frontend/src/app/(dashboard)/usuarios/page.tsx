@@ -3,9 +3,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { usePermission } from '@/hooks/usePermission';
 import api from '@/lib/api';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 
 interface UserFilial { filialId: string }
 interface User {
@@ -25,6 +29,15 @@ const ROLE_BADGE: Record<string, string> = {
 
 export default function UsuariosPage() {
   const canManage = usePermission('ADMIN_MATRIZ');
+  const searchParams = useSearchParams();
+  const { toast, showToast, hideToast } = useToast();
+
+  useEffect(() => {
+    const created = searchParams?.get('created');
+    const updated = searchParams?.get('updated');
+    if (created) showToast('Usuário cadastrado', `${decodeURIComponent(created)} foi cadastrado com sucesso.`);
+    if (updated) showToast('Usuário atualizado', `${decodeURIComponent(updated)} foi atualizado com sucesso.`);
+  }, [searchParams, showToast]);
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['users'],
@@ -112,6 +125,7 @@ export default function UsuariosPage() {
           </table>
         </div>
       )}
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }

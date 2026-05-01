@@ -3,10 +3,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { usePermission } from '@/hooks/usePermission';
 import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/api';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 
 interface Filial {
   id: string; nome: string; cnpj: string; diaVencimento: number;
@@ -19,6 +23,15 @@ function formatCnpj(cnpj: string) {
 
 export default function FiliaisPage() {
   const canManage = usePermission('ADMIN_MATRIZ');
+  const searchParams = useSearchParams();
+  const { toast, showToast, hideToast } = useToast();
+
+  useEffect(() => {
+    const created = searchParams?.get('created');
+    const updated = searchParams?.get('updated');
+    if (created) showToast('Filial cadastrada', `${decodeURIComponent(created)} foi cadastrada com sucesso.`);
+    if (updated) showToast('Filial atualizada', `${decodeURIComponent(updated)} foi atualizada com sucesso.`);
+  }, [searchParams, showToast]);
 
   const { data: filiais = [], isLoading } = useQuery<Filial[]>({
     queryKey: ['filiais'],
@@ -95,6 +108,7 @@ export default function FiliaisPage() {
           </table>
         </div>
       )}
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }

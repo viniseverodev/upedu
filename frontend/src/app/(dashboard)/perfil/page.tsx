@@ -9,6 +9,8 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 
 // ---------- Schemas ----------
 
@@ -61,8 +63,7 @@ function Field({
 
 export default function PerfilPage() {
   const { user, updateUser, setAccessToken } = useAuthStore();
-  const [dadosSaved, setDadosSaved] = useState(false);
-  const [senhaSaved, setSenhaSaved] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
 
   // --- Formulário dados pessoais ---
   const dadosForm = useForm<DadosInput>({
@@ -75,9 +76,9 @@ export default function PerfilPage() {
     onSuccess: (res) => {
       updateUser({ nome: res.data.nome, email: res.data.email });
       dadosForm.reset({ nome: res.data.nome, email: res.data.email });
-      setDadosSaved(true);
-      setTimeout(() => setDadosSaved(false), 3000);
+      showToast('Dados atualizados', 'Suas informações foram salvas com sucesso.');
     },
+    onError: () => showToast('Erro ao salvar', 'Tente novamente.', 'error'),
   });
 
   // --- Formulário alterar senha ---
@@ -91,9 +92,13 @@ export default function PerfilPage() {
     onSuccess: (res) => {
       if (res.data.accessToken) setAccessToken(res.data.accessToken);
       senhaForm.reset();
-      setSenhaSaved(true);
-      setTimeout(() => setSenhaSaved(false), 3000);
+      showToast('Senha alterada', 'Sua nova senha já está ativa.');
     },
+    onError: (err: any) => showToast(
+      'Erro ao alterar senha',
+      err?.response?.data?.message ?? 'Verifique a senha atual.',
+      'error',
+    ),
   });
 
   const initials = user?.nome
@@ -101,6 +106,7 @@ export default function PerfilPage() {
     : 'U';
 
   return (
+    <>
     <div className="p-6">
       <div className="page-header mb-6">
         <h1 className="page-title">Meu Perfil</h1>
@@ -161,9 +167,6 @@ export default function PerfilPage() {
               >
                 {dadosMutation.isPending ? 'Salvando…' : 'Salvar alterações'}
               </button>
-              {dadosSaved && (
-                <span className="text-sm text-forest-600 dark:text-forest-400">Salvo com sucesso</span>
-              )}
             </div>
           </form>
         </div>
@@ -217,13 +220,12 @@ export default function PerfilPage() {
               >
                 {senhaMutation.isPending ? 'Alterando…' : 'Alterar senha'}
               </button>
-              {senhaSaved && (
-                <span className="text-sm text-forest-600 dark:text-forest-400">Senha alterada com sucesso</span>
-              )}
             </div>
           </form>
         </div>
       </div>
     </div>
+    <Toast toast={toast} onClose={hideToast} />
+    </>
   );
 }

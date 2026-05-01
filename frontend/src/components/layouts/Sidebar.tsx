@@ -75,6 +75,14 @@ function IcoUsers() {
   );
 }
 
+function IcoOficinas() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0z" />
+    </svg>
+  );
+}
+
 function IcoShield() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px] shrink-0">
@@ -134,9 +142,10 @@ interface NavSection {
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <p className="mb-1 mt-4 px-3 text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400 dark:text-slate-600">
-      {label}
-    </p>
+    <div className="mb-1 mt-5 flex items-center gap-2 px-3">
+      <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-stone-400 dark:text-slate-600">{label}</span>
+      <div className="h-px flex-1 bg-stone-200/70 dark:bg-white/[0.05]" />
+    </div>
   );
 }
 
@@ -145,19 +154,15 @@ function NavLink({ item, collapsed, isActive }: { item: NavItem; collapsed: bool
     <Link
       href={item.href}
       title={collapsed ? item.label : undefined}
-      className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
+      className={`group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
         isActive
-          ? 'bg-brand-50 text-brand-700 dark:bg-white/[0.10] dark:text-white'
-          : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-100'
-      }`}
+          ? 'bg-brand-600 text-white shadow-sm'
+          : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900 dark:text-slate-500 dark:hover:bg-white/[0.07] dark:hover:text-slate-100'
+      } ${collapsed ? 'justify-center' : ''}`}
     >
-      {/* Indicador lateral ativo */}
-      {isActive && (
-        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-brand-500 dark:bg-brand-400" />
-      )}
       <span className={isActive
-        ? 'text-brand-600 dark:text-white'
-        : 'text-stone-400 group-hover:text-stone-600 dark:text-slate-500 dark:group-hover:text-slate-200'
+        ? 'text-white'
+        : 'text-stone-400 group-hover:text-stone-600 dark:text-slate-600 dark:group-hover:text-slate-300'
       }>
         {item.icon}
       </span>
@@ -176,7 +181,7 @@ function SettingsDropdownItem({ href, icon, label, onClick }: {
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:text-slate-300 dark:hover:bg-white/[0.08] dark:hover:text-white"
+      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:text-slate-300 dark:hover:bg-white/[0.07] dark:hover:text-white"
     >
       <span className="text-stone-400 dark:text-slate-500">{icon}</span>
       {label}
@@ -220,7 +225,8 @@ export function Sidebar() {
     {
       label: 'Cadastros',
       items: [
-        { label: 'Alunos', href: '/alunos', icon: <IcoStudents />, visible: true },
+        { label: 'Alunos',    href: '/alunos',    icon: <IcoStudents />,  visible: true },
+        { label: 'Oficinas',  href: '/oficinas',  icon: <IcoOficinas />,  visible: true },
       ],
     },
     {
@@ -250,12 +256,12 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`flex h-full flex-col border-r border-stone-200 bg-white transition-all duration-300 dark:border-white/[0.06] dark:bg-[#0c0e14] ${
+      className={`flex h-full flex-col border-r border-stone-200/80 bg-white transition-all duration-300 dark:border-white/[0.06] dark:bg-[#0b0e14] ${
         collapsed ? 'w-[68px]' : 'w-[232px]'
       }`}
     >
       {/* Logo + Toggle */}
-      <div className={`flex h-16 shrink-0 items-center border-b border-stone-200 dark:border-white/[0.06] ${
+      <div className={`flex h-16 shrink-0 items-center border-b border-stone-200/80 dark:border-white/[0.06] ${
         collapsed ? 'justify-center px-3' : 'justify-between px-4'
       }`}>
         {!collapsed && (
@@ -311,17 +317,17 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-stone-200 px-2.5 py-3 dark:border-white/[0.06]">
+      <div className="shrink-0 border-t border-stone-200/80 px-2.5 py-3 dark:border-white/[0.06]">
         {!collapsed ? (
           <div className="relative mb-1" ref={settingsRef}>
-            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-              {/* Avatar com gradiente */}
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-bold text-white shadow-sm">
+            <div className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-stone-50 dark:hover:bg-white/[0.04]">
+              {/* Avatar */}
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-bold text-white shadow-sm">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold text-stone-800 dark:text-slate-200">{user?.nome}</p>
-                <p className="truncate text-[11px] text-stone-400 dark:text-slate-500">
+                <p className="truncate text-[10px] text-stone-400 dark:text-slate-600">
                   {user?.role.replace(/_/g, ' ')}
                 </p>
               </div>
@@ -331,7 +337,7 @@ export function Sidebar() {
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
                   settingsOpen
                     ? 'bg-brand-600 text-white'
-                    : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.08] dark:hover:text-slate-200'
+                    : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-600 dark:hover:bg-white/[0.08] dark:hover:text-slate-300'
                 }`}
               >
                 <IcoGear />
@@ -339,8 +345,8 @@ export function Sidebar() {
             </div>
 
             {settingsOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-stone-200 bg-white p-1.5 shadow-card-lg dark:border-white/[0.08] dark:bg-[#161923]">
-                <p className="mb-1 px-2 pt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400 dark:text-slate-600">
+              <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl border border-stone-200/80 bg-white p-1.5 shadow-card-lg dark:border-white/[0.08] dark:bg-[#13181f]">
+                <p className="mb-1 px-2.5 pt-1 text-[9px] font-bold uppercase tracking-[0.15em] text-stone-400 dark:text-slate-600">
                   Configurações
                 </p>
                 <SettingsDropdownItem href="/perfil"    icon={<IcoPerson />}   label="Perfil"     onClick={() => setSettingsOpen(false)} />
@@ -355,18 +361,18 @@ export function Sidebar() {
             <button
               onClick={() => setSettingsOpen((v) => !v)}
               title="Configurações"
-              className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
                 settingsOpen
                   ? 'bg-brand-600 text-white'
-                  : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-slate-300'
+                  : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-600 dark:hover:bg-white/[0.07] dark:hover:text-slate-300'
               }`}
             >
               <IcoGear />
             </button>
 
             {settingsOpen && (
-              <div className="absolute bottom-0 left-full ml-2 w-44 rounded-xl border border-stone-200 bg-white p-1.5 shadow-card-lg dark:border-white/[0.08] dark:bg-[#161923]">
-                <p className="mb-1 px-2 pt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400 dark:text-slate-600">Configurações</p>
+              <div className="absolute bottom-0 left-full ml-2 w-44 rounded-2xl border border-stone-200/80 bg-white p-1.5 shadow-card-lg dark:border-white/[0.08] dark:bg-[#13181f]">
+                <p className="mb-1 px-2.5 pt-1 text-[9px] font-bold uppercase tracking-[0.15em] text-stone-400 dark:text-slate-600">Configurações</p>
                 <SettingsDropdownItem href="/perfil"    icon={<IcoPerson />}   label="Perfil"    onClick={() => setSettingsOpen(false)} />
                 {canManageFiliais && <SettingsDropdownItem href="/filiais"  icon={<IcoBuilding />} label="Filiais"   onClick={() => setSettingsOpen(false)} />}
                 {canManageUsers   && <SettingsDropdownItem href="/usuarios" icon={<IcoUsers />}   label="Usuários"  onClick={() => setSettingsOpen(false)} />}
@@ -380,7 +386,7 @@ export function Sidebar() {
           onClick={() => logoutMutation.mutate()}
           disabled={logoutMutation.isPending}
           title={collapsed ? 'Sair' : undefined}
-          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-stone-500 transition-all hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-white/[0.08] dark:hover:text-slate-200 ${
+          className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-stone-500 transition-all hover:bg-stone-100 hover:text-crimson-600 disabled:opacity-50 dark:text-slate-600 dark:hover:bg-white/[0.06] dark:hover:text-crimson-400 ${
             collapsed ? 'justify-center' : ''
           }`}
         >

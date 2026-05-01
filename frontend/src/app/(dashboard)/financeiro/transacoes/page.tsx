@@ -13,6 +13,8 @@ import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { createTransacaoSchema, createCategoriaSchema, type CreateTransacaoInput, type CreateCategoriaInput } from '@/schemas/index';
 import { z } from 'zod';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 
 // ---------- Tipos ----------
 
@@ -121,7 +123,7 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
   const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
   const canApply = !!(start && end);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
       <div className="w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]" onClick={(e) => e.stopPropagation()}>
 
@@ -263,7 +265,8 @@ function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply,
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -342,7 +345,7 @@ function TransacaoDetalhesModal({
   const isEntrada = transacao.tipo === 'ENTRADA';
   const registradoEm = new Date(transacao.createdAt);
   const registradoEmDateStr = toDateStr(registradoEm.getFullYear(), registradoEm.getMonth(), registradoEm.getDate());
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="card w-full max-w-sm mx-4 overflow-hidden p-0">
         <div className={`relative px-6 pb-5 pt-6 ${isEntrada ? 'bg-forest-500 dark:bg-forest-600' : 'bg-crimson-500 dark:bg-crimson-600'}`}>
@@ -407,7 +410,8 @@ function TransacaoDetalhesModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -447,6 +451,8 @@ export default function TransacoesPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverErrorCat, setServerErrorCat] = useState<string | null>(null);
 
+  const { toast, showToast, hideToast } = useToast();
+
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['transacoes'] });
 
@@ -481,31 +487,31 @@ export default function TransacoesPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTransacaoInput) => api.post('/transacoes', data),
-    onSuccess: () => { invalidate(); setShowTransacaoModal(false); reset(); setServerError(null); },
+    onSuccess: () => { invalidate(); setShowTransacaoModal(false); reset(); setServerError(null); showToast('Transação registrada', 'A transação foi registrada com sucesso.'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerError(error.response?.data?.message ?? 'Erro ao registrar transação.'); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTransacaoInput }) => api.patch(`/transacoes/${id}`, data),
-    onSuccess: () => { invalidate(); setEditando(null); resetEdit(); setServerError(null); },
+    onSuccess: () => { invalidate(); setEditando(null); resetEdit(); setServerError(null); showToast('Transação atualizada', 'As alterações foram salvas com sucesso.'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerError(error.response?.data?.message ?? 'Erro ao atualizar transação.'); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/transacoes/${id}`),
-    onSuccess: () => { invalidate(); setConfirmDelete(null); setSelecionados(new Set()); setServerError(null); },
+    onSuccess: () => { invalidate(); setConfirmDelete(null); setSelecionados(new Set()); setServerError(null); showToast('Transação excluída', 'A transação foi removida com sucesso.', 'warning'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerError(error.response?.data?.message ?? 'Erro ao excluir transação.'); },
   });
 
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: string[]) => api.delete('/transacoes/bulk', { data: { ids } }),
-    onSuccess: () => { invalidate(); setShowBulkDelete(false); setSelecionados(new Set()); setServerError(null); },
+    onSuccess: () => { invalidate(); setShowBulkDelete(false); setSelecionados(new Set()); setServerError(null); showToast('Transações excluídas', 'As transações selecionadas foram removidas.', 'warning'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerError(error.response?.data?.message ?? 'Erro ao excluir transações.'); },
   });
 
   const bulkUpdateMutation = useMutation({
     mutationFn: (data: BulkEditInput & { ids: string[] }) => api.patch('/transacoes/bulk', data),
-    onSuccess: () => { invalidate(); setShowBulkEdit(false); setSelecionados(new Set()); resetBulkEdit(); },
+    onSuccess: () => { invalidate(); setShowBulkEdit(false); setSelecionados(new Set()); resetBulkEdit(); showToast('Transações atualizadas', 'As alterações foram aplicadas com sucesso.'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerError(error.response?.data?.message ?? 'Erro ao atualizar transações.'); },
   });
 
@@ -516,19 +522,19 @@ export default function TransacoesPage() {
 
   const categoriaMutation = useMutation({
     mutationFn: (data: CreateCategoriaInput) => api.post('/categorias', data),
-    onSuccess: () => { invalidateCategorias(); resetCat(); setServerErrorCat(null); },
+    onSuccess: () => { invalidateCategorias(); resetCat(); setServerErrorCat(null); showToast('Categoria criada', 'A categoria foi criada com sucesso.'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerErrorCat(error.response?.data?.message ?? 'Erro ao criar categoria.'); },
   });
 
   const updateCategoriaMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateCategoriaInput }) => api.patch(`/categorias/${id}`, data),
-    onSuccess: () => { invalidateCategorias(); setEditandoCategoria(null); resetEditCat(); setServerErrorCat(null); },
+    onSuccess: () => { invalidateCategorias(); setEditandoCategoria(null); resetEditCat(); setServerErrorCat(null); showToast('Categoria atualizada', 'As alterações foram salvas com sucesso.'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerErrorCat(error.response?.data?.message ?? 'Erro ao atualizar categoria.'); },
   });
 
   const deleteCategoriaMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/categorias/${id}`),
-    onSuccess: () => { invalidateCategorias(); setConfirmDeleteCategoria(null); },
+    onSuccess: () => { invalidateCategorias(); setConfirmDeleteCategoria(null); showToast('Categoria removida', 'A categoria foi removida com sucesso.', 'warning'); },
     onError: (error: AxiosError<{ message: string }>) => { setServerErrorCat(error.response?.data?.message ?? 'Erro ao remover categoria.'); },
   });
 
@@ -1112,6 +1118,7 @@ export default function TransacoesPage() {
           </div>
         </Modal>
       )}
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }

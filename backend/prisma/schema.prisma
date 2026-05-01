@@ -46,6 +46,11 @@ enum MensalidadeStatus {
   CANCELADA
 }
 
+enum MensalidadeTipo {
+  REGULAR
+  OFICINA
+}
+
 enum TransacaoTipo {
   ENTRADA
   SAIDA
@@ -128,6 +133,7 @@ model Filial {
   transacoes   Transacao[]
   categorias   CategoriaFinanceira[]
   auditLogs    AuditLog[]
+  oficinas     Oficina[]
 
   @@unique([cnpj, organizationId])
   @@map("filiais")
@@ -167,6 +173,8 @@ model Aluno {
   dataNascimento           DateTime
   status                   AlunoStatus @default(PRE_MATRICULA)
   turno                    Turno
+  colegio                  String?
+  anoEscolar               String?
   observacoes              String?
   consentimentoResponsavel Boolean     @default(false)
   consentimentoTimestamp   DateTime?
@@ -175,13 +183,33 @@ model Aluno {
   updatedAt                DateTime    @updatedAt
   deletedAt                DateTime?
 
-  filial       Filial             @relation(fields: [filialId], references: [id])
-  responsaveis AlunoResponsavel[]
-  matriculas   Matricula[]
-  mensalidades Mensalidade[]
+  filial            Filial             @relation(fields: [filialId], references: [id])
+  responsaveis      AlunoResponsavel[]
+  matriculas        Matricula[]
+  mensalidades      Mensalidade[]
+  fichaMedica       FichaMedica?
+  oficinasMatriculas MatriculaOficina[]
 
   @@index([filialId, status])
   @@map("alunos")
+}
+
+model FichaMedica {
+  id                         String   @id @default(uuid())
+  alunoId                    String   @unique
+  tipoSanguineo              String?
+  possuiAlergia              Boolean  @default(false)
+  alergias                   String?
+  medicamentosUso            String?
+  condicoesEspeciais         String?
+  planoSaude                 String?
+  observacoesMedicas         String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  aluno Aluno @relation(fields: [alunoId], references: [id])
+
+  @@map("fichas_medicas")
 }
 
 model AlunoResponsavel {
@@ -221,15 +249,17 @@ model Matricula {
 }
 
 model Mensalidade {
-  id             String            @id @default(uuid())
-  alunoId        String
-  filialId       String
-  status         MensalidadeStatus @default(PENDENTE)
-  mesReferencia  Int
-  anoReferencia  Int
-  valorOriginal  Decimal           @db.Decimal(10, 2)
-  valorDesconto  Decimal           @default(0) @db.Decimal(10, 2)
-  valorJuros     Decimal           @default(0) @db.Decimal(10, 2)
+  id                    String            @id @default(uuid())
+  alunoId               String
+  filialId              String
+  tipo                  MensalidadeTipo   @default(REGULAR)
+  matriculaOficinaId    String?
+  status                MensalidadeStatus @default(PENDENTE)
+  mesReferencia         Int
+  anoReferencia         Int
+  valorOriginal         Decimal           @db.Decimal(10, 2)
+  valorDesconto         Decimal           @default(0) @db.Decimal(10, 2)
+  valorJuros            Decimal           @default(0) @db.Decimal(10, 2)
   valorPago             Decimal?          @db.Decimal(10, 2)
   dataVencimento        DateTime
   dataPagamento         DateTime?
@@ -238,12 +268,16 @@ model Mensalidade {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
-  aluno     Aluno      @relation(fields: [alunoId], references: [id])
-  filial    Filial     @relation(fields: [filialId], references: [id])
-  pagamentos Pagamento[]
+  aluno            Aluno             @relation(fields: [alunoId], references: [id])
+  filial           Filial            @relation(fields: [filialId], references: [id])
+  matriculaOficina MatriculaOficina? @relation(fields: [matriculaOficinaId], references: [id])
+  pagamentos       Pagamento[]
 
-  @@unique([alunoId, mesReferencia, anoReferencia]) // IDEMPOTÊNCIA
+  // Idempotência via partial indexes — veja migration add_oficina_mensalidades:
+  //   mensalidade_regular_unique: UNIQUE ON (aluno_id, mes, ano) WHERE matricula_oficina_id IS NULL
+  //   mensalidade_oficina_unique: UNIQUE ON (aluno_id, mes, ano, matricula_oficina_id) WHERE matricula_oficina_id IS NOT NULL
   @@index([filialId, status, dataVencimento])
+  @@index([matriculaOficinaId])
   @@map("mensalidades")
 }
 
@@ -291,6 +325,56 @@ model Transacao {
 
   @@index([filialId, dataTransacao])
   @@map("transacoes")
+}
+
+model Oficina {
+  id        String   @id @default(uuid())
+  filialId  String
+  nome      String
+  descricao String?
+  valor     Decimal  @db.Decimal(10, 2)
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  filial Filial         @relation(fields: [filialId], references: [id])
+  turmas TurmaOficina[]
+
+  @@index([filialId])
+  @@map("oficinas")
+}
+
+model TurmaOficina {
+  id        String   @id @default(uuid())
+  oficinaId String
+  nome      String
+  vagas     Int?
+  horario   String?
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  oficina    Oficina            @relation(fields: [oficinaId], references: [id])
+  matriculas MatriculaOficina[]
+
+  @@index([oficinaId])
+  @@map("turmas_oficinas")
+}
+
+model MatriculaOficina {
+  id        String   @id @default(uuid())
+  turmaId   String
+  alunoId   String
+  createdAt DateTime @default(now())
+
+  turma        TurmaOficina  @relation(fields: [turmaId], references: [id])
+  aluno        Aluno         @relation(fields: [alunoId], references: [id])
+  mensalidades Mensalidade[]
+
+  @@unique([turmaId, alunoId])
+  @@index([turmaId])
+  @@index([alunoId])
+  @@map("matriculas_oficinas")
 }
 
 model AuditLog {

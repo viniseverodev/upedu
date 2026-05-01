@@ -26,23 +26,41 @@ const dataNascimentoSchema = z.string()
     return nascimento <= new Date();
   }, 'Data de nascimento não pode ser no futuro');
 
+const TIPOS_SANGUINEOS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
+
+export const fichaMedicaSchema = z.object({
+  tipoSanguineo: z.enum(TIPOS_SANGUINEOS).optional(),
+  possuiAlergia: z.boolean().default(false),
+  alergias: z.string().max(500).optional(),
+  medicamentosUso: z.string().max(500).optional(),
+  condicoesEspeciais: z.string().max(500).optional(),
+  planoSaude: z.string().max(150).optional(),
+  observacoesMedicas: z.string().max(1000).optional(),
+});
+
 export const createAlunoSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres').max(150),
   dataNascimento: dataNascimentoSchema,
   turno: z.enum(['MANHA', 'TARDE']),
+  colegio: z.string().max(150).optional(),
+  anoEscolar: z.string().max(50).optional(),
   observacoes: z.string().max(500).optional(),
   consentimentoResponsavel: z.literal(true, {
     errorMap: () => ({ message: 'Consentimento parental obrigatório (LGPD Art. 14)' }),
   }),
   status: z.enum(['PRE_MATRICULA', 'LISTA_ESPERA']).default('PRE_MATRICULA'),
+  fichaMedica: fichaMedicaSchema.optional(),
 });
 
 export const updateAlunoSchema = z.object({
   nome: z.string().min(3).max(150).optional(),
   dataNascimento: dataNascimentoSchema.optional(),
   turno: z.enum(['MANHA', 'TARDE']).optional(),
+  colegio: z.string().max(150).optional(),
+  anoEscolar: z.string().max(50).optional(),
   observacoes: z.string().max(500).optional(),
   status: z.enum(['ATIVO', 'INATIVO', 'LISTA_ESPERA', 'PRE_MATRICULA']).optional(),
+  fichaMedica: fichaMedicaSchema.optional(),
 });
 
 export const transferirAlunoSchema = z.object({
@@ -52,3 +70,4 @@ export const transferirAlunoSchema = z.object({
 export type CreateAlunoInput = z.infer<typeof createAlunoSchema>;
 export type UpdateAlunoInput = z.infer<typeof updateAlunoSchema>;
 export type TransferirAlunoInput = z.infer<typeof transferirAlunoSchema>;
+export type FichaMedicaInput = z.infer<typeof fichaMedicaSchema>;

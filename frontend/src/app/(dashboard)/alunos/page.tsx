@@ -176,6 +176,7 @@ function AlunosContent() {
   const [turnoFilter, setTurnoFilter] = useState('');
   const [periodoInicio, setPeriodoInicio] = useState('');
   const [periodoFim, setPeriodoFim] = useState('');
+  const [sortAz, setSortAz] = useState<'asc' | 'desc' | null>('asc');
 
   // Calendário período de cadastro
   const [showPeriodoModal, setShowPeriodoModal] = useState(false);
@@ -219,7 +220,7 @@ function AlunosContent() {
 
   // Filtragem client-side
   const alunosFiltrados = useMemo(() => {
-    return alunos.filter((a) => {
+    const filtered = alunos.filter((a) => {
       if (statusFilter && a.status !== statusFilter) return false;
       if (turnoFilter && a.turno !== turnoFilter) return false;
       if (search) {
@@ -234,7 +235,15 @@ function AlunosContent() {
       if (periodoFim && a.createdAt.slice(0, 10) > periodoFim) return false;
       return true;
     });
-  }, [alunos, search, statusFilter, turnoFilter, periodoInicio, periodoFim]);
+    if (sortAz) {
+      filtered.sort((a, b) =>
+        sortAz === 'asc'
+          ? a.nome.localeCompare(b.nome, 'pt-BR')
+          : b.nome.localeCompare(a.nome, 'pt-BR')
+      );
+    }
+    return filtered;
+  }, [alunos, search, statusFilter, turnoFilter, periodoInicio, periodoFim, sortAz]);
 
   const hasActiveFilters = search || statusFilter || turnoFilter || periodoInicio || periodoFim;
 
@@ -368,7 +377,18 @@ function AlunosContent() {
           <table className="table-base">
             <thead className="table-head">
               <tr>
-                <th className="table-th">Nome</th>
+                <th className="table-th">Cadastro</th>
+                <th className="table-th">
+                  <button
+                    onClick={() => setSortAz((s) => s === 'asc' ? 'desc' : s === 'desc' ? null : 'asc')}
+                    className="flex items-center gap-1 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  >
+                    Nome
+                    <span className="text-stone-300 dark:text-slate-600">
+                      {sortAz === 'asc' ? '↑' : sortAz === 'desc' ? '↓' : '↕'}
+                    </span>
+                  </button>
+                </th>
                 <th className="table-th">Nascimento</th>
                 <th className="table-th">Turno</th>
                 <th className="table-th">Responsável</th>
@@ -379,6 +399,9 @@ function AlunosContent() {
             <tbody>
               {alunosFiltrados.map((aluno) => (
                 <tr key={aluno.id} className="table-row">
+                  <td className="table-td tabular-nums text-stone-500 dark:text-slate-500">
+                    {formatDate(aluno.createdAt)}
+                  </td>
                   <td className="table-td font-semibold text-stone-900 dark:text-slate-100">
                     {aluno.nome}
                   </td>

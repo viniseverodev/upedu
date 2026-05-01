@@ -11,6 +11,7 @@ import { AxiosError } from 'axios';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { loginSchema, type LoginInput } from '@/schemas/index';
+import Link from 'next/link';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -199,7 +200,14 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-xs text-stone-400 dark:text-slate-700">
+        <p className="mt-5 text-center text-sm text-stone-500 dark:text-slate-500">
+          Não tem uma conta?{' '}
+          <Link href="/cadastro" className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+            Criar conta
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-xs text-stone-400 dark:text-slate-700">
           © {new Date().getFullYear()} UP Contraturno. Todos os direitos reservados.
         </p>
       </div>

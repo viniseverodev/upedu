@@ -92,7 +92,7 @@ export default function EditarUsuarioPage() {
 
   const mutation = useMutation({
     mutationFn: (data: UpdateUserInput) => api.patch(`/users/${id}`, data),
-    onSuccess: () => router.push('/usuarios'),
+    onSuccess: () => router.push(`/usuarios?updated=${encodeURIComponent(user?.nome ?? 'Usuário')}`),
     onError: (error: AxiosError<{ message: string }>) => {
       setServerError(error.response?.data?.message ?? 'Erro ao atualizar usuário.');
     },

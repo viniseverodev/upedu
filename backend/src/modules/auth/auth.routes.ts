@@ -13,6 +13,7 @@ import { authenticate } from '../../middlewares/authenticate';
 export async function authRoutes(app: FastifyInstance) {
   const controller = new AuthController();
 
+  app.post('/register',        {}, controller.register.bind(controller));
   app.post('/login',           { preHandler: [rateLimitLogin] }, controller.login.bind(controller));
   app.post('/logout',          { preHandler: [authenticate] },   controller.logout.bind(controller));
   // C1: rate limiting no refresh — previne brute-force de refresh tokens por IP

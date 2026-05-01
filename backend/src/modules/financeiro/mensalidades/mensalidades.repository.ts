@@ -11,6 +11,8 @@ export class MensalidadesRepository {
     anoReferencia: number;
     valorOriginal: number;
     dataVencimento: Date;
+    tipo?: 'REGULAR' | 'OFICINA';
+    matriculaOficinaId?: string;
   }) {
     return prisma.mensalidade.create({ data });
   }
@@ -43,10 +45,10 @@ export class MensalidadesRepository {
     });
   }
 
-  // Busca qualquer registro (incluindo cancelados) pela chave única do banco
+  // Busca qualquer mensalidade REGULAR (incluindo canceladas) para o aluno/mês/ano
   async findByAlunoMesAnoAny(alunoId: string, mesReferencia: number, anoReferencia: number) {
-    return prisma.mensalidade.findUnique({
-      where: { alunoId_mesReferencia_anoReferencia: { alunoId, mesReferencia, anoReferencia } },
+    return prisma.mensalidade.findFirst({
+      where: { alunoId, mesReferencia, anoReferencia, matriculaOficinaId: null },
     });
   }
 
@@ -115,6 +117,11 @@ export class MensalidadesRepository {
                 responsavel: { select: { nome: true, telefone: true, email: true } },
               },
             },
+          },
+        },
+        matriculaOficina: {
+          select: {
+            turma: { select: { oficina: { select: { nome: true } } } },
           },
         },
         pagamentos: {

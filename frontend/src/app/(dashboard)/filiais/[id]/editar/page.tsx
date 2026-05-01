@@ -68,7 +68,7 @@ export default function EditarFilialPage() {
 
   const mutation = useMutation({
     mutationFn: (data: UpdateFilialInput) => api.patch(`/filiais/${id}`, data),
-    onSuccess: () => router.push('/filiais'),
+    onSuccess: () => router.push(`/filiais?updated=${encodeURIComponent(filial?.nome ?? 'Filial')}`),
     onError: (error: AxiosError<{ message: string }>) => {
       setServerError(error.response?.data?.message ?? 'Erro ao atualizar filial.');
     },

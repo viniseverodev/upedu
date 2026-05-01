@@ -2,6 +2,7 @@
 
 import { prisma } from '../../config/database';
 import type { AlunoStatus, Turno } from '@prisma/client';
+import type { FichaMedicaInput } from './alunos.schema';
 
 export class AlunosRepository {
   // S012 — listar alunos da filial com filtro opcional de status
@@ -35,6 +36,7 @@ export class AlunosRepository {
           orderBy: [{ anoReferencia: 'desc' }, { mesReferencia: 'desc' }],
           take: 5,
         },
+        fichaMedica: true,
       },
     });
   }
@@ -46,9 +48,12 @@ export class AlunosRepository {
       nome: string;
       dataNascimento: Date;
       turno: Turno;
+      colegio?: string;
+      anoEscolar?: string;
       observacoes?: string;
       status: AlunoStatus;
       consentimentoTimestamp: Date;
+      fichaMedica?: FichaMedicaInput;
     }
   ) {
     return prisma.aluno.create({
@@ -57,11 +62,22 @@ export class AlunosRepository {
         nome: data.nome,
         dataNascimento: data.dataNascimento,
         turno: data.turno,
+        colegio: data.colegio,
+        anoEscolar: data.anoEscolar,
         observacoes: data.observacoes,
         status: data.status,
         consentimentoResponsavel: true,
         consentimentoTimestamp: data.consentimentoTimestamp,
+        ...(data.fichaMedica ? { fichaMedica: { create: data.fichaMedica } } : {}),
       },
+    });
+  }
+
+  async upsertFichaMedica(alunoId: string, data: FichaMedicaInput) {
+    return prisma.fichaMedica.upsert({
+      where: { alunoId },
+      create: { alunoId, ...data },
+      update: data,
     });
   }
 

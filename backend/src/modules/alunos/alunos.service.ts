@@ -72,9 +72,12 @@ export class AlunosService {
       nome: data.nome,
       dataNascimento: new Date(data.dataNascimento),
       turno: data.turno,
+      colegio: data.colegio,
+      anoEscolar: data.anoEscolar,
       observacoes: data.observacoes,
       status: data.status,
       consentimentoTimestamp: new Date(),
+      fichaMedica: data.fichaMedica,
     });
 
     await createAuditLog({
@@ -103,14 +106,20 @@ export class AlunosService {
       throw new NotFoundError("Aluno");
     }
 
-    const updateData: Parameters<AlunosRepository["update"]>[1] = {};
+    const updateData: Parameters<AlunosRepository["update"]>[1] & { colegio?: string; anoEscolar?: string } = {};
     if (data.nome !== undefined) updateData.nome = data.nome;
     if (data.dataNascimento !== undefined)
       updateData.dataNascimento = new Date(data.dataNascimento);
     if (data.turno !== undefined) updateData.turno = data.turno;
+    if (data.colegio !== undefined) updateData.colegio = data.colegio;
+    if (data.anoEscolar !== undefined) updateData.anoEscolar = data.anoEscolar;
     if (data.observacoes !== undefined)
       updateData.observacoes = data.observacoes;
     if (data.status !== undefined) updateData.status = data.status;
+
+    if (data.fichaMedica !== undefined) {
+      await this.repo.upsertFichaMedica(id, data.fichaMedica);
+    }
 
     // Cascade atômica: encerra matrícula + cancela mensalidades + atualiza status em $transaction
     if (data.status === "INATIVO" && aluno.status !== "INATIVO") {

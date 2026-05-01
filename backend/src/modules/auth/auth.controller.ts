@@ -6,7 +6,7 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
-import { loginSchema, changePasswordSchema, updateProfileSchema } from './auth.schema';
+import { loginSchema, changePasswordSchema, updateProfileSchema, registerSchema } from './auth.schema';
 import { env } from '../../config/env';
 
 // WARN-009 fix: usar env.NODE_ENV (Zod-validado) em vez de process.env.NODE_ENV diretamente
@@ -17,6 +17,16 @@ const COOKIE_BASE = {
 
 export class AuthController {
   private service = new AuthService();
+
+  async register(request: FastifyRequest, reply: FastifyReply) {
+    const body = registerSchema.parse(request.body);
+    const result = await this.service.register(body);
+    return reply.status(201).send({
+      message: 'Conta criada com sucesso',
+      organizacao: result.org.nome,
+      usuario: { id: result.user.id, nome: result.user.nome, email: result.user.email },
+    });
+  }
 
   async login(request: FastifyRequest, reply: FastifyReply) {
     const body = loginSchema.parse(request.body);

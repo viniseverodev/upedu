@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rotas que não requerem autenticação
-const PUBLIC_PATHS = ['/login', '/primeiro-acesso'];
+const PUBLIC_PATHS = ['/login', '/cadastro', '/primeiro-acesso'];
 
 // Rotas de assets e Next.js internals — nunca interceptar
 const SKIP_PREFIXES = ['/_next', '/favicon.ico', '/api/'];

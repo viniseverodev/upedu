@@ -4,6 +4,7 @@
 // Componente compartilhado para filtros de período em todas as telas
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // ---------- Constantes ----------
 
@@ -135,7 +136,7 @@ export function CalendarRangePicker({
   const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
   const canApply = !!(start && end);
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
       onClick={onClose}
@@ -332,6 +333,7 @@ export function CalendarRangePicker({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

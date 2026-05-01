@@ -36,6 +36,8 @@ interface Aluno { id: string; nome: string; turno: string }
 interface Mensalidade {
   id: string;
   alunoId: string;
+  tipo: 'REGULAR' | 'OFICINA';
+  oficinaNome: string | null;
   status: 'PENDENTE' | 'PARCIAL' | 'PAGO' | 'INADIMPLENTE' | 'CANCELADA';
   mesReferencia: number;
   anoReferencia: number;
@@ -138,9 +140,10 @@ interface CalendarModalProps {
   initialFim: string;
   onApply: (inicio: string, fim: string) => void;
   onClose: () => void;
+  inline?: boolean;
 }
 
-function CalendarModal({ title = 'Período de vencimento', initialInicio, initialFim, onApply, onClose }: CalendarModalProps) {
+function CalendarModal({ title = 'Período de vencimento', initialInicio, initialFim, onApply, onClose, inline = false }: CalendarModalProps) {
   const today = new Date();
   const cy = today.getFullYear();
   const cm = today.getMonth();
@@ -209,9 +212,8 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
   const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
   const canApply = !!(start && end);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]" onClick={(e) => e.stopPropagation()}>
+  const inner = (
+    <div className={inline ? 'w-full rounded-xl border border-stone-200 bg-white p-4 shadow-lg dark:border-slate-700 dark:bg-[#0c0e14]' : 'w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]'}>
 
         {/* Título + fechar */}
         <div className="mb-3 flex items-center justify-between">
@@ -375,8 +377,16 @@ function CalendarModal({ title = 'Período de vencimento', initialInicio, initia
             Aplicar
           </button>
         </div>
-      </div>
     </div>
+  );
+
+  if (inline) return inner;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}>{inner}</div>
+    </div>,
+    document.body,
   );
 }
 
@@ -416,13 +426,25 @@ function ResponsavelInfo({ resp }: {
   resp?: { nome: string; telefone?: string | null; email?: string | null; parentesco?: string | null } | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  function openPopover() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.top - 8, left: r.left });
+    }
+    setOpen(true);
+  }
+
   return (
-    <span className="relative inline-flex items-center">
+    <span className="inline-flex items-center">
       <button
+        ref={btnRef}
         type="button"
-        onMouseEnter={() => setOpen(true)}
+        onMouseEnter={openPopover}
         onMouseLeave={() => setOpen(false)}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openPopover())}
         className="ml-1.5 inline-flex items-center justify-center rounded-full p-0.5 text-stone-300 transition-colors hover:text-brand-500 dark:text-slate-600 dark:hover:text-brand-400"
         title="Ver responsável financeiro"
       >
@@ -431,8 +453,13 @@ function ResponsavelInfo({ resp }: {
         </svg>
       </button>
 
-      {open && (
-        <span className="absolute bottom-full left-0 z-30 mb-2 w-52 rounded-xl border border-stone-100 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-[#0c0e14]">
+      {open && createPortal(
+        <span
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, transform: 'translateY(-100%)' }}
+          className="z-50 mb-2 w-52 rounded-xl border border-stone-200/80 bg-white p-3 shadow-card-lg dark:border-white/[0.08] dark:bg-[#13181f]"
+        >
           <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">
             Responsável financeiro
           </span>
@@ -465,7 +492,8 @@ function ResponsavelInfo({ resp }: {
               Nenhum responsável financeiro cadastrado
             </span>
           )}
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   );
@@ -617,11 +645,47 @@ function MensalidadesContent() {
 
   const [periodoInicio, setPeriodoInicio] = useState(defaultInicio);
   const [periodoFim, setPeriodoFim] = useState(defaultFim);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Filtros client-side
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [tipoFilter, setTipoFilter] = useState<'' | 'REGULAR' | 'OFICINA'>('');
+
+  // Painéis da toolbar
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [maisAcoesOpen, setMaisAcoesOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Rascunho do filtro — só commita ao clicar "Aplicar filtros"
+  const [draftStatus, setDraftStatus] = useState('');
+  const [draftTipo, setDraftTipo] = useState<'' | 'REGULAR' | 'OFICINA'>();
+  const filterRef = useRef<HTMLDivElement>(null);
+  const maisAcoesRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Colunas visíveis
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set(['tipo', 'turno', 'referencia', 'vencimento', 'status', 'valor', 'pago']),
+  );
+
+  const ALL_COLUMNS = [
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'turno', label: 'Turno' },
+    { key: 'referencia', label: 'Referência' },
+    { key: 'vencimento', label: 'Vencimento' },
+    { key: 'status', label: 'Status' },
+    { key: 'valor', label: 'Valor' },
+    { key: 'pago', label: 'Pago' },
+  ] as const;
+
+  function toggleColumn(key: string) {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   const [modalGerar, setModalGerar] = useState(false);
   const [modalPagar, setModalPagar] = useState<Mensalidade | null>(null);
@@ -653,6 +717,8 @@ function MensalidadesContent() {
     queryKey: ['mensalidades', periodoInicio, periodoFim],
     queryFn: () =>
       api.get(`/mensalidades?dataInicio=${periodoInicio}&dataFim=${periodoFim}`).then((r) => r.data),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Alunos para o modal de geração
@@ -662,23 +728,36 @@ function MensalidadesContent() {
     enabled: modalGerar,
   });
 
-  // Filtro client-side: nome + status
+  // Filtro client-side: nome + status + tipo
   const mensalidadesFiltradas = useMemo(() => {
     return mensalidades.filter((m) => {
       if (statusFilter && m.status !== statusFilter) return false;
+      if (tipoFilter && m.tipo !== tipoFilter) return false;
       if (search && !m.aluno.nome.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [mensalidades, search, statusFilter]);
+  }, [mensalidades, search, statusFilter, tipoFilter]);
 
-  const hasActiveFilters = search || statusFilter;
+  const hasActiveFilters = search || statusFilter || tipoFilter;
 
   function clearFilters() {
     setSearch('');
     setStatusFilter('');
+    setTipoFilter('');
   }
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mensalidades', periodoInicio, periodoFim] });
+  // Fechar dropdowns ao clicar fora
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) { setFilterPanelOpen(false); setShowDatePicker(false); }
+      if (maisAcoesRef.current && !maisAcoesRef.current.contains(e.target as Node)) setMaisAcoesOpen(false);
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setSettingsOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mensalidades'] });
 
   // Resumo sobre todos os resultados do período (não filtrado)
   const totais = mensalidades.reduce(
@@ -706,7 +785,7 @@ function MensalidadesContent() {
       setModalGerar(false);
       formGerar.reset({ mesReferencia: now.getMonth() + 1, anoReferencia: now.getFullYear() });
       setServerError(null);
-      showToast('Mensalidade gerada com sucesso.', 'success');
+      showToast('Mensalidade gerada', 'A mensalidade foi gerada com sucesso.');
     },
     onError: (err: AxiosError<{ message: string }>) => {
       setServerError(
@@ -753,7 +832,7 @@ function MensalidadesContent() {
       const filaRestante = pagarFila.slice(1);
       if (filaRestante.length > 0) {
         // Avança para o próximo da fila
-        showToast('Pagamento registrado. Próximo aluno…', 'success');
+        showToast('Pagamento registrado', 'Próximo aluno na fila…');
         abrirProximoDaFila(filaRestante);
       } else {
         // Fila concluída
@@ -761,7 +840,7 @@ function MensalidadesContent() {
         setPagarFilaTotal(0);
         setModalPagar(null);
         formPagar.reset({ splits: [{ formaPagamento: '', valor: 0 }], dataPagamento: hoje, valorDesconto: 0 });
-        showToast('Pagamento registrado com sucesso.', 'success');
+        showToast('Pagamento registrado', 'O pagamento foi registrado com sucesso.');
       }
     },
     onError: (err: AxiosError<{ message: string }>) => {
@@ -781,7 +860,7 @@ function MensalidadesContent() {
       setModalEstornar(null);
       formEstornar.reset();
       setServerError(null);
-      showToast('Pagamento estornado com sucesso.', 'success');
+      showToast('Pagamento estornado', 'O estorno foi registrado com sucesso.', 'warning');
     },
     onError: (err: AxiosError<{ message?: string }>) => {
       setServerError(err.response?.data?.message ?? 'Erro ao estornar pagamento.');
@@ -800,7 +879,7 @@ function MensalidadesContent() {
       setModalCancelar(null);
       formCancelar.reset();
       setServerError(null);
-      showToast('Mensalidade cancelada.', 'success');
+      showToast('Mensalidade cancelada', 'A mensalidade foi cancelada.', 'warning');
     },
     onError: (err: AxiosError<{ message: string }>) => {
       setServerError(err.response?.data?.message ?? 'Erro ao cancelar mensalidade.');
@@ -818,7 +897,7 @@ function MensalidadesContent() {
       setBulkCancelarMotivos({});
       setBulkCancelarMotivoGlobal('');
       setSelected(new Set());
-      showToast(`${res.data.success} mensalidade(s) cancelada(s)${res.data.skipped > 0 ? `, ${res.data.skipped} ignorada(s)` : ''}.`, 'success');
+      showToast('Cancelamento em lote', `${res.data.success} mensalidade(s) cancelada(s)${res.data.skipped > 0 ? ` · ${res.data.skipped} ignorada(s)` : ''}.`, 'warning');
     },
     onError: (err: AxiosError<{ message: string }>) => {
       setServerError(err.response?.data?.message ?? 'Erro ao cancelar em lote.');
@@ -848,7 +927,7 @@ function MensalidadesContent() {
       setSelected(new Set());
       const s = res.data.success;
       const sk = res.data.skipped;
-      showToast(`${s} estorno${s !== 1 ? 's' : ''} realizado${s !== 1 ? 's' : ''}${sk > 0 ? ` · ${sk} ignorado${sk !== 1 ? 's' : ''}` : ''}.`, 'success');
+      showToast('Estorno em lote', `${s} estorno${s !== 1 ? 's' : ''} realizado${s !== 1 ? 's' : ''}${sk > 0 ? ` · ${sk} ignorado${sk !== 1 ? 's' : ''}` : ''}.`, 'warning');
     },
     onError: (err: AxiosError<{ message: string }>) => {
       setServerError(err.response?.data?.message ?? 'Erro ao estornar em lote.');
@@ -953,79 +1032,318 @@ function MensalidadesContent() {
         </div>
       </div>
 
-      {/* Card de filtros */}
-      <div className="card p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* ── Toolbar ── */}
+      <div className="card p-4 space-y-3">
+
+        {/* Linha principal: ações à esquerda + busca/config à direita */}
+        <div className="flex items-center gap-2">
+
+          {/* Filtro — popover */}
+          <div ref={filterRef} className="relative">
+            <button
+              onClick={() => {
+                setDraftStatus(statusFilter);
+                setDraftTipo(tipoFilter);
+                setShowDatePicker(false);
+                setFilterPanelOpen((v) => !v);
+              }}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all ${
+                filterPanelOpen || periodoInicio !== defaultInicio || periodoFim !== defaultFim
+                  ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74z" clipRule="evenodd" />
+              </svg>
+              Filtro
+              {(() => {
+                const count =
+                  (periodoInicio !== defaultInicio || periodoFim !== defaultFim ? 1 : 0) +
+                  (statusFilter ? 1 : 0) +
+                  (tipoFilter ? 1 : 0);
+                return count > 0 ? (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">{count}</span>
+                ) : null;
+              })()}
+            </button>
+
+            {filterPanelOpen && (
+              <div className={`absolute left-0 top-full z-30 mt-1.5 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620] ${showDatePicker ? 'w-80' : 'w-72'}`}>
+                <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Filtro</p>
+                </div>
+
+                <div className="space-y-4 px-4 py-4">
+                  {/* Período de vencimento */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Período de vencimento</p>
+                    <button
+                      onClick={() => setShowDatePicker((v) => !v)}
+                      className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all ${
+                        periodoInicio !== defaultInicio || periodoFim !== defaultFim
+                          ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                          : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400'
+                      }`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                      </svg>
+                      <span className="flex-1 truncate whitespace-nowrap text-left">{fmtBR(periodoInicio)} → {fmtBR(periodoFim)}</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`h-3.5 w-3.5 shrink-0 transition-transform ${showDatePicker ? 'rotate-180' : ''}`}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                    {showDatePicker && (
+                      <div className="mt-2">
+                        <CalendarModal
+                          inline
+                          initialInicio={periodoInicio}
+                          initialFim={periodoFim}
+                          onApply={(ini, fim) => { setPeriodoInicio(ini); setPeriodoFim(fim); setShowDatePicker(false); }}
+                          onClose={() => setShowDatePicker(false)}
+                        />
+                      </div>
+                    )}
+                    {(periodoInicio !== defaultInicio || periodoFim !== defaultFim) && (
+                      <button
+                        onClick={() => { setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
+                        className="mt-1 text-xs text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300"
+                      >
+                        Redefinir para o mês atual
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Status</p>
+                    <select
+                      value={draftStatus}
+                      onChange={(e) => setDraftStatus(e.target.value)}
+                      className="input-base"
+                    >
+                      <option value="" disabled>Selecione</option>
+                      {(['INADIMPLENTE', 'PENDENTE', 'PARCIAL', 'PAGO', 'CANCELADA'] as const).map((s) => (
+                        <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tipo */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Tipo</p>
+                    <select
+                      value={draftTipo}
+                      onChange={(e) => setDraftTipo(e.target.value as '' | 'REGULAR' | 'OFICINA')}
+                      className="input-base"
+                    >
+                      <option value="" disabled>Selecione</option>
+                      <option value="REGULAR">Mensalidade</option>
+                      <option value="OFICINA">Oficinas</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <button
+                    onClick={() => {
+                      setDraftStatus('');
+                      setDraftTipo('');
+                      clearFilters();
+                      setPeriodoInicio(defaultInicio);
+                      setPeriodoFim(defaultFim);
+                      setShowDatePicker(false);
+                      setFilterPanelOpen(false);
+                    }}
+                    className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    Limpar filtros
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter(draftStatus);
+                      setTipoFilter(draftTipo ?? '');
+                      setShowDatePicker(false);
+                      setFilterPanelOpen(false);
+                    }}
+                    className="rounded-xl bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                  >
+                    Aplicar filtros
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mais ações dropdown */}
+          <div ref={maisAcoesRef} className="relative">
+            <button
+              onClick={() => setMaisAcoesOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-sm font-medium text-stone-600 transition-all hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600"
+            >
+              Mais ações
+              <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 transition-transform ${maisAcoesOpen ? 'rotate-180' : ''}`}>
+                <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            {maisAcoesOpen && (
+              <div className="absolute left-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500">
+                  Ações em lote
+                  {someSelected && <span className="ml-1 text-brand-500">({selected.size})</span>}
+                </p>
+                <button
+                  onClick={() => { setMaisAcoesOpen(false); if (someSelected && allPagaveis) { setServerError(null); abrirProximoDaFila(selectedItems, selectedItems.length); } }}
+                  disabled={!someSelected || !allPagaveis}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-stone-700 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-brand-500">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+                  </svg>
+                  Pagar selecionados
+                </button>
+                <button
+                  onClick={() => { setMaisAcoesOpen(false); if (someSelected && allEstornaveis) abrirBulkEstornar(); }}
+                  disabled={!someSelected || !allEstornaveis}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-stone-700 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-amber-500">
+                    <path fillRule="evenodd" d="M7.793 2.456a3.25 3.25 0 0 1 4.414 0l5.337 4.876A3.25 3.25 0 0 1 18.5 9.72v5.53A2.75 2.75 0 0 1 15.75 18h-11.5A2.75 2.75 0 0 1 1.5 15.25V9.72a3.25 3.25 0 0 1 .956-2.388L7.793 2.456ZM10 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm-1-4.25a1 1 0 0 1 2 0v2.5a1 1 0 0 1-2 0v-2.5Z" clipRule="evenodd" />
+                  </svg>
+                  Estornar selecionados
+                </button>
+                <button
+                  onClick={() => {
+                    setMaisAcoesOpen(false);
+                    if (someSelected && allCancelaveis) {
+                      setServerError(null);
+                      setBulkCancelarIndividual(false);
+                      setBulkCancelarMotivos({});
+                      setBulkCancelarMotivoGlobal('');
+                      setBulkCancelarItems(selectedItems.map((m) => ({
+                        id: m.id, nome: m.aluno.nome,
+                        ref: `${String(m.mesReferencia).padStart(2, '0')}/${m.anoReferencia}`,
+                      })));
+                    }
+                  }}
+                  disabled={!someSelected || !allCancelaveis}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-stone-700 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-crimson-500">
+                    <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 3.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                  </svg>
+                  Cancelar selecionados
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1" />
+
           {/* Busca por nome */}
-          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
+          <div className="flex min-w-52 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-stone-400">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
             </svg>
             <input
               type="text"
-              placeholder="Buscar por nome do aluno…"
+              placeholder="Pesquise…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent text-sm text-stone-900 outline-none placeholder-stone-400 dark:text-slate-100 dark:placeholder-slate-500"
             />
-          </div>
-
-          {/* Seletor de período */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowCalendar(true)}
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
-                periodoInicio !== defaultInicio || periodoFim !== defaultFim
-                  ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                  : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200'
-              }`}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
-              {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}
-            </button>
-            {(periodoInicio !== defaultInicio || periodoFim !== defaultFim) && (
-              <button
-                onClick={() => { setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
-                title="Redefinir para o mês atual"
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-stone-200 text-stone-400 transition-colors hover:border-stone-300 hover:text-stone-600 dark:border-slate-700 dark:text-slate-500 dark:hover:border-slate-600 dark:hover:text-slate-300"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            {search && (
+              <button onClick={() => setSearch('')} className="text-stone-300 hover:text-stone-500 dark:text-slate-600 dark:hover:text-slate-400">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
                 </svg>
               </button>
             )}
           </div>
 
-          {/* Limpar filtros client-side */}
-          {hasActiveFilters && (
+          {/* Configurações de colunas */}
+          <div ref={settingsRef} className="relative">
             <button
-              onClick={clearFilters}
-              className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              onClick={() => setSettingsOpen((v) => !v)}
+              title="Configurações de visualização"
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
+                settingsOpen
+                  ? 'border-brand-400 bg-brand-50 text-brand-600 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
+                  : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300 hover:text-stone-600 dark:border-slate-700 dark:bg-transparent dark:text-slate-500 dark:hover:border-slate-600 dark:hover:text-slate-300'
+              }`}
             >
-              Limpar
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
             </button>
-          )}
+
+            {settingsOpen && (
+              <div className="absolute right-0 top-full z-30 mt-1.5 w-64 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Configurações de visualização</p>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="mb-2 text-xs font-semibold text-stone-500 dark:text-slate-400">Visualização de colunas</p>
+                  <div className="space-y-2">
+                    {ALL_COLUMNS.map((col) => (
+                      <label key={col.key} className="flex cursor-pointer items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.has(col.key)}
+                          onChange={() => toggleColumn(col.key)}
+                          className="h-4 w-4 rounded border-stone-300 accent-brand-600"
+                        />
+                        <span className="text-sm text-stone-700 dark:text-slate-300">{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Chips de status */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {(['', 'INADIMPLENTE', 'PENDENTE', 'PARCIAL', 'PAGO', 'CANCELADA'] as const).map((s) => (
+        {/* Pré-filtros rápidos */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => { setStatusFilter(''); setTipoFilter(''); }}
+            className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-all ${
+              !statusFilter && !tipoFilter
+                ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
+                : 'border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
+            }`}
+          >
+            Todos
+          </button>
+          {(['INADIMPLENTE', 'PENDENTE', 'PARCIAL', 'PAGO', 'CANCELADA'] as const).map((s) => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => { setStatusFilter(s); setTipoFilter(''); }}
               className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-all ${
-                statusFilter === s
+                statusFilter === s && !tipoFilter
                   ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
                   : 'border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
               }`}
             >
-              {s === '' ? 'Todos' : STATUS_LABEL[s]}
+              {STATUS_LABEL[s]}
             </button>
           ))}
+          <span className="self-center text-stone-200 dark:text-slate-700">|</span>
+          <button
+            onClick={() => { setTipoFilter('OFICINA'); setStatusFilter(''); }}
+            className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-all ${
+              tipoFilter === 'OFICINA'
+                ? 'border-violet-600 bg-violet-600 text-white shadow-sm'
+                : 'border-stone-200 bg-white text-stone-600 hover:border-violet-400 hover:text-violet-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-violet-500 dark:hover:text-violet-400'
+            }`}
+          >
+            Oficinas
+          </button>
         </div>
       </div>
+
 
       {/* Tabela */}
       {isLoading ? (
@@ -1059,12 +1377,13 @@ function MensalidadesContent() {
                   />
                 </th>
                 <th className="table-th">Aluno</th>
-                <th className="table-th">Turno</th>
-                <th className="table-th">Referência</th>
-                <th className="table-th">Vencimento</th>
-                <th className="table-th">Status</th>
-                <th className="table-th text-right">Valor</th>
-                <th className="table-th text-right">Pago</th>
+                {visibleColumns.has('tipo') && <th className="table-th">Tipo</th>}
+                {visibleColumns.has('turno') && <th className="table-th">Turno</th>}
+                {visibleColumns.has('referencia') && <th className="table-th">Referência</th>}
+                {visibleColumns.has('vencimento') && <th className="table-th">Vencimento</th>}
+                {visibleColumns.has('status') && <th className="table-th">Status</th>}
+                {visibleColumns.has('valor') && <th className="table-th text-right">Valor</th>}
+                {visibleColumns.has('pago') && <th className="table-th text-right">Pago</th>}
                 <th className="table-th" />
               </tr>
             </thead>
@@ -1080,27 +1399,49 @@ function MensalidadesContent() {
                     />
                   </td>
                   <td className="table-td font-medium text-stone-900 dark:text-slate-100">
-                    <span className="inline-flex items-center">
+                    <span className="inline-flex items-center gap-1.5">
                       {m.aluno.nome}
                       <ResponsavelInfo resp={m.aluno.responsavelFinanceiro} />
                     </span>
                   </td>
-                  <td className="table-td text-xs text-stone-500 dark:text-slate-400">{TURNO_LABEL[m.aluno.turno] ?? m.aluno.turno}</td>
-                  <td className="table-td text-xs">{formatMesAno(m.mesReferencia, m.anoReferencia)}</td>
-                  <td className="table-td text-xs">{formatDate(m.dataVencimento)}</td>
-                  <td className="table-td">
-                    <span className={STATUS_BADGE[m.status]}>{STATUS_LABEL[m.status]}</span>
-                  </td>
-                  <td className="table-td text-right text-sm font-semibold text-stone-800 dark:text-slate-200">
-                    {formatCurrency(m.valorOriginal - m.valorDesconto)}
-                  </td>
-                  <td className="table-td text-right text-sm">
-                    {m.valorPago !== null ? (
-                      <span className="font-semibold text-forest-500 dark:text-forest-300">{formatCurrency(m.valorPago)}</span>
-                    ) : (
-                      <span className="text-stone-300 dark:text-slate-600">—</span>
-                    )}
-                  </td>
+                  {visibleColumns.has('tipo') && (
+                    <td className="table-td text-xs">
+                      {m.tipo === 'OFICINA' && m.oficinaNome ? (
+                        <span className="group relative inline-block max-w-[9rem]">
+                          <span className="block truncate rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                            {m.oficinaNome}
+                          </span>
+                          <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-max max-w-[16rem] -translate-x-1/2 break-words rounded-lg bg-stone-800 px-2.5 py-1.5 text-center text-[11px] font-medium leading-snug text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-slate-700">
+                            {m.oficinaNome}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-stone-400 dark:text-slate-500">Mensalidade</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.has('turno') && <td className="table-td text-xs text-stone-500 dark:text-slate-400">{TURNO_LABEL[m.aluno.turno] ?? m.aluno.turno}</td>}
+                  {visibleColumns.has('referencia') && <td className="table-td text-xs">{formatMesAno(m.mesReferencia, m.anoReferencia)}</td>}
+                  {visibleColumns.has('vencimento') && <td className="table-td text-xs">{formatDate(m.dataVencimento)}</td>}
+                  {visibleColumns.has('status') && (
+                    <td className="table-td">
+                      <span className={STATUS_BADGE[m.status]}>{STATUS_LABEL[m.status]}</span>
+                    </td>
+                  )}
+                  {visibleColumns.has('valor') && (
+                    <td className="table-td text-right text-sm font-semibold text-stone-800 dark:text-slate-200">
+                      {formatCurrency(m.valorOriginal - m.valorDesconto)}
+                    </td>
+                  )}
+                  {visibleColumns.has('pago') && (
+                    <td className="table-td text-right text-sm">
+                      {m.valorPago !== null ? (
+                        <span className="font-semibold text-forest-500 dark:text-forest-300">{formatCurrency(m.valorPago)}</span>
+                      ) : (
+                        <span className="text-stone-300 dark:text-slate-600">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="table-td">
                     <div className="flex items-center justify-end gap-2">
                       {canAtendente && (m.status === 'PENDENTE' || m.status === 'INADIMPLENTE' || m.status === 'PARCIAL') && (
@@ -1732,16 +2073,6 @@ function MensalidadesContent() {
             </div>
           </form>
         </Modal>
-      )}
-
-      {/* CalendarModal de período */}
-      {showCalendar && (
-        <CalendarModal
-          initialInicio={periodoInicio}
-          initialFim={periodoFim}
-          onApply={(ini, fim) => { setPeriodoInicio(ini); setPeriodoFim(fim); setShowCalendar(false); }}
-          onClose={() => setShowCalendar(false)}
-        />
       )}
 
       <Toast toast={toast} onClose={hideToast} />

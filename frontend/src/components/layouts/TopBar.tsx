@@ -24,13 +24,13 @@ export function TopBar() {
   const firstName = user?.nome.split(' ')[0] ?? '';
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-stone-200 bg-white px-6 dark:border-slate-800/80 dark:bg-[#0c0e14]">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-stone-200/70 bg-white px-6 dark:border-white/[0.06] dark:bg-[#0b0e14]">
       {/* Left — saudação */}
       <div className="min-w-0">
         {user && (
-          <p className="truncate text-sm font-medium text-stone-800 dark:text-slate-200">
+          <p className="truncate text-sm text-stone-500 dark:text-slate-500">
             {getGreeting()},{' '}
-            <span className="font-semibold">{firstName}</span>
+            <span className="font-semibold text-stone-900 dark:text-slate-100">{firstName}</span>
             <span className="hidden text-stone-400 dark:text-slate-600 sm:inline">
               {' '}·{' '}{formatDateLong()}
             </span>
@@ -41,7 +41,7 @@ export function TopBar() {
       {/* Right */}
       <div className="flex shrink-0 items-center gap-2">
         <FilialSelector />
-        <div className="mx-1 h-5 w-px bg-stone-200 dark:bg-slate-700/60" />
+        <div className="mx-1 h-4 w-px bg-stone-200 dark:bg-white/[0.08]" />
         <ThemeToggle />
       </div>
     </header>

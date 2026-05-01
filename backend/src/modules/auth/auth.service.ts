@@ -13,13 +13,66 @@ import { RATE_LIMIT_LOGIN_KEY } from '../../middlewares/rate-limit';
 import { env } from '../../config/env';
 import { createAuditLog } from '../../middlewares/audit';
 import { UnauthorizedError, ConflictError } from '../../shared/errors/AppError';
-import type { LoginInput, UpdateProfileInput } from './auth.schema';
+import { prisma } from '../../config/database';
+import type { LoginInput, UpdateProfileInput, RegisterInput } from './auth.schema';
 import type { JwtPayload, RefreshTokenPayload } from '../../middlewares/authenticate';
 
 const BCRYPT_COST = 12;
 
 export class AuthService {
   private repo = new AuthRepository();
+
+  // Registro público — cria nova organização + filial inicial + SUPER_ADMIN
+  async register(input: RegisterInput) {
+    const cnpj = input.cnpjEscola.replace(/\D/g, '');
+
+    // Verificar unicidade do CNPJ da organização
+    const existingOrg = await prisma.organization.findUnique({ where: { cnpj } });
+    if (existingOrg) throw new ConflictError('CNPJ já cadastrado');
+
+    // Verificar unicidade do email globalmente
+    const existingUser = await prisma.user.findFirst({ where: { email: input.email } });
+    if (existingUser) throw new ConflictError('Email já cadastrado');
+
+    const passwordHash = await bcrypt.hash(input.senha, BCRYPT_COST);
+
+    // Criar organização + filial inicial + usuário SUPER_ADMIN em uma única transação
+    const result = await prisma.$transaction(async (tx) => {
+      const org = await tx.organization.create({
+        data: { nome: input.nomeEscola, cnpj, email: input.email },
+      });
+
+      const filial = await tx.filial.create({
+        data: {
+          organizationId: org.id,
+          nome: 'Sede',
+          cnpj,
+          diaVencimento: 10,
+          valorMensalidadeManha: 0,
+          valorMensalidadeTarde: 0,
+          ativo: true,
+        },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          organizationId: org.id,
+          nome: input.nomeAdmin,
+          email: input.email,
+          passwordHash,
+          role: 'SUPER_ADMIN',
+          primeiroAcesso: false,
+          ativo: true,
+          filiais: { create: [{ filialId: filial.id }] },
+        },
+        select: { id: true, nome: true, email: true, role: true, organizationId: true },
+      });
+
+      return { org, user };
+    });
+
+    return result;
+  }
 
   // S001 — Login com email e senha
   async login(input: LoginInput, ip: string) {

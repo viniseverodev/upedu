@@ -54,10 +54,11 @@ module.exports = {
         sans: ['var(--font-onest)', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        card:      '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        'card-md': '0 4px 8px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04)',
-        'card-lg': '0 12px 24px -4px rgb(0 0 0 / 0.12), 0 4px 8px -4px rgb(0 0 0 / 0.06)',
-        glow:      '0 0 0 3px rgb(0 74 171 / 0.18)',
+        card:      '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 4px 16px -4px rgb(0 0 0 / 0.08)',
+        'card-md': '0 4px 12px -2px rgb(0 0 0 / 0.10), 0 8px 32px -8px rgb(0 0 0 / 0.12)',
+        'card-lg': '0 20px 40px -8px rgb(0 0 0 / 0.18), 0 8px 16px -4px rgb(0 0 0 / 0.08)',
+        glow:      '0 0 0 3px rgb(0 74 171 / 0.20)',
+        'brand-glow': '0 4px 24px -4px rgb(0 74 171 / 0.35)',
       },
       borderRadius: {
         xl:    '0.75rem',

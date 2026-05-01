@@ -304,6 +304,7 @@ export default function AlunoPerfilPage() {
       setShowMatriculaModal(false);
       resetMatricula();
       setMatriculaError(null);
+      showToast('Matrícula realizada', 'A matrícula foi registrada com sucesso.');
     },
     onError: (error: AxiosError<{ message: string }>) => setMatriculaError(error.response?.data?.message ?? 'Erro ao criar matrícula.'),
   });

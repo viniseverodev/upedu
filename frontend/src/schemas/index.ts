@@ -199,6 +199,28 @@ export const createTransacaoSchema = z.object({
   dataTransacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
 });
 
+export const registerSchema = z
+  .object({
+    nomeEscola: z.string().min(3, 'Nome da escola deve ter ao menos 3 caracteres'),
+    cnpjEscola: z
+      .string()
+      .regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$|^\d{14}$/, 'CNPJ inválido')
+      .refine(validarCnpj, 'CNPJ inválido (dígitos verificadores)'),
+    nomeAdmin: z.string().min(3, 'Nome deve ter ao menos 3 caracteres'),
+    email: z.string().email('Email inválido'),
+    senha: z
+      .string()
+      .min(8, 'Mínimo 8 caracteres')
+      .regex(/[A-Z]/, 'Deve conter ao menos 1 maiúscula')
+      .regex(/[0-9]/, 'Deve conter ao menos 1 número'),
+    confirmarSenha: z.string(),
+  })
+  .refine((d) => d.senha === d.confirmarSenha, {
+    message: 'As senhas não coincidem',
+    path: ['confirmarSenha'],
+  });
+
+export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateAlunoInput = z.infer<typeof createAlunoSchema>;
 export type CreateFilialInput = z.infer<typeof createFilialSchema>;
