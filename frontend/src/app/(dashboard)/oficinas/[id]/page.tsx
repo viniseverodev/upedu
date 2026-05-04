@@ -4,9 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AxiosError } from "axios";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/components/ui/Toast";
@@ -122,10 +124,9 @@ export default function OficinaDetailPage() {
         "As alterações foram salvas com sucesso.",
       );
     },
-    onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
+    onError: (err: AxiosError<{ message?: string }>) => {
       setEditError(
-        axiosErr.response?.data?.message ?? "Erro ao salvar alterações.",
+        err.response?.data?.message ?? "Erro ao salvar alterações.",
       );
     },
   });
@@ -135,16 +136,18 @@ export default function OficinaDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oficinas'] });
       queryClient.invalidateQueries({ queryKey: ['oficinas', id] });
+      sessionStorage.setItem('oficina-removida', `"${oficina?.nome}" foi removida com sucesso.`);
       router.push('/oficinas');
     },
   });
 
   const toggleOficinaStatus = useMutation({
-    mutationFn: () => api.patch(`/oficinas/${id}`, { ativa: !oficina?.ativa }),
-    onSuccess: () => {
+    mutationFn: (currentAtiva: boolean) =>
+      api.patch(`/oficinas/${id}`, { ativa: !currentAtiva }),
+    onSuccess: (_, currentAtiva) => {
       queryClient.invalidateQueries({ queryKey: ['oficinas'] });
       queryClient.invalidateQueries({ queryKey: ["oficinas", id] });
-      const novoStatus = oficina?.ativa ? "desativada" : "ativada";
+      const novoStatus = currentAtiva ? "desativada" : "ativada";
       showToast(
         `Oficina ${novoStatus}`,
         `A oficina foi ${novoStatus} com sucesso.`,
@@ -235,7 +238,7 @@ export default function OficinaDetailPage() {
             Editar
           </button>
           <button
-            onClick={() => toggleOficinaStatus.mutate()}
+            onClick={() => toggleOficinaStatus.mutate(oficina.ativa)}
             disabled={toggleOficinaStatus.isPending}
             className="btn-secondary text-xs"
           >
@@ -243,7 +246,7 @@ export default function OficinaDetailPage() {
           </button>
           <button
             onClick={() => setConfirmRemoveOficina(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-crimson-200 px-3 py-1.5 text-xs font-medium text-crimson-600 transition-colors hover:bg-crimson-50 dark:border-crimson-800 dark:text-crimson-400 dark:hover:bg-crimson-900/20"
+            className="btn-secondary text-xs text-crimson-600 hover:text-crimson-700 dark:text-crimson-400"
             title="Remover oficina permanentemente"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -393,7 +396,7 @@ export default function OficinaDetailPage() {
       </div>
 
       {/* Modal editar oficina */}
-      {editOpen && (
+      {editOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={() => setEditOpen(false)}
@@ -508,11 +511,12 @@ export default function OficinaDetailPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Modal confirm delete turma */}
-      {confirmDelete && (
+      {confirmDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="card w-full max-w-sm p-6 shadow-card-lg">
             <h2 className="text-base font-semibold text-stone-800 dark:text-slate-200">
@@ -541,11 +545,12 @@ export default function OficinaDetailPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Modal remover oficina */}
-      {confirmRemoveOficina && (
+      {confirmRemoveOficina && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="card w-full max-w-sm p-6 shadow-card-lg">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-crimson-100 dark:bg-crimson-900/30">
@@ -591,7 +596,8 @@ export default function OficinaDetailPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <Toast toast={toast} onClose={hideToast} />

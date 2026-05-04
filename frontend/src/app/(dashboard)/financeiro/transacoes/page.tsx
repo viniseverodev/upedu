@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
@@ -15,6 +15,7 @@ import { createTransacaoSchema, createCategoriaSchema, type CreateTransacaoInput
 import { z } from 'zod';
 import { useToast } from '@/hooks/useToast';
 import { Toast } from '@/components/ui/Toast';
+import { CalendarRangePicker } from '@/components/ui/CalendarRangePicker';
 
 // ---------- Tipos ----------
 
@@ -24,12 +25,6 @@ interface Transacao {
   dataTransacao: string; createdAt: string;
   categoria: { nome: string; tipo: string; removida: boolean; removidaEm: string | null };
 }
-
-// ---------- Constantes ----------
-
-const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const DAY_NAMES = ['D','S','T','Q','Q','S','S'];
 
 // ---------- Helpers de data ----------
 
@@ -44,232 +39,6 @@ function todayStr() {
   const d = new Date();
   return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
 }
-function offsetDate(from: string, days: number) {
-  const d = new Date(from + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-// ---------- CalendarModal ----------
-
-type CalendarView = 'day' | 'month' | 'year';
-
-interface CalendarModalProps {
-  title?: string;
-  initialInicio: string;
-  initialFim: string;
-  onApply: (inicio: string, fim: string) => void;
-  onClose: () => void;
-}
-
-function CalendarModal({ title = 'Período', initialInicio, initialFim, onApply, onClose }: CalendarModalProps) {
-  const today = new Date();
-  const cy = today.getFullYear();
-  const cm = today.getMonth();
-  const t = todayStr();
-
-  const [viewMode, setViewMode] = useState<CalendarView>('day');
-  const [viewYear, setViewYear] = useState(cy);
-  const [viewMonth, setViewMonth] = useState(cm);
-  const [yearPage, setYearPage] = useState(Math.floor(cy / 12) * 12);
-  const [start, setStart] = useState(initialInicio);
-  const [end, setEnd] = useState(initialFim);
-  const [hovered, setHovered] = useState('');
-
-  const nm = cm === 11 ? 0 : cm + 1;
-  const ny = cm === 11 ? cy + 1 : cy;
-  const daysInThisMonth = new Date(cy, cm + 1, 0).getDate();
-  const daysInNextMonth = new Date(ny, nm + 1, 0).getDate();
-
-  const shortcuts = [
-    { label: '7 dias',      ini: t, fim: offsetDate(t, 6) },
-    { label: '15 dias',     ini: t, fim: offsetDate(t, 14) },
-    { label: 'Este mês',    ini: `${cy}-${pad2(cm + 1)}-01`, fim: `${cy}-${pad2(cm + 1)}-${pad2(daysInThisMonth)}` },
-    { label: 'Mês que vem', ini: `${ny}-${pad2(nm + 1)}-01`, fim: `${ny}-${pad2(nm + 1)}-${pad2(daysInNextMonth)}` },
-    { label: 'Ano atual',   ini: `${cy}-01-01`, fim: `${cy}-12-31` },
-  ];
-
-  function handleDayClick(d: string) {
-    if (!start || (start && end)) { setStart(d); setEnd(''); }
-    else if (d < start) { setEnd(start); setStart(d); }
-    else setEnd(d);
-  }
-
-  function inRange(d: string) {
-    const e = end || hovered;
-    if (!start || !e) return false;
-    const [lo, hi] = start <= e ? [start, e] : [e, start];
-    return d > lo && d < hi;
-  }
-
-  function prevNav() {
-    if (viewMode === 'day') {
-      if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-      else setViewMonth((m) => m - 1);
-    } else if (viewMode === 'month') { setViewYear((y) => y - 1); }
-    else { setYearPage((p) => p - 12); }
-  }
-
-  function nextNav() {
-    if (viewMode === 'day') {
-      if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-      else setViewMonth((m) => m + 1);
-    } else if (viewMode === 'month') { setViewYear((y) => y + 1); }
-    else { setYearPage((p) => p + 12); }
-  }
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
-  const canApply = !!(start && end);
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]" onClick={(e) => e.stopPropagation()}>
-
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{title}</p>
-          <button onClick={onClose} className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {shortcuts.map((s) => (
-            <button
-              key={s.label}
-              onClick={() => { setStart(s.ini); setEnd(s.fim); setViewMode('day'); }}
-              className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
-                start === s.ini && end === s.fim
-                  ? 'border-brand-600 bg-brand-600 text-white'
-                  : 'border-stone-200 text-stone-500 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="mb-3 flex items-center justify-between">
-          <button onClick={prevNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-1">
-            {viewMode === 'day' && (
-              <>
-                <button onClick={() => setViewMode('month')} className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
-                  {MONTH_NAMES[viewMonth]}
-                </button>
-                <button onClick={() => setViewMode('year')} className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
-                  {viewYear}
-                </button>
-              </>
-            )}
-            {viewMode === 'month' && (
-              <button onClick={() => setViewMode('year')} className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400">
-                {viewYear}
-              </button>
-            )}
-            {viewMode === 'year' && (
-              <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">{yearPage} – {yearPage + 11}</span>
-            )}
-          </div>
-          <button onClick={nextNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </div>
-
-        {viewMode === 'day' && (
-          <div className="grid grid-cols-7 text-center text-xs">
-            {DAY_NAMES.map((d, i) => (
-              <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
-            ))}
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const d = toDateStr(viewYear, viewMonth, day);
-              const isSelected = d === start || d === end;
-              const ranged = inRange(d);
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDayClick(d)}
-                  onMouseEnter={() => !end && setHovered(d)}
-                  onMouseLeave={() => setHovered('')}
-                  className={[
-                    'relative py-1.5 text-xs font-medium transition-colors',
-                    isSelected
-                      ? 'z-10 rounded-full bg-brand-600 text-white'
-                      : ranged
-                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
-                        : 'rounded-full text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
-                  ].join(' ')}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {viewMode === 'month' && (
-          <div className="grid grid-cols-3 gap-1.5">
-            {MONTH_NAMES.map((name, i) => (
-              <button
-                key={i}
-                onClick={() => { setViewMonth(i); setViewMode('day'); }}
-                className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                  i === viewMonth ? 'bg-brand-600 text-white' : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
-                }`}
-              >
-                {name.slice(0, 3)}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {viewMode === 'year' && (
-          <div className="grid grid-cols-3 gap-1.5">
-            {years.map((y) => (
-              <button
-                key={y}
-                onClick={() => { setViewYear(y); setYearPage(Math.floor(y / 12) * 12); setViewMode('month'); }}
-                className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                  y === viewYear ? 'bg-brand-600 text-white' : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
-                }`}
-              >
-                {y}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2 text-xs dark:bg-white/[0.06]">
-          <span className="text-stone-500 dark:text-slate-400">De <strong className="text-stone-800 dark:text-slate-100">{fmtBR(start)}</strong></span>
-          <span className="text-stone-300 dark:text-slate-600">→</span>
-          <span className="text-stone-500 dark:text-slate-400">Até <strong className="text-stone-800 dark:text-slate-100">{fmtBR(end)}</strong></span>
-        </div>
-
-        <div className="mt-3 flex gap-2">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/[0.1]">
-            Cancelar
-          </button>
-          <button onClick={() => canApply && onApply(start, end)} disabled={!canApply} className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
-            Aplicar
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
 // ---------- Modal genérico ----------
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -323,7 +92,7 @@ const updateTransacaoSchema = z.object({
 const bulkEditSchema = z.object({
   categoriaId: z.string().uuid().optional(),
   tipo: z.enum(['ENTRADA', 'SAIDA', '']).optional(),
-  dataTransacao: z.string().optional(),
+  dataTransacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 type UpdateTransacaoInput = z.infer<typeof updateTransacaoSchema>;
@@ -433,7 +202,53 @@ export default function TransacoesPage() {
 
   const [periodoInicio, setPeriodoInicio] = useState(defaultInicio);
   const [periodoFim, setPeriodoFim] = useState(defaultFim);
-  const [showCalendar, setShowCalendar] = useState(false);
+
+  // Filtros client-side
+  const [search, setSearch] = useState('');
+  const [tipoFilter, setTipoFilter] = useState('');
+
+  // Rascunho do filtro — só commita ao clicar "Aplicar"
+  const [draftTipo, setDraftTipo] = useState('');
+
+  // Filtro popover
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Mais ações dropdown
+  const maisAcoesRef = useRef<HTMLDivElement>(null);
+  const [maisAcoesOpen, setMaisAcoesOpen] = useState(false);
+
+  // Período — dropdown dedicado
+  const periodoRef = useRef<HTMLDivElement>(null);
+
+  // Settings (colunas)
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set(['data', 'descricao', 'categoria', 'tipo', 'valor']),
+  );
+  const ALL_COLUMNS = [
+    { key: 'data',      label: 'Data' },
+    { key: 'descricao', label: 'Descrição' },
+    { key: 'categoria', label: 'Categoria' },
+    { key: 'tipo',      label: 'Tipo' },
+    { key: 'valor',     label: 'Valor' },
+  ] as const;
+  function toggleColumn(key: string) {
+    setVisibleColumns((prev) => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; });
+  }
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterPanelOpen(false);
+      if (periodoRef.current && !periodoRef.current.contains(e.target as Node)) setShowDatePicker(false);
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setSettingsOpen(false);
+      if (maisAcoesRef.current && !maisAcoesRef.current.contains(e.target as Node)) setMaisAcoesOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   // Seleção em lote
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -538,9 +353,28 @@ export default function TransacoesPage() {
     onError: (error: AxiosError<{ message: string }>) => { setServerErrorCat(error.response?.data?.message ?? 'Erro ao remover categoria.'); },
   });
 
+  // ---------- Período ----------
+
+  const periodoAlterado = periodoInicio !== defaultInicio || periodoFim !== defaultFim;
+
+  useEffect(() => { setSelecionados(new Set()); }, [periodoInicio, periodoFim]);
+
+  // ---------- Filtro client-side ----------
+
+  const transacoesFiltradas = useMemo(() => {
+    return transacoes.filter((t) => {
+      if (tipoFilter && t.tipo !== tipoFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!t.descricao.toLowerCase().includes(q) && !t.categoria.nome.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [transacoes, tipoFilter, search]);
+
   // ---------- Seleção ----------
 
-  const todosIds = transacoes.map((t) => t.id);
+  const todosIds = transacoesFiltradas.map((t) => t.id);
   const todosSelecionados = todosIds.length > 0 && todosIds.every((id) => selecionados.has(id));
   const algumSelecionado = selecionados.size > 0;
 
@@ -556,12 +390,6 @@ export default function TransacoesPage() {
       return next;
     });
   }
-
-  // ---------- Período ----------
-
-  const periodoAlterado = periodoInicio !== defaultInicio || periodoFim !== defaultFim;
-
-  useEffect(() => { setSelecionados(new Set()); }, [periodoInicio, periodoFim]);
 
   // ---------- Resumo ----------
 
@@ -598,35 +426,10 @@ export default function TransacoesPage() {
         <div>
           <h1 className="page-title">Transações</h1>
           <p className="mt-0.5 text-sm text-stone-400 dark:text-slate-500">
-            {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}
+            {isLoading ? '…' : `${transacoesFiltradas.length} transaç${transacoesFiltradas.length !== 1 ? 'ões' : 'ão'}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Seletor de período */}
-          <button
-            onClick={() => setShowCalendar(true)}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
-              periodoAlterado
-                ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300'
-            }`}
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-              <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clipRule="evenodd" />
-            </svg>
-            {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}
-            {periodoAlterado && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
-                className="ml-1 rounded-full text-brand-500 hover:text-brand-700 dark:text-brand-400"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
-                </svg>
-              </button>
-            )}
-          </button>
-
           <button onClick={() => setShowCategoriaModal(true)} className="btn-secondary py-2 text-xs">Categorias</button>
           <button onClick={() => { setShowTransacaoModal(true); setServerError(null); }} className="btn-primary py-2 text-xs">
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5z" /></svg>
@@ -651,11 +454,246 @@ export default function TransacoesPage() {
         </div>
       </div>
 
+      {/* Barra de filtros */}
+      <div className="card p-4 space-y-3">
+
+        {/* Linha 1: Filtro (esq) + Busca (dir) */}
+        <div className="flex items-center gap-2">
+
+          {/* Filtro — popover */}
+          <div ref={filterRef} className="relative">
+            <button
+              onClick={() => {
+                setDraftTipo(tipoFilter);
+                setShowDatePicker(false);
+                setFilterPanelOpen((v) => !v);
+              }}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all ${
+                filterPanelOpen || tipoFilter
+                  ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74z" clipRule="evenodd" />
+              </svg>
+              Filtro
+              {tipoFilter && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">1</span>
+              )}
+            </button>
+
+            {filterPanelOpen && (
+              <div className="absolute left-0 top-full z-30 mt-1.5 w-72 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Filtro</p>
+                </div>
+                <div className="px-4 py-4">
+                  <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Tipo</p>
+                  <select value={draftTipo} onChange={(e) => setDraftTipo(e.target.value)} className="input-base">
+                    <option value="">Todos</option>
+                    <option value="ENTRADA">Entrada</option>
+                    <option value="SAIDA">Saída</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between border-t border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <button
+                    onClick={() => { setTipoFilter(''); setDraftTipo(''); setFilterPanelOpen(false); }}
+                    className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    Limpar
+                  </button>
+                  <button
+                    onClick={() => { setTipoFilter(draftTipo); setFilterPanelOpen(false); }}
+                    className="rounded-xl bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mais ações dropdown */}
+          <div ref={maisAcoesRef} className="relative">
+            <button
+              onClick={() => setMaisAcoesOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-sm font-medium text-stone-600 transition-all hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600"
+            >
+              Mais ações
+              <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 transition-transform ${maisAcoesOpen ? 'rotate-180' : ''}`}>
+                <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            {maisAcoesOpen && (
+              <div className="absolute left-0 top-full z-30 mt-1.5 w-56 rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-slate-500">
+                  Ações em lote
+                  {algumSelecionado && <span className="ml-1 text-brand-500">({selecionados.size})</span>}
+                </p>
+                <button
+                  onClick={() => { setMaisAcoesOpen(false); if (algumSelecionado) { setShowBulkEdit(true); setServerError(null); resetBulkEdit(); } }}
+                  disabled={!algumSelecionado}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-stone-700 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-brand-500">
+                    <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65z" />
+                    <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+                  </svg>
+                  Editar selecionados
+                </button>
+                <button
+                  onClick={() => { setMaisAcoesOpen(false); if (algumSelecionado) setShowBulkDelete(true); }}
+                  disabled={!algumSelecionado}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-crimson-600 transition-colors hover:bg-crimson-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-crimson-400 dark:hover:bg-crimson-900/20"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                    <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 3.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                  </svg>
+                  Excluir selecionados
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Período — dropdown dedicado */}
+          <div ref={periodoRef} className="relative">
+            <button
+              onClick={() => setShowDatePicker((v) => !v)}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all ${
+                periodoAlterado
+                  ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              <span className="whitespace-nowrap">
+                {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}
+              </span>
+              {periodoAlterado && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
+                  className="ml-0.5 text-brand-400 hover:text-brand-600 dark:text-brand-500 dark:hover:text-brand-300"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              )}
+            </button>
+
+            {showDatePicker && (
+              <div className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-stone-200 bg-white shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]">
+                <CalendarRangePicker
+                  inline
+                  initialInicio={periodoInicio}
+                  initialFim={periodoFim}
+                  onApply={(ini, fim) => { setPeriodoInicio(ini); setPeriodoFim(fim); setShowDatePicker(false); }}
+                  onClose={() => setShowDatePicker(false)}
+                  showShortcuts
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Busca — estilo mensalidades */}
+          <div className="flex min-w-52 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-stone-400">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Pesquise…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-sm text-stone-900 outline-none placeholder-stone-400 dark:text-slate-100 dark:placeholder-slate-500"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="text-stone-300 hover:text-stone-500 dark:text-slate-600 dark:hover:text-slate-400">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Gear — configurações de colunas */}
+          <div ref={settingsRef} className="relative">
+            <button
+              onClick={() => setSettingsOpen((v) => !v)}
+              title="Configurações de visualização"
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
+                settingsOpen
+                  ? 'border-brand-400 bg-brand-50 text-brand-600 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
+                  : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300 hover:text-stone-600 dark:border-slate-700 dark:bg-transparent dark:text-slate-500 dark:hover:border-slate-600 dark:hover:text-slate-300'
+              }`}
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {settingsOpen && (
+              <div className="absolute right-0 top-full z-30 mt-1.5 w-64 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Configurações de visualização</p>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="mb-2 text-xs font-semibold text-stone-500 dark:text-slate-400">Visualização de colunas</p>
+                  <div className="space-y-2">
+                    {ALL_COLUMNS.map((col) => (
+                      <label key={col.key} className="flex cursor-pointer items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.has(col.key)}
+                          onChange={() => toggleColumn(col.key)}
+                          className="h-4 w-4 rounded border-stone-300 accent-brand-600"
+                        />
+                        <span className="text-sm text-stone-700 dark:text-slate-300">{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Linha 2: Chips de tipo */}
+        <div className="flex flex-wrap gap-2">
+          {[['', 'Todos'], ['ENTRADA', 'Entrada'], ['SAIDA', 'Saída']].map(([v, l]) => (
+            <button
+              key={v}
+              onClick={() => setTipoFilter(v)}
+              className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-all ${
+                tipoFilter === v
+                  ? v === 'ENTRADA'
+                    ? 'border-forest-600 bg-forest-600 text-white shadow-sm'
+                    : v === 'SAIDA'
+                      ? 'border-crimson-600 bg-crimson-600 text-white shadow-sm'
+                      : 'border-brand-600 bg-brand-600 text-white shadow-sm'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Tabela */}
       {isLoading ? <div className="skeleton h-64" /> :
-       transacoes.length === 0 ? (
+       transacoesFiltradas.length === 0 ? (
         <div className="empty-state">
-          <p className="text-sm text-stone-400 dark:text-slate-500">Nenhuma transação em {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}.</p>
+          <p className="text-sm text-stone-400 dark:text-slate-500">
+            {transacoes.length === 0
+              ? `Nenhuma transação em ${fmtBR(periodoInicio)} → ${fmtBR(periodoFim)}.`
+              : 'Nenhuma transação encontrada para os filtros aplicados.'}
+          </p>
         </div>
        ) : (
         <div className="table-container">
@@ -670,15 +708,16 @@ export default function TransacoesPage() {
                     className="h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
                   />
                 </th>
-                <th className="table-th">Data</th>
-                <th className="table-th">Descrição</th>
-                <th className="table-th">Categoria</th>
-                <th className="table-th text-right">Valor</th>
+                {visibleColumns.has('data') && <th className="table-th">Data</th>}
+                {visibleColumns.has('descricao') && <th className="table-th">Descrição</th>}
+                {visibleColumns.has('categoria') && <th className="table-th">Categoria</th>}
+                {visibleColumns.has('tipo') && <th className="table-th">Tipo</th>}
+                {visibleColumns.has('valor') && <th className="table-th text-right">Valor</th>}
                 <th className="table-th w-20"></th>
               </tr>
             </thead>
             <tbody>
-              {transacoes.map((t) => (
+              {transacoesFiltradas.map((t) => (
                 <tr key={t.id} className={`table-row ${selecionados.has(t.id) ? 'bg-brand-50/40 dark:bg-brand-900/10' : ''}`}>
                   <td className="table-td">
                     <input
@@ -688,18 +727,29 @@ export default function TransacoesPage() {
                       className="h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
                     />
                   </td>
-                  <td className="table-td text-xs">{formatDate(t.dataTransacao.slice(0, 10))}</td>
-                  <td className="table-td font-medium text-stone-900 dark:text-slate-100">{t.descricao}</td>
-                  <td className="table-td">
-                    <span className={t.categoria.tipo === 'RECEITA' ? 'badge-green' : 'badge-red'}>
-                      {t.categoria.nome}{t.categoria.removida ? ' (Removida)' : ''}
-                    </span>
-                  </td>
-                  <td className="table-td text-right">
-                    <span className={`font-semibold ${t.tipo === 'ENTRADA' ? 'text-forest-500 dark:text-forest-300' : 'text-crimson-500 dark:text-crimson-300'}`}>
-                      {t.tipo === 'ENTRADA' ? '+' : '−'}{formatCurrency(t.valor)}
-                    </span>
-                  </td>
+                  {visibleColumns.has('data') && <td className="table-td text-xs">{formatDate(t.dataTransacao.slice(0, 10))}</td>}
+                  {visibleColumns.has('descricao') && <td className="table-td font-medium text-stone-900 dark:text-slate-100">{t.descricao}</td>}
+                  {visibleColumns.has('categoria') && (
+                    <td className="table-td">
+                      <span className={t.categoria.tipo === 'RECEITA' ? 'badge-green' : 'badge-red'}>
+                        {t.categoria.nome}{t.categoria.removida ? ' (Removida)' : ''}
+                      </span>
+                    </td>
+                  )}
+                  {visibleColumns.has('tipo') && (
+                    <td className="table-td">
+                      <span className={`badge ${t.tipo === 'ENTRADA' ? 'badge-green' : 'badge-red'}`}>
+                        {t.tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}
+                      </span>
+                    </td>
+                  )}
+                  {visibleColumns.has('valor') && (
+                    <td className="table-td text-right">
+                      <span className={`font-semibold ${t.tipo === 'ENTRADA' ? 'text-forest-500 dark:text-forest-300' : 'text-crimson-500 dark:text-crimson-300'}`}>
+                        {t.tipo === 'ENTRADA' ? '+' : '−'}{formatCurrency(t.valor)}
+                      </span>
+                    </td>
+                  )}
                   <td className="table-td">
                     <div className="flex items-center justify-end gap-1">
                       <button
@@ -740,44 +790,6 @@ export default function TransacoesPage() {
         </div>
        )}
 
-      {/* Barra de ações em lote */}
-      {algumSelecionado && (
-        <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-5 py-3 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]">
-            <span className="text-sm font-semibold text-stone-700 dark:text-slate-300">
-              {selecionados.size} selecionada{selecionados.size !== 1 ? 's' : ''}
-            </span>
-            <div className="h-4 w-px bg-stone-200 dark:bg-slate-700" />
-            <button
-              onClick={() => { setShowBulkEdit(true); setServerError(null); resetBulkEdit(); }}
-              className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-white/[0.06]"
-            >
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65z" />
-                <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
-              </svg>
-              Editar
-            </button>
-            <button
-              onClick={() => setShowBulkDelete(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-crimson-200 bg-crimson-50 px-3 py-1.5 text-xs font-medium text-crimson-600 hover:bg-crimson-100 dark:border-crimson-700/40 dark:bg-crimson-900/20 dark:text-crimson-400 dark:hover:bg-crimson-900/30"
-            >
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 3.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5z" clipRule="evenodd" />
-              </svg>
-              Excluir
-            </button>
-            <button
-              onClick={() => setSelecionados(new Set())}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-white/[0.06]"
-            >
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Modal Detalhes */}
       {detalhes && (
@@ -786,17 +798,6 @@ export default function TransacoesPage() {
           onClose={() => setDetalhes(null)}
           onEdit={() => { setDetalhes(null); abrirEditar(detalhes); }}
           onDelete={() => { setDetalhes(null); setConfirmDelete(detalhes); }}
-        />
-      )}
-
-      {/* CalendarModal */}
-      {showCalendar && (
-        <CalendarModal
-          title="Período das transações"
-          initialInicio={periodoInicio}
-          initialFim={periodoFim}
-          onApply={(ini, fim) => { setPeriodoInicio(ini); setPeriodoFim(fim); setShowCalendar(false); }}
-          onClose={() => setShowCalendar(false)}
         />
       )}
 

@@ -168,7 +168,7 @@ function AlunosContent() {
     } else if (updated) {
       showToast('Aluno atualizado', `${decodeURIComponent(updated)} foi atualizado com sucesso.`);
     }
-  }, [searchParams, showToast]);
+  }, [searchParams, showToast, router]);
 
   // Filtros
   const [search, setSearch] = useState('');
@@ -178,8 +178,46 @@ function AlunosContent() {
   const [periodoFim, setPeriodoFim] = useState('');
   const [sortAz, setSortAz] = useState<'asc' | 'desc' | null>('asc');
 
-  // Calendário período de cadastro
-  const [showPeriodoModal, setShowPeriodoModal] = useState(false);
+  // Filtro popover
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Rascunho do filtro — só commita ao clicar "Aplicar"
+  const [draftTurno, setDraftTurno] = useState('');
+  const [draftSortAz, setDraftSortAz] = useState<'asc' | 'desc' | null>('asc');
+  const [draftPeriodoInicio, setDraftPeriodoInicio] = useState('');
+  const [draftPeriodoFim, setDraftPeriodoFim] = useState('');
+
+  // Settings (colunas)
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set(['cadastro', 'nome', 'nascimento', 'turno', 'responsavel', 'status']),
+  );
+  const ALL_COLUMNS = [
+    { key: 'cadastro',    label: 'Cadastro' },
+    { key: 'nome',        label: 'Nome' },
+    { key: 'nascimento',  label: 'Nascimento' },
+    { key: 'turno',       label: 'Turno' },
+    { key: 'responsavel', label: 'Responsável' },
+    { key: 'status',      label: 'Status' },
+  ] as const;
+  function toggleColumn(key: string) {
+    setVisibleColumns((prev) => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; });
+  }
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterPanelOpen(false);
+        setShowDatePicker(false);
+      }
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setSettingsOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   // Exclusão
   const [alunoParaDeletar, setAlunoParaDeletar] = useState<Aluno | null>(null);
@@ -202,6 +240,12 @@ function AlunosContent() {
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
       setAlunoParaDeletar(null);
       showToast('Aluno removido', `${nome} foi removido com sucesso.`);
+    },
+    onError: (err: AxiosError<{ message: string }>) => {
+      showToast(
+        'Erro ao remover',
+        err.response?.data?.message ?? 'Não foi possível remover o aluno. Tente novamente.',
+      );
     },
   });
 
@@ -247,14 +291,6 @@ function AlunosContent() {
 
   const hasActiveFilters = search || statusFilter || turnoFilter || periodoInicio || periodoFim;
 
-  function clearFilters() {
-    setSearch('');
-    setStatusFilter('');
-    setTurnoFilter('');
-    setPeriodoInicio('');
-    setPeriodoFim('');
-  }
-
   return (
     <div className="space-y-5 p-6">
       {/* Header */}
@@ -278,69 +314,215 @@ function AlunosContent() {
       </div>
 
       {/* Barra de filtros */}
-      <div className="card p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          {/* Busca por nome / responsável */}
-          <div className="flex min-w-48 flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
-            <span className="shrink-0 text-stone-400"><IcoSearch /></span>
+      <div className="card p-4 space-y-3">
+
+        {/* Linha 1: Filtro (esq) + Busca (dir) */}
+        <div className="flex items-center gap-2">
+
+          {/* Filtro — popover */}
+          <div ref={filterRef} className="relative">
+            <button
+              onClick={() => {
+                setDraftTurno(turnoFilter);
+                setDraftSortAz(sortAz);
+                setDraftPeriodoInicio(periodoInicio);
+                setDraftPeriodoFim(periodoFim);
+                setShowDatePicker(false);
+                setFilterPanelOpen((v) => !v);
+              }}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all ${
+                filterPanelOpen || turnoFilter || periodoInicio || periodoFim
+                  ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74z" clipRule="evenodd" />
+              </svg>
+              Filtro
+              {(() => {
+                const count = (turnoFilter ? 1 : 0) + (periodoInicio || periodoFim ? 1 : 0);
+                return count > 0 ? (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">{count}</span>
+                ) : null;
+              })()}
+            </button>
+
+            {filterPanelOpen && (
+              <div className="absolute left-0 top-full z-30 mt-1.5 w-72 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Filtro</p>
+                </div>
+                <div className="space-y-4 px-4 py-4">
+                  {/* Turno */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Turno</p>
+                    <select value={draftTurno} onChange={(e) => setDraftTurno(e.target.value)} className="input-base">
+                      <option value="">Todos os turnos</option>
+                      <option value="MANHA">Manhã</option>
+                      <option value="TARDE">Tarde</option>
+                    </select>
+                  </div>
+                  {/* Período de cadastro — inline */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Período de cadastro</p>
+                    <button
+                      onClick={() => setShowDatePicker((v) => !v)}
+                      className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all ${
+                        periodoInicio || periodoFim
+                          ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                          : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400'
+                      }`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                      </svg>
+                      <span className="flex-1 truncate whitespace-nowrap text-left">
+                        {draftPeriodoInicio && draftPeriodoFim
+                          ? `${fmtBR(draftPeriodoInicio)} → ${fmtBR(draftPeriodoFim)}`
+                          : draftPeriodoInicio ? `A partir de ${fmtBR(draftPeriodoInicio)}` : 'Selecionar período'}
+                      </span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`h-3.5 w-3.5 shrink-0 transition-transform ${showDatePicker ? 'rotate-180' : ''}`}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                    {showDatePicker && (
+                      <div className="mt-2">
+                        <CalendarRangePicker
+                          inline
+                          initialInicio={draftPeriodoInicio}
+                          initialFim={draftPeriodoFim}
+                          onApply={(ini, fim) => { setDraftPeriodoInicio(ini); setDraftPeriodoFim(fim); setShowDatePicker(false); }}
+                          onClose={() => setShowDatePicker(false)}
+                          showShortcuts={false}
+                        />
+                      </div>
+                    )}
+                    {(draftPeriodoInicio || draftPeriodoFim) && (
+                      <button
+                        onClick={() => { setDraftPeriodoInicio(''); setDraftPeriodoFim(''); }}
+                        className="mt-1 text-xs text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300"
+                      >
+                        Limpar período
+                      </button>
+                    )}
+                  </div>
+                  {/* Ordenação */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Ordenação</p>
+                    <select
+                      value={draftSortAz ?? ''}
+                      onChange={(e) => setDraftSortAz(e.target.value === '' ? null : (e.target.value as 'asc' | 'desc'))}
+                      className="input-base"
+                    >
+                      <option value="asc">A → Z</option>
+                      <option value="desc">Z → A</option>
+                      <option value="">Sem ordenação</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-t border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <button
+                    onClick={() => {
+                      setTurnoFilter('');
+                      setPeriodoInicio('');
+                      setPeriodoFim('');
+                      setSortAz('asc');
+                      setDraftTurno('');
+                      setDraftSortAz('asc');
+                      setDraftPeriodoInicio('');
+                      setDraftPeriodoFim('');
+                      setShowDatePicker(false);
+                      setFilterPanelOpen(false);
+                    }}
+                    className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    Limpar filtros
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTurnoFilter(draftTurno);
+                      setSortAz(draftSortAz);
+                      setPeriodoInicio(draftPeriodoInicio);
+                      setPeriodoFim(draftPeriodoFim);
+                      setShowDatePicker(false);
+                      setFilterPanelOpen(false);
+                    }}
+                    className="rounded-xl bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Busca — estilo mensalidades */}
+          <div className="flex min-w-52 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-slate-700 dark:bg-white/[0.06]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0 text-stone-400">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
+            </svg>
             <input
               type="text"
-              placeholder="Buscar por nome ou responsável…"
+              placeholder="Pesquise…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent text-sm text-stone-900 outline-none placeholder-stone-400 dark:text-slate-100 dark:placeholder-slate-500"
             />
-          </div>
-
-          {/* Turno */}
-          <div className="flex rounded-xl border border-stone-200 bg-stone-50 p-0.5 text-xs dark:border-slate-700 dark:bg-white/[0.06]">
-            {[['', 'Todos'], ['MANHA', 'Manhã'], ['TARDE', 'Tarde']].map(([v, l]) => (
-              <button
-                key={v}
-                onClick={() => setTurnoFilter(v)}
-                className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
-                  turnoFilter === v
-                    ? 'bg-white text-stone-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                    : 'text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300'
-                }`}
-              >
-                {l}
+            {search && (
+              <button onClick={() => setSearch('')} className="text-stone-300 hover:text-stone-500 dark:text-slate-600 dark:hover:text-slate-400">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                </svg>
               </button>
-            ))}
+            )}
           </div>
 
-          {/* Período de cadastro — abre CalendarModal */}
-          <button
-            onClick={() => setShowPeriodoModal(true)}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
-              periodoInicio || periodoFim
-                ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200'
-            }`}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-            </svg>
-            {periodoInicio && periodoFim
-              ? `${fmtBR(periodoInicio)} → ${fmtBR(periodoFim)}`
-              : periodoInicio
-                ? `A partir de ${fmtBR(periodoInicio)}`
-                : 'Período'}
-          </button>
-
-          {/* Limpar filtros */}
-          {hasActiveFilters && (
+          {/* Gear — configurações de colunas */}
+          <div ref={settingsRef} className="relative">
             <button
-              onClick={clearFilters}
-              className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 transition-colors hover:border-stone-300 hover:text-stone-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              onClick={() => setSettingsOpen((v) => !v)}
+              title="Configurações de visualização"
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
+                settingsOpen
+                  ? 'border-brand-400 bg-brand-50 text-brand-600 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
+                  : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300 hover:text-stone-600 dark:border-slate-700 dark:bg-transparent dark:text-slate-500 dark:hover:border-slate-600 dark:hover:text-slate-300'
+              }`}
             >
-              Limpar
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
             </button>
-          )}
+            {settingsOpen && (
+              <div className="absolute right-0 top-full z-30 mt-1.5 w-64 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620]">
+                <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Configurações de visualização</p>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="mb-2 text-xs font-semibold text-stone-500 dark:text-slate-400">Visualização de colunas</p>
+                  <div className="space-y-2">
+                    {ALL_COLUMNS.map((col) => (
+                      <label key={col.key} className="flex cursor-pointer items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.has(col.key)}
+                          onChange={() => toggleColumn(col.key)}
+                          className="h-4 w-4 rounded border-stone-300 accent-brand-600"
+                        />
+                        <span className="text-sm text-stone-700 dark:text-slate-300">{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Chips de status */}
-        <div className="mt-3 flex flex-wrap gap-2">
+        {/* Linha 2: Chips de status */}
+        <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
@@ -351,7 +533,7 @@ function AlunosContent() {
                   : 'border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
               }`}
             >
-              {s === '' ? 'Todos os status' : STATUS_LABELS[s]}
+              {s === '' ? 'Todos' : STATUS_LABELS[s]}
             </button>
           ))}
         </div>
@@ -377,50 +559,64 @@ function AlunosContent() {
           <table className="table-base">
             <thead className="table-head">
               <tr>
-                <th className="table-th">Cadastro</th>
-                <th className="table-th">
-                  <button
-                    onClick={() => setSortAz((s) => s === 'asc' ? 'desc' : s === 'desc' ? null : 'asc')}
-                    className="flex items-center gap-1 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-                  >
-                    Nome
-                    <span className="text-stone-300 dark:text-slate-600">
-                      {sortAz === 'asc' ? '↑' : sortAz === 'desc' ? '↓' : '↕'}
-                    </span>
-                  </button>
-                </th>
-                <th className="table-th">Nascimento</th>
-                <th className="table-th">Turno</th>
-                <th className="table-th">Responsável</th>
-                <th className="table-th">Status</th>
+                {visibleColumns.has('cadastro') && <th className="table-th">Cadastro</th>}
+                {visibleColumns.has('nome') && (
+                  <th className="table-th">
+                    <button
+                      onClick={() => setSortAz((s) => s === 'asc' ? 'desc' : s === 'desc' ? null : 'asc')}
+                      className="flex items-center gap-1 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                    >
+                      Nome
+                      <span className="text-stone-300 dark:text-slate-600">
+                        {sortAz === 'asc' ? '↑' : sortAz === 'desc' ? '↓' : '↕'}
+                      </span>
+                    </button>
+                  </th>
+                )}
+                {visibleColumns.has('nascimento') && <th className="table-th">Nascimento</th>}
+                {visibleColumns.has('turno') && <th className="table-th">Turno</th>}
+                {visibleColumns.has('responsavel') && <th className="table-th">Responsável</th>}
+                {visibleColumns.has('status') && <th className="table-th">Status</th>}
                 <th className="table-th w-28 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {alunosFiltrados.map((aluno) => (
                 <tr key={aluno.id} className="table-row">
-                  <td className="table-td tabular-nums text-stone-500 dark:text-slate-500">
-                    {formatDate(aluno.createdAt)}
-                  </td>
-                  <td className="table-td font-semibold text-stone-900 dark:text-slate-100">
-                    {aluno.nome}
-                  </td>
-                  <td className="table-td tabular-nums text-stone-600 dark:text-slate-400">
-                    {formatDate(aluno.dataNascimento)}
-                  </td>
-                  <td className="table-td">
-                    <span className={`badge ${aluno.turno === 'MANHA' ? 'badge-blue' : 'badge-gray'}`}>
-                      {aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'}
-                    </span>
-                  </td>
-                  <td className="table-td text-stone-600 dark:text-slate-400">
-                    {(aluno.responsaveis.find((ar) => ar.isResponsavelFinanceiro) ?? aluno.responsaveis[0])?.responsavel.nome ?? '—'}
-                  </td>
-                  <td className="table-td">
-                    <span className={STATUS_BADGE[aluno.status] ?? 'badge badge-gray'}>
-                      {STATUS_LABELS[aluno.status] ?? aluno.status}
-                    </span>
-                  </td>
+                  {visibleColumns.has('cadastro') && (
+                    <td className="table-td tabular-nums text-stone-500 dark:text-slate-500">
+                      {formatDate(aluno.createdAt)}
+                    </td>
+                  )}
+                  {visibleColumns.has('nome') && (
+                    <td className="table-td font-semibold text-stone-900 dark:text-slate-100">
+                      {aluno.nome}
+                    </td>
+                  )}
+                  {visibleColumns.has('nascimento') && (
+                    <td className="table-td tabular-nums text-stone-600 dark:text-slate-400">
+                      {formatDate(aluno.dataNascimento)}
+                    </td>
+                  )}
+                  {visibleColumns.has('turno') && (
+                    <td className="table-td">
+                      <span className={`badge ${aluno.turno === 'MANHA' ? 'badge-blue' : 'badge-gray'}`}>
+                        {aluno.turno === 'MANHA' ? 'Manhã' : 'Tarde'}
+                      </span>
+                    </td>
+                  )}
+                  {visibleColumns.has('responsavel') && (
+                    <td className="table-td text-stone-600 dark:text-slate-400">
+                      {(aluno.responsaveis.find((ar) => ar.isResponsavelFinanceiro) ?? aluno.responsaveis[0])?.responsavel.nome ?? '—'}
+                    </td>
+                  )}
+                  {visibleColumns.has('status') && (
+                    <td className="table-td">
+                      <span className={STATUS_BADGE[aluno.status] ?? 'badge badge-gray'}>
+                        {STATUS_LABELS[aluno.status] ?? aluno.status}
+                      </span>
+                    </td>
+                  )}
                   <td className="table-td">
                     <div className="flex items-center justify-end gap-1">
                       <Link
@@ -471,21 +667,6 @@ function AlunosContent() {
         </div>
       )}
 
-      {/* CalendarRangePicker — filtro de período de cadastro */}
-      {showPeriodoModal && (
-        <CalendarRangePicker
-          title="Período de cadastro"
-          initialInicio={periodoInicio}
-          initialFim={periodoFim}
-          onApply={(ini, fim) => {
-            setPeriodoInicio(ini);
-            setPeriodoFim(fim);
-            setShowPeriodoModal(false);
-          }}
-          onClose={() => setShowPeriodoModal(false)}
-          showShortcuts={false}
-        />
-      )}
 
       {/* Modal de confirmação de exclusão */}
       {alunoParaDeletar && (

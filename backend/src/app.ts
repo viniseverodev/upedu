@@ -24,6 +24,7 @@ import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { relatoriosRoutes } from './modules/relatorios/relatorios.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { oficinasRoutes } from './modules/oficinas/oficinas.routes';
+import { retiradasRoutes } from './modules/retiradas/retiradas.routes';
 
 export async function buildApp() {
   // H2: trustProxy: 1 — confia apenas no primeiro hop (nginx), não em X-Forwarded-For arbitrário do cliente
@@ -65,6 +66,7 @@ export async function buildApp() {
   await app.register(relatoriosRoutes,  { prefix: `${API_PREFIX}/relatorios` });
   await app.register(auditRoutes,       { prefix: `${API_PREFIX}/auditoria` });
   await app.register(oficinasRoutes,    { prefix: `${API_PREFIX}/oficinas` });
+  await app.register(retiradasRoutes,  { prefix: `${API_PREFIX}/retiradas` });
 
   return app;
 }

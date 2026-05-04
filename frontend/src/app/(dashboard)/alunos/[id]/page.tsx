@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { DatePickerInput } from '@/components/ui/DatePickerInput';
+import { TimePickerInput } from '@/components/ui/TimePickerInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
@@ -57,6 +58,37 @@ const editResponsavelSchema = z.object({
 });
 type EditResponsavelInput = z.infer<typeof editResponsavelSchema>;
 
+// Schema local: criar/editar autorização de retirada
+const autorizacaoSchema = z.object({
+  nome: z.string().min(2, 'Nome obrigatório'),
+  cpf: cpfSchema,
+  relacao: z.string().min(2, 'Relação obrigatória'),
+  tipo: z.enum(['PERMANENTE', 'TEMPORARIA']),
+  dataInicio: z.string().optional(),
+  dataFim: z.string().optional(),
+  horarioInicio: z.string().optional(),
+  horarioFim: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.tipo === 'TEMPORARIA' && !data.dataFim) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Data fim é obrigatória para autorização temporária', path: ['dataFim'] });
+  }
+});
+type AutorizacaoInput = z.infer<typeof autorizacaoSchema>;
+
+function formatarCPFInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function formatHorarioInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
 interface Responsavel { id: string; nome: string; cpf: string | null; telefone: string | null; email: string | null }
 interface AlunoResponsavel { parentesco: string; isResponsavelFinanceiro: boolean; responsavel: Responsavel }
 interface Matricula { id: string; status: string; turno: string; valorMensalidade: number; dataInicio: string; dataFim: string | null }
@@ -69,6 +101,19 @@ interface MensalidadeResumo {
   valorPago: number | null;
   dataPagamento: string | null;
   dataVencimento: string;
+}
+
+interface AutorizacaoRetirada {
+  id: string;
+  nome: string;
+  cpf: string;
+  relacao: string;
+  tipo: 'PERMANENTE' | 'TEMPORARIA';
+  dataInicio: string | null;
+  dataFim: string | null;
+  horarioInicio: string | null;
+  horarioFim: string | null;
+  ativo: boolean;
 }
 
 interface AlunoProfile {
@@ -124,7 +169,7 @@ const MENS_STATUS_LABEL: Record<string, string> = {
   CANCELADA: 'Cancelada',
 };
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-type Tab = 'dados' | 'responsaveis' | 'matricula';
+type Tab = 'dados' | 'responsaveis' | 'matricula' | 'autorizacoes';
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return createPortal(
@@ -146,9 +191,13 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 function ModalField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  const hasAsterisk = label.endsWith(' *') || label.endsWith('*');
+  const labelText = hasAsterisk ? label.replace(/ ?\*$/, '') : label;
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-slate-400">
+        {labelText}{hasAsterisk && <span className="text-crimson-500"> *</span>}
+      </label>
       {children}
       {error && <p className="mt-1 text-xs text-crimson-500">{error}</p>}
     </div>
@@ -185,12 +234,50 @@ export default function AlunoPerfilPage() {
   const [confirmRemover, setConfirmRemover] = useState<{ id: string; nome: string } | null>(null);
   const [showMatriculaModal, setShowMatriculaModal] = useState(false);
   const [matriculaError, setMatriculaError] = useState<string | null>(null);
+  const [showAddAutorizacaoModal, setShowAddAutorizacaoModal] = useState(false);
+  const [addAutorizacaoError, setAddAutorizacaoError] = useState<string | null>(null);
+  const [editingAutorizacao, setEditingAutorizacao] = useState<AutorizacaoRetirada | null>(null);
+  const [editAutorizacaoError, setEditAutorizacaoError] = useState<string | null>(null);
+  const [confirmDeleteAutorizacao, setConfirmDeleteAutorizacao] = useState<{ id: string; nome: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: aluno, isLoading } = useQuery<AlunoProfile>({
     queryKey: ['aluno', id],
     queryFn: () => api.get(`/alunos/${id}`).then((r) => r.data),
   });
+
+  const { data: autorizacoes, isLoading: isLoadingAutorizacoes } = useQuery<AutorizacaoRetirada[]>({
+    queryKey: ['autorizacoes', id],
+    queryFn: () => api.get(`/retiradas/alunos/${id}/autorizacoes`).then((r) => r.data),
+    enabled: activeTab === 'autorizacoes',
+  });
+
+  const { register: registerAddAuth, handleSubmit: handleAddAuth, reset: resetAddAuth, watch: watchAddAuth, setValue: setValueAddAuth, control: controlAddAuth, formState: { errors: errorsAddAuth } } =
+    useForm<AutorizacaoInput>({ resolver: zodResolver(autorizacaoSchema), defaultValues: { tipo: 'PERMANENTE' } });
+
+  const { register: registerEditAuth, handleSubmit: handleEditAuth, reset: resetEditAuth, watch: watchEditAuth, setValue: setValueEditAuth, control: controlEditAuth, formState: { errors: errorsEditAuth } } =
+    useForm<AutorizacaoInput>({ resolver: zodResolver(autorizacaoSchema) });
+
+  const tipoAdd = watchAddAuth('tipo');
+  const tipoEdit = watchEditAuth('tipo');
+
+  useEffect(() => {
+    if (editingAutorizacao) {
+      // Prisma retorna timestamps completos (ex: "2026-05-01T00:00:00.000Z")
+      // DatePickerInput espera apenas "YYYY-MM-DD" — fatiar os primeiros 10 caracteres
+      const toDateOnly = (v: string | null) => (v ? v.slice(0, 10) : '');
+      resetEditAuth({
+        nome: editingAutorizacao.nome,
+        cpf: editingAutorizacao.cpf,
+        relacao: editingAutorizacao.relacao,
+        tipo: editingAutorizacao.tipo,
+        dataInicio: toDateOnly(editingAutorizacao.dataInicio),
+        dataFim: toDateOnly(editingAutorizacao.dataFim),
+        horarioInicio: editingAutorizacao.horarioInicio ?? '',
+        horarioFim: editingAutorizacao.horarioFim ?? '',
+      });
+    }
+  }, [editingAutorizacao, resetEditAuth]);
 
   const { register: registerAdicionar, handleSubmit: handleAdicionar, reset: resetAdicionar, formState: { errors: errorsAdicionar } } =
     useForm<AddResponsavelInput>({ resolver: zodResolver(addResponsavelSchema), defaultValues: { isResponsavelFinanceiro: false } });
@@ -309,10 +396,65 @@ export default function AlunoPerfilPage() {
     onError: (error: AxiosError<{ message: string }>) => setMatriculaError(error.response?.data?.message ?? 'Erro ao criar matrícula.'),
   });
 
+  const addAutorizacaoMutation = useMutation({
+    mutationFn: (data: AutorizacaoInput) => api.post(`/retiradas/alunos/${id}/autorizacoes`, {
+      ...data,
+      cpf: data.cpf.replace(/\D/g, ''),
+      dataInicio: data.dataInicio || undefined,
+      dataFim: data.dataFim || undefined,
+      horarioInicio: data.horarioInicio || undefined,
+      horarioFim: data.horarioFim || undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autorizacoes', id] });
+      setShowAddAutorizacaoModal(false);
+      resetAddAuth();
+      setAddAutorizacaoError(null);
+      showToast('Autorização adicionada', 'A autorização de retirada foi cadastrada com sucesso.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const msg = error.response?.data?.message;
+      setAddAutorizacaoError(msg && !msg.startsWith('Route ') ? msg : 'Erro ao adicionar autorização. Tente novamente.');
+    },
+  });
+
+  const editAutorizacaoMutation = useMutation({
+    mutationFn: (data: AutorizacaoInput) => api.patch(`/retiradas/alunos/${id}/autorizacoes/${editingAutorizacao?.id}`, {
+      ...data,
+      cpf: data.cpf.replace(/\D/g, ''),
+      dataInicio: data.dataInicio || undefined,
+      dataFim: data.dataFim || undefined,
+      horarioInicio: data.horarioInicio || undefined,
+      horarioFim: data.horarioFim || undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autorizacoes', id] });
+      setEditingAutorizacao(null);
+      resetEditAuth();
+      setEditAutorizacaoError(null);
+      showToast('Autorização atualizada', 'As informações foram salvas com sucesso.');
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      const msg = error.response?.data?.message;
+      setEditAutorizacaoError(msg && !msg.startsWith('Route ') ? msg : 'Erro ao atualizar autorização. Tente novamente.');
+    },
+  });
+
+  const deleteAutorizacaoMutation = useMutation({
+    mutationFn: (authId: string) => api.delete(`/retiradas/alunos/${id}/autorizacoes/${authId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autorizacoes', id] });
+      setConfirmDeleteAutorizacao(null);
+      showToast('Autorização removida', 'A autorização foi removida com sucesso.');
+    },
+    onError: () => showToast('Erro', 'Não foi possível remover a autorização. Tente novamente.'),
+  });
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'dados', label: 'Dados Pessoais' },
     { key: 'responsaveis', label: 'Responsáveis' },
     { key: 'matricula', label: 'Matrículas' },
+    { key: 'autorizacoes', label: 'Autorizações' },
   ];
 
   if (isLoading) {
@@ -568,6 +710,88 @@ export default function AlunoPerfilPage() {
         </div>
       )}
 
+      {/* Tab: Autorizações de Retirada */}
+      {activeTab === 'autorizacoes' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => { setShowAddAutorizacaoModal(true); setAddAutorizacaoError(null); resetAddAuth({ tipo: 'PERMANENTE' }); }}
+              className="btn-primary text-sm"
+            >
+              Nova Autorização
+            </button>
+          </div>
+
+          {isLoadingAutorizacoes ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => <div key={i} className="skeleton h-20 w-full" />)}
+            </div>
+          ) : !autorizacoes || autorizacoes.length === 0 ? (
+            <div className="empty-state">
+              <p className="text-sm text-stone-400 dark:text-slate-500">Nenhuma autorização cadastrada.</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {(['PERMANENTE', 'TEMPORARIA'] as const).map((tipo) => {
+                const lista = autorizacoes.filter((a) => a.tipo === tipo);
+                if (lista.length === 0) return null;
+                return (
+                  <div key={tipo}>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-slate-500">
+                      {tipo === 'PERMANENTE' ? 'Permanentes' : 'Temporárias'}
+                    </p>
+                    <div className="space-y-2">
+                      {lista.map((auth) => (
+                        <div key={auth.id} className="card p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-stone-900 dark:text-slate-100">{auth.nome}</span>
+                                <span className={`badge ${auth.tipo === 'PERMANENTE' ? 'badge-green' : 'badge-blue'}`}>
+                                  {auth.tipo === 'PERMANENTE' ? 'Permanente' : 'Temporária'}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 text-sm text-stone-500 dark:text-slate-400">{auth.relacao} · CPF: {auth.cpf}</p>
+                              {auth.tipo === 'TEMPORARIA' && (
+                                <p className="mt-0.5 text-xs text-stone-400 dark:text-slate-500">
+                                  {auth.dataInicio ? new Date(auth.dataInicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
+                                  {' → '}
+                                  {auth.dataFim ? new Date(auth.dataFim).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'}
+                                  {auth.horarioInicio && auth.horarioFim && ` · ${auth.horarioInicio}–${auth.horarioFim}`}
+                                </p>
+                              )}
+                              {auth.tipo === 'PERMANENTE' && auth.horarioInicio && auth.horarioFim && (
+                                <p className="mt-0.5 text-xs text-stone-400 dark:text-slate-500">
+                                  Horário: {auth.horarioInicio}–{auth.horarioFim}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 flex-col items-end gap-2">
+                              <button
+                                onClick={() => { setEditingAutorizacao(auth); setEditAutorizacaoError(null); }}
+                                className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteAutorizacao({ id: auth.id, nome: auth.nome })}
+                                className="text-xs font-medium text-crimson-500 hover:text-crimson-700"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Modal: Adicionar Responsável */}
       {showAdicionarModal && (
         <ModalShell title="Adicionar Responsável" onClose={() => { setShowAdicionarModal(false); resetAdicionar(); setAdicionarError(null); }}>
@@ -719,6 +943,301 @@ export default function AlunoPerfilPage() {
               onClick={() => { setConfirmRemover(null); setDesvinculaError(null); }}
               className="btn-secondary"
             >
+              Cancelar
+            </button>
+          </div>
+        </ModalShell>
+      )}
+
+      {/* Modal: Adicionar Autorização */}
+      {showAddAutorizacaoModal && (
+        <ModalShell title="Nova Autorização de Retirada" onClose={() => { setShowAddAutorizacaoModal(false); resetAddAuth(); setAddAutorizacaoError(null); }}>
+          <form onSubmit={handleAddAuth((d) => { setAddAutorizacaoError(null); addAutorizacaoMutation.mutate(d); })} noValidate className="space-y-4">
+            <ModalField label="Nome completo *" error={errorsAddAuth.nome?.message}>
+              <input {...registerAddAuth('nome')} placeholder="Ex: Maria da Silva" className={`input-base ${errorsAddAuth.nome ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="CPF *" error={errorsAddAuth.cpf?.message}>
+              <input
+                {...registerAddAuth('cpf')}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                autoComplete="off"
+                className={`input-base ${errorsAddAuth.cpf ? 'input-error' : ''}`}
+                onChange={(e) => setValueAddAuth('cpf', formatarCPFInput(e.target.value))}
+              />
+            </ModalField>
+
+            <ModalField label="Relação com o aluno *" error={errorsAddAuth.relacao?.message}>
+              <input {...registerAddAuth('relacao')} placeholder="Ex: Mãe, Avó, Tio" className={`input-base ${errorsAddAuth.relacao ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="Tipo de autorização *" error={errorsAddAuth.tipo?.message}>
+              <select {...registerAddAuth('tipo')} className="input-base">
+                <option value="PERMANENTE">Permanente</option>
+                <option value="TEMPORARIA">Temporária</option>
+              </select>
+            </ModalField>
+
+            {tipoAdd === 'TEMPORARIA' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <ModalField label="Data início" error={errorsAddAuth.dataInicio?.message}>
+                    <Controller
+                      control={controlAddAuth}
+                      name="dataInicio"
+                      render={({ field }) => (
+                        <DatePickerInput
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          hasError={!!errorsAddAuth.dataInicio}
+                          placeholder="Selecione"
+                        />
+                      )}
+                    />
+                  </ModalField>
+                  <ModalField label="Data fim *" error={errorsAddAuth.dataFim?.message}>
+                    <Controller
+                      control={controlAddAuth}
+                      name="dataFim"
+                      render={({ field }) => (
+                        <DatePickerInput
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          hasError={!!errorsAddAuth.dataFim}
+                          placeholder="Selecione"
+                        />
+                      )}
+                    />
+                  </ModalField>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <ModalField label="Horário início" error={errorsAddAuth.horarioInicio?.message}>
+                    <Controller
+                      control={controlAddAuth}
+                      name="horarioInicio"
+                      render={({ field }) => (
+                        <TimePickerInput
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          hasError={!!errorsAddAuth.horarioInicio}
+                        />
+                      )}
+                    />
+                  </ModalField>
+                  <ModalField label="Horário fim" error={errorsAddAuth.horarioFim?.message}>
+                    <Controller
+                      control={controlAddAuth}
+                      name="horarioFim"
+                      render={({ field }) => (
+                        <TimePickerInput
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          hasError={!!errorsAddAuth.horarioFim}
+                        />
+                      )}
+                    />
+                  </ModalField>
+                </div>
+              </>
+            )}
+
+            {tipoAdd === 'PERMANENTE' && (
+              <div className="grid grid-cols-2 gap-3">
+                <ModalField label="Horário início (opcional)">
+                  <Controller
+                    control={controlAddAuth}
+                    name="horarioInicio"
+                    render={({ field }) => (
+                      <TimePickerInput
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </ModalField>
+                <ModalField label="Horário fim (opcional)">
+                  <Controller
+                    control={controlAddAuth}
+                    name="horarioFim"
+                    render={({ field }) => (
+                      <TimePickerInput
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </ModalField>
+              </div>
+            )}
+
+            {addAutorizacaoError && <ServerError message={addAutorizacaoError} />}
+
+            <div className="flex gap-3 pt-2">
+              <button type="submit" disabled={addAutorizacaoMutation.isPending} className="btn-primary flex-1">
+                {addAutorizacaoMutation.isPending ? 'Salvando…' : 'Adicionar'}
+              </button>
+              <button type="button" onClick={() => { setShowAddAutorizacaoModal(false); resetAddAuth(); setAddAutorizacaoError(null); }} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {/* Modal: Editar Autorização */}
+      {editingAutorizacao && (
+        <ModalShell title="Editar Autorização" onClose={() => { setEditingAutorizacao(null); resetEditAuth(); setEditAutorizacaoError(null); }}>
+          <form onSubmit={handleEditAuth((d) => { setEditAutorizacaoError(null); editAutorizacaoMutation.mutate(d); })} noValidate className="space-y-4">
+            <ModalField label="Nome completo *" error={errorsEditAuth.nome?.message}>
+              <input {...registerEditAuth('nome')} className={`input-base ${errorsEditAuth.nome ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="CPF *" error={errorsEditAuth.cpf?.message}>
+              <input
+                {...registerEditAuth('cpf')}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                autoComplete="off"
+                className={`input-base ${errorsEditAuth.cpf ? 'input-error' : ''}`}
+                onChange={(e) => setValueEditAuth('cpf', formatarCPFInput(e.target.value))}
+              />
+            </ModalField>
+
+            <ModalField label="Relação com o aluno *" error={errorsEditAuth.relacao?.message}>
+              <input {...registerEditAuth('relacao')} className={`input-base ${errorsEditAuth.relacao ? 'input-error' : ''}`} />
+            </ModalField>
+
+            <ModalField label="Tipo de autorização *" error={errorsEditAuth.tipo?.message}>
+              <select {...registerEditAuth('tipo')} className="input-base">
+                <option value="PERMANENTE">Permanente</option>
+                <option value="TEMPORARIA">Temporária</option>
+              </select>
+            </ModalField>
+
+            {tipoEdit === 'TEMPORARIA' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <ModalField label="Data início" error={errorsEditAuth.dataInicio?.message}>
+                    <Controller
+                      control={controlEditAuth}
+                      name="dataInicio"
+                      render={({ field }) => (
+                        <DatePickerInput
+                          value={(field.value ?? '').slice(0, 10)}
+                          onChange={field.onChange}
+                          hasError={!!errorsEditAuth.dataInicio}
+                          placeholder="Selecione"
+                        />
+                      )}
+                    />
+                  </ModalField>
+                  <ModalField label="Data fim *" error={errorsEditAuth.dataFim?.message}>
+                    <Controller
+                      control={controlEditAuth}
+                      name="dataFim"
+                      render={({ field }) => (
+                        <DatePickerInput
+                          value={(field.value ?? '').slice(0, 10)}
+                          onChange={field.onChange}
+                          hasError={!!errorsEditAuth.dataFim}
+                          placeholder="Selecione"
+                        />
+                      )}
+                    />
+                  </ModalField>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <ModalField label="Horário início" error={errorsEditAuth.horarioInicio?.message}>
+                    <Controller
+                      control={controlEditAuth}
+                      name="horarioInicio"
+                      render={({ field }) => (
+                        <TimePickerInput
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          hasError={!!errorsEditAuth.horarioInicio}
+                        />
+                      )}
+                    />
+                  </ModalField>
+                  <ModalField label="Horário fim" error={errorsEditAuth.horarioFim?.message}>
+                    <Controller
+                      control={controlEditAuth}
+                      name="horarioFim"
+                      render={({ field }) => (
+                        <TimePickerInput
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          hasError={!!errorsEditAuth.horarioFim}
+                        />
+                      )}
+                    />
+                  </ModalField>
+                </div>
+              </>
+            )}
+
+            {tipoEdit === 'PERMANENTE' && (
+              <div className="grid grid-cols-2 gap-3">
+                <ModalField label="Horário início (opcional)">
+                  <Controller
+                    control={controlEditAuth}
+                    name="horarioInicio"
+                    render={({ field }) => (
+                      <TimePickerInput
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </ModalField>
+                <ModalField label="Horário fim (opcional)">
+                  <Controller
+                    control={controlEditAuth}
+                    name="horarioFim"
+                    render={({ field }) => (
+                      <TimePickerInput
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </ModalField>
+              </div>
+            )}
+
+            {editAutorizacaoError && <ServerError message={editAutorizacaoError} />}
+
+            <div className="flex gap-3 pt-2">
+              <button type="submit" disabled={editAutorizacaoMutation.isPending} className="btn-primary flex-1">
+                {editAutorizacaoMutation.isPending ? 'Salvando…' : 'Salvar alterações'}
+              </button>
+              <button type="button" onClick={() => { setEditingAutorizacao(null); resetEditAuth(); setEditAutorizacaoError(null); }} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {/* Modal: Confirmar remoção de autorização */}
+      {confirmDeleteAutorizacao && (
+        <ModalShell title="Remover autorização" onClose={() => setConfirmDeleteAutorizacao(null)}>
+          <p className="text-sm text-stone-500 dark:text-slate-400">
+            Tem certeza que deseja remover a autorização de{' '}
+            <span className="font-medium text-stone-900 dark:text-slate-100">{confirmDeleteAutorizacao.nome}</span>?
+          </p>
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={() => deleteAutorizacaoMutation.mutate(confirmDeleteAutorizacao.id)}
+              disabled={deleteAutorizacaoMutation.isPending}
+              className="btn-primary flex-1 bg-crimson-600 hover:bg-crimson-700 focus-visible:ring-crimson-500 disabled:opacity-50"
+            >
+              {deleteAutorizacaoMutation.isPending ? 'Removendo…' : 'Remover'}
+            </button>
+            <button type="button" onClick={() => setConfirmDeleteAutorizacao(null)} className="btn-secondary">
               Cancelar
             </button>
           </div>

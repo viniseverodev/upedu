@@ -1,9 +1,10 @@
 'use client';
 
 // DatePickerInput — seletor de data single com visual do projeto
-// Substitui input[type="date"] nativo em todos os formulários
+// Calendário renderizado via portal (position: fixed) para funcionar dentro de modais
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 // ---------- Constantes ----------
 
@@ -23,7 +24,11 @@ function toDateStr(y: number, m: number, d: number) {
 }
 function fmtBR(s: string) {
   if (!s) return '';
-  const [y, m, d] = s.split('-');
+  // Normaliza ISO datetime ("2026-05-01T00:00:00.000Z") para "YYYY-MM-DD" antes de formatar
+  const dateOnly = s.slice(0, 10);
+  const parts = dateOnly.split('-');
+  if (parts.length !== 3) return s;
+  const [y, m, d] = parts;
   return `${d}/${m}/${y}`;
 }
 function todayStr() {
@@ -61,16 +66,19 @@ export function DatePickerInput({
   const [viewYear, setViewYear] = useState(value ? parseInt(value.slice(0, 4)) : cy);
   const [viewMonth, setViewMonth] = useState(value ? parseInt(value.slice(5, 7)) - 1 : cm);
   const [yearPage, setYearPage] = useState(Math.floor((value ? parseInt(value.slice(0, 4)) : cy) / 12) * 12);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fechar ao clicar fora
+  // Fechar ao clicar fora (trigger + dropdown)
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      const inTrigger = triggerRef.current?.contains(target);
+      const inDropdown = dropdownRef.current?.contains(target);
+      if (!inTrigger && !inDropdown) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -79,6 +87,18 @@ export function DatePickerInput({
   // Sincronizar view com valor externo ao abrir
   function handleOpen() {
     if (disabled) return;
+
+    // Calcular posição do trigger para o dropdown fixo
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownH = 340; // altura estimada do calendário
+      const top = spaceBelow >= dropdownH
+        ? rect.bottom + 6
+        : rect.top - dropdownH - 6;
+      setDropdownPos({ top, left: rect.left, width: rect.width });
+    }
+
     if (value) {
       setViewYear(parseInt(value.slice(0, 4)));
       setViewMonth(parseInt(value.slice(5, 7)) - 1);
@@ -124,10 +144,168 @@ export function DatePickerInput({
   const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
   const t = todayStr();
 
+  const calendar = open ? (
+    <div
+      ref={dropdownRef}
+      style={{ top: dropdownPos.top, left: dropdownPos.left, minWidth: Math.max(dropdownPos.width, 288) }}
+      className="fixed z-[9999] w-72 rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]"
+    >
+      {/* Navegação */}
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={prevNav}
+          className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-1">
+          {viewMode === 'day' && (
+            <>
+              <button
+                type="button"
+                onClick={() => setViewMode('month')}
+                className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+              >
+                {MONTH_NAMES[viewMonth]}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('year')}
+                className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+              >
+                {viewYear}
+              </button>
+            </>
+          )}
+          {viewMode === 'month' && (
+            <button
+              type="button"
+              onClick={() => setViewMode('year')}
+              className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
+            >
+              {viewYear}
+            </button>
+          )}
+          {viewMode === 'year' && (
+            <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">
+              {yearPage} – {yearPage + 11}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={nextNav}
+          className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+      </div>
+
+      {/* View: Dias */}
+      {viewMode === 'day' && (
+        <div className="grid grid-cols-7 text-center text-xs">
+          {DAY_NAMES.map((d, i) => (
+            <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
+          ))}
+          {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1;
+            const d = toDateStr(viewYear, viewMonth, day);
+            const isSelected = d === value.slice(0, 10);
+            const isToday = d === t;
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => handleDayClick(d)}
+                className={[
+                  'relative py-1.5 text-xs font-medium transition-colors rounded-full',
+                  isSelected
+                    ? 'bg-brand-600 text-white'
+                    : isToday
+                      ? 'text-brand-600 font-bold dark:text-brand-400'
+                      : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
+                ].join(' ')}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* View: Meses */}
+      {viewMode === 'month' && (
+        <div className="grid grid-cols-3 gap-1.5">
+          {MONTH_NAMES.map((name, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => { setViewMonth(i); setViewMode('day'); }}
+              className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
+                i === viewMonth
+                  ? 'bg-brand-600 text-white'
+                  : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
+              }`}
+            >
+              {name.slice(0, 3)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* View: Anos */}
+      {viewMode === 'year' && (
+        <div className="grid grid-cols-3 gap-1.5">
+          {years.map((y) => (
+            <button
+              key={y}
+              type="button"
+              onClick={() => { setViewYear(y); setYearPage(Math.floor(y / 12) * 12); setViewMode('month'); }}
+              className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
+                y === viewYear
+                  ? 'bg-brand-600 text-white'
+                  : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
+              }`}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Rodapé: hoje + limpar */}
+      <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3 dark:border-slate-700/60">
+        <button
+          type="button"
+          onClick={() => { onChange(''); setOpen(false); }}
+          className="text-xs font-medium text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300"
+        >
+          Limpar
+        </button>
+        <button
+          type="button"
+          onClick={() => { handleDayClick(t); }}
+          className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+        >
+          Hoje
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div ref={wrapperRef} className="relative">
+    <div className="relative">
       {/* Trigger */}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={handleOpen}
@@ -145,160 +323,8 @@ export function DatePickerInput({
         </svg>
       </button>
 
-      {/* Dropdown calendário */}
-      {open && (
-        <div className="absolute z-50 mt-1.5 w-72 rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]">
-
-          {/* Navegação */}
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={prevNav}
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            </button>
-
-            <div className="flex items-center gap-1">
-              {viewMode === 'day' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('month')}
-                    className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-                  >
-                    {MONTH_NAMES[viewMonth]}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('year')}
-                    className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-                  >
-                    {viewYear}
-                  </button>
-                </>
-              )}
-              {viewMode === 'month' && (
-                <button
-                  type="button"
-                  onClick={() => setViewMode('year')}
-                  className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-                >
-                  {viewYear}
-                </button>
-              )}
-              {viewMode === 'year' && (
-                <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">
-                  {yearPage} – {yearPage + 11}
-                </span>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={nextNav}
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-              </svg>
-            </button>
-          </div>
-
-          {/* View: Dias */}
-          {viewMode === 'day' && (
-            <div className="grid grid-cols-7 text-center text-xs">
-              {DAY_NAMES.map((d, i) => (
-                <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
-              ))}
-              {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
-              {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const d = toDateStr(viewYear, viewMonth, day);
-                const isSelected = d === value;
-                const isToday = d === t;
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => handleDayClick(d)}
-                    className={[
-                      'relative py-1.5 text-xs font-medium transition-colors rounded-full',
-                      isSelected
-                        ? 'bg-brand-600 text-white'
-                        : isToday
-                          ? 'text-brand-600 font-bold dark:text-brand-400'
-                          : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
-                    ].join(' ')}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* View: Meses */}
-          {viewMode === 'month' && (
-            <div className="grid grid-cols-3 gap-1.5">
-              {MONTH_NAMES.map((name, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => { setViewMonth(i); setViewMode('day'); }}
-                  className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                    i === viewMonth
-                      ? 'bg-brand-600 text-white'
-                      : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
-                  }`}
-                >
-                  {name.slice(0, 3)}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* View: Anos */}
-          {viewMode === 'year' && (
-            <div className="grid grid-cols-3 gap-1.5">
-              {years.map((y) => (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => { setViewYear(y); setYearPage(Math.floor(y / 12) * 12); setViewMode('month'); }}
-                  className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                    y === viewYear
-                      ? 'bg-brand-600 text-white'
-                      : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
-                  }`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Rodapé: hoje + limpar */}
-          <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3 dark:border-slate-700/60">
-            <button
-              type="button"
-              onClick={() => { onChange(''); setOpen(false); }}
-              className="text-xs font-medium text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300"
-            >
-              Limpar
-            </button>
-            <button
-              type="button"
-              onClick={() => { handleDayClick(t); }}
-              className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
-            >
-              Hoje
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Calendário via portal — renderiza no body para não ser cortado por overflow/modal */}
+      {typeof document !== 'undefined' && calendar && createPortal(calendar, document.body)}
     </div>
   );
 }

@@ -69,6 +69,7 @@ interface CalendarRangePickerProps {
   onApply: (inicio: string, fim: string) => void;
   onClose: () => void;
   showShortcuts?: boolean;
+  inline?: boolean;
 }
 
 // ---------- Componente ----------
@@ -80,6 +81,7 @@ export function CalendarRangePicker({
   onApply,
   onClose,
   showShortcuts = true,
+  inline = false,
 }: CalendarRangePickerProps) {
   const today = new Date();
   const cy = today.getFullYear();
@@ -136,27 +138,25 @@ export function CalendarRangePicker({
   const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
   const canApply = !!(start && end);
 
-  return createPortal(
+  const inner = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
-      onClick={onClose}
+      className={inline ? 'p-3' : 'w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]'}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div
-        className="w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Título + fechar */}
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{title}</p>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.1] dark:hover:text-slate-300"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        {/* Título + fechar (apenas no modo modal) */}
+        {!inline && (
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{title}</p>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:text-slate-500 dark:hover:bg-white/[0.1] dark:hover:text-slate-300"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Atalhos rápidos */}
         {showShortcuts && (
@@ -333,6 +333,16 @@ export function CalendarRangePicker({
           </button>
         </div>
       </div>
+  );
+
+  if (inline) return inner;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      {inner}
     </div>,
     document.body,
   );

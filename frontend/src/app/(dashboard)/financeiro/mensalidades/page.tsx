@@ -14,6 +14,7 @@ import { formatCurrency, formatDate, formatMesAno } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
 import { useToast } from '@/hooks/useToast';
 import { Toast } from '@/components/ui/Toast';
+import { CalendarRangePicker } from '@/components/ui/CalendarRangePicker';
 import {
   createMensalidadeSchema,
   pagarMensalidadeSchema,
@@ -71,9 +72,6 @@ interface Mensalidade {
 // ---------- Constantes ----------
 
 const MESES = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const DAY_NAMES = ['D','S','T','Q','Q','S','S'];
 
 const FORMAS_PAGAMENTO = [
   'PIX',
@@ -124,272 +122,6 @@ function todayStr() {
   const d = new Date();
   return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
 }
-function offsetDate(from: string, days: number) {
-  const d = new Date(from + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-// ---------- CalendarModal ----------
-
-type CalendarView = 'day' | 'month' | 'year';
-
-interface CalendarModalProps {
-  title?: string;
-  initialInicio: string;
-  initialFim: string;
-  onApply: (inicio: string, fim: string) => void;
-  onClose: () => void;
-  inline?: boolean;
-}
-
-function CalendarModal({ title = 'Período de vencimento', initialInicio, initialFim, onApply, onClose, inline = false }: CalendarModalProps) {
-  const today = new Date();
-  const cy = today.getFullYear();
-  const cm = today.getMonth();
-  const t = todayStr();
-
-  const [viewMode, setViewMode] = useState<CalendarView>('day');
-  const [viewYear, setViewYear] = useState(cy);
-  const [viewMonth, setViewMonth] = useState(cm);
-  const [yearPage, setYearPage] = useState(Math.floor(cy / 12) * 12);
-  const [start, setStart] = useState(initialInicio);
-  const [end, setEnd] = useState(initialFim);
-  const [hovered, setHovered] = useState('');
-
-  // Mês atual e seguinte (para atalhos)
-  const nm = cm === 11 ? 0 : cm + 1;
-  const ny = cm === 11 ? cy + 1 : cy;
-  const daysInThisMonth = new Date(cy, cm + 1, 0).getDate();
-  const daysInNextMonth = new Date(ny, nm + 1, 0).getDate();
-
-  // Atalhos: todos contam a partir de hoje para frente
-  const shortcuts = [
-    { label: '7 dias',      ini: t, fim: offsetDate(t, 6) },
-    { label: '15 dias',     ini: t, fim: offsetDate(t, 14) },
-    { label: 'Este mês',    ini: `${cy}-${pad2(cm + 1)}-01`, fim: `${cy}-${pad2(cm + 1)}-${pad2(daysInThisMonth)}` },
-    { label: 'Mês que vem', ini: `${ny}-${pad2(nm + 1)}-01`, fim: `${ny}-${pad2(nm + 1)}-${pad2(daysInNextMonth)}` },
-    { label: 'Ano atual',   ini: `${cy}-01-01`, fim: `${cy}-12-31` },
-  ];
-
-  function handleDayClick(d: string) {
-    if (!start || (start && end)) { setStart(d); setEnd(''); }
-    else if (d < start) { setEnd(start); setStart(d); }
-    else setEnd(d);
-  }
-
-  function inRange(d: string) {
-    const e = end || hovered;
-    if (!start || !e) return false;
-    const [lo, hi] = start <= e ? [start, e] : [e, start];
-    return d > lo && d < hi;
-  }
-
-  function prevNav() {
-    if (viewMode === 'day') {
-      if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-      else setViewMonth((m) => m - 1);
-    } else if (viewMode === 'month') {
-      setViewYear((y) => y - 1);
-    } else {
-      setYearPage((p) => p - 12);
-    }
-  }
-
-  function nextNav() {
-    if (viewMode === 'day') {
-      if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-      else setViewMonth((m) => m + 1);
-    } else if (viewMode === 'month') {
-      setViewYear((y) => y + 1);
-    } else {
-      setYearPage((p) => p + 12);
-    }
-  }
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const years = Array.from({ length: 12 }, (_, i) => yearPage + i);
-  const canApply = !!(start && end);
-
-  const inner = (
-    <div className={inline ? 'w-full rounded-xl border border-stone-200 bg-white p-4 shadow-lg dark:border-slate-700 dark:bg-[#0c0e14]' : 'w-80 rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]'}>
-
-        {/* Título + fechar */}
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-stone-900 dark:text-slate-100">{title}</p>
-          <button onClick={onClose} className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1] dark:hover:text-slate-300">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Atalhos rápidos */}
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {shortcuts.map((s) => (
-            <button
-              key={s.label}
-              onClick={() => { setStart(s.ini); setEnd(s.fim); setViewMode('day'); }}
-              className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
-                start === s.ini && end === s.fim
-                  ? 'border-brand-600 bg-brand-600 text-white'
-                  : 'border-stone-200 text-stone-500 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Navegação */}
-        <div className="mb-3 flex items-center justify-between">
-          <button onClick={prevNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-
-          <div className="flex items-center gap-1">
-            {viewMode === 'day' && (
-              <>
-                <button
-                  onClick={() => setViewMode('month')}
-                  className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-                >
-                  {MONTH_NAMES[viewMonth]}
-                </button>
-                <button
-                  onClick={() => setViewMode('year')}
-                  className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-                >
-                  {viewYear}
-                </button>
-              </>
-            )}
-            {viewMode === 'month' && (
-              <button
-                onClick={() => setViewMode('year')}
-                className="rounded px-1 text-sm font-semibold text-stone-800 hover:text-brand-600 dark:text-slate-200 dark:hover:text-brand-400"
-              >
-                {viewYear}
-              </button>
-            )}
-            {viewMode === 'year' && (
-              <span className="text-sm font-semibold text-stone-800 dark:text-slate-200">
-                {yearPage} – {yearPage + 11}
-              </span>
-            )}
-          </div>
-
-          <button onClick={nextNav} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-white/[0.1] dark:hover:text-slate-200">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </div>
-
-        {/* View: Dias */}
-        {viewMode === 'day' && (
-          <div className="grid grid-cols-7 text-center text-xs">
-            {DAY_NAMES.map((d, i) => (
-              <div key={i} className="py-1.5 font-semibold text-stone-400 dark:text-slate-500">{d}</div>
-            ))}
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const d = toDateStr(viewYear, viewMonth, day);
-              const isSelected = d === start || d === end;
-              const ranged = inRange(d);
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDayClick(d)}
-                  onMouseEnter={() => !end && setHovered(d)}
-                  onMouseLeave={() => setHovered('')}
-                  className={[
-                    'relative py-1.5 text-xs font-medium transition-colors',
-                    isSelected
-                      ? 'z-10 rounded-full bg-brand-600 text-white'
-                      : ranged
-                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
-                        : 'rounded-full text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]',
-                  ].join(' ')}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* View: Meses */}
-        {viewMode === 'month' && (
-          <div className="grid grid-cols-3 gap-1.5">
-            {MONTH_NAMES.map((name, i) => (
-              <button
-                key={i}
-                onClick={() => { setViewMonth(i); setViewMode('day'); }}
-                className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                  i === viewMonth
-                    ? 'bg-brand-600 text-white'
-                    : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
-                }`}
-              >
-                {name.slice(0, 3)}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* View: Anos */}
-        {viewMode === 'year' && (
-          <div className="grid grid-cols-3 gap-1.5">
-            {years.map((y) => (
-              <button
-                key={y}
-                onClick={() => { setViewYear(y); setYearPage(Math.floor(y / 12) * 12); setViewMode('month'); }}
-                className={`rounded-lg py-2.5 text-xs font-medium transition-colors ${
-                  y === viewYear
-                    ? 'bg-brand-600 text-white'
-                    : 'text-stone-700 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-white/[0.1]'
-                }`}
-              >
-                {y}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Resumo seleção */}
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2 text-xs dark:bg-white/[0.06]">
-          <span className="text-stone-500 dark:text-slate-400">De <strong className="text-stone-800 dark:text-slate-100">{fmtBR(start)}</strong></span>
-          <span className="text-stone-300 dark:text-slate-600">→</span>
-          <span className="text-stone-500 dark:text-slate-400">Até <strong className="text-stone-800 dark:text-slate-100">{fmtBR(end)}</strong></span>
-        </div>
-
-        {/* Ações */}
-        <div className="mt-3 flex gap-2">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-300 dark:hover:bg-white/[0.1]">
-            Cancelar
-          </button>
-          <button onClick={() => canApply && onApply(start, end)} disabled={!canApply} className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40">
-            Aplicar
-          </button>
-        </div>
-    </div>
-  );
-
-  if (inline) return inner;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()}>{inner}</div>
-    </div>,
-    document.body,
-  );
-}
-
 // ---------- Motivo de cancelamento tooltip ----------
 
 function MotivoTooltip({ motivo }: { motivo: string | null }) {
@@ -659,9 +391,10 @@ function MensalidadesContent() {
 
   // Rascunho do filtro — só commita ao clicar "Aplicar filtros"
   const [draftStatus, setDraftStatus] = useState('');
-  const [draftTipo, setDraftTipo] = useState<'' | 'REGULAR' | 'OFICINA'>();
+  const [draftTipo, setDraftTipo] = useState<'' | 'REGULAR' | 'OFICINA'>('');
   const filterRef = useRef<HTMLDivElement>(null);
   const maisAcoesRef = useRef<HTMLDivElement>(null);
+  const periodoRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Colunas visíveis
@@ -749,8 +482,9 @@ function MensalidadesContent() {
   // Fechar dropdowns ao clicar fora
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) { setFilterPanelOpen(false); setShowDatePicker(false); }
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterPanelOpen(false);
       if (maisAcoesRef.current && !maisAcoesRef.current.contains(e.target as Node)) setMaisAcoesOpen(false);
+      if (periodoRef.current && !periodoRef.current.contains(e.target as Node)) setShowDatePicker(false);
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setSettingsOpen(false);
     }
     document.addEventListener('mousedown', handler);
@@ -1044,11 +778,10 @@ function MensalidadesContent() {
               onClick={() => {
                 setDraftStatus(statusFilter);
                 setDraftTipo(tipoFilter);
-                setShowDatePicker(false);
                 setFilterPanelOpen((v) => !v);
               }}
               className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all ${
-                filterPanelOpen || periodoInicio !== defaultInicio || periodoFim !== defaultFim
+                filterPanelOpen || statusFilter || tipoFilter
                   ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
                   : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600'
               }`}
@@ -1058,10 +791,7 @@ function MensalidadesContent() {
               </svg>
               Filtro
               {(() => {
-                const count =
-                  (periodoInicio !== defaultInicio || periodoFim !== defaultFim ? 1 : 0) +
-                  (statusFilter ? 1 : 0) +
-                  (tipoFilter ? 1 : 0);
+                const count = (statusFilter ? 1 : 0) + (tipoFilter ? 1 : 0);
                 return count > 0 ? (
                   <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">{count}</span>
                 ) : null;
@@ -1069,52 +799,12 @@ function MensalidadesContent() {
             </button>
 
             {filterPanelOpen && (
-              <div className={`absolute left-0 top-full z-30 mt-1.5 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620] ${showDatePicker ? 'w-80' : 'w-72'}`}>
+              <div className="absolute left-0 top-full z-30 mt-1.5 w-72 rounded-xl border border-stone-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#131620]">
                 <div className="border-b border-stone-100 px-4 py-3 dark:border-slate-800">
                   <p className="text-sm font-semibold text-stone-800 dark:text-slate-200">Filtro</p>
                 </div>
 
                 <div className="space-y-4 px-4 py-4">
-                  {/* Período de vencimento */}
-                  <div>
-                    <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Período de vencimento</p>
-                    <button
-                      onClick={() => setShowDatePicker((v) => !v)}
-                      className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all ${
-                        periodoInicio !== defaultInicio || periodoFim !== defaultFim
-                          ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
-                          : 'border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 dark:border-slate-700 dark:bg-white/[0.06] dark:text-slate-400'
-                      }`}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                      </svg>
-                      <span className="flex-1 truncate whitespace-nowrap text-left">{fmtBR(periodoInicio)} → {fmtBR(periodoFim)}</span>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`h-3.5 w-3.5 shrink-0 transition-transform ${showDatePicker ? 'rotate-180' : ''}`}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                      </svg>
-                    </button>
-                    {showDatePicker && (
-                      <div className="mt-2">
-                        <CalendarModal
-                          inline
-                          initialInicio={periodoInicio}
-                          initialFim={periodoFim}
-                          onApply={(ini, fim) => { setPeriodoInicio(ini); setPeriodoFim(fim); setShowDatePicker(false); }}
-                          onClose={() => setShowDatePicker(false)}
-                        />
-                      </div>
-                    )}
-                    {(periodoInicio !== defaultInicio || periodoFim !== defaultFim) && (
-                      <button
-                        onClick={() => { setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
-                        className="mt-1 text-xs text-stone-400 hover:text-stone-600 dark:text-slate-500 dark:hover:text-slate-300"
-                      >
-                        Redefinir para o mês atual
-                      </button>
-                    )}
-                  </div>
-
                   {/* Status */}
                   <div>
                     <p className="mb-1.5 text-xs font-semibold text-stone-500 dark:text-slate-400">Status</p>
@@ -1123,7 +813,7 @@ function MensalidadesContent() {
                       onChange={(e) => setDraftStatus(e.target.value)}
                       className="input-base"
                     >
-                      <option value="" disabled>Selecione</option>
+                      <option value="">Todos</option>
                       {(['INADIMPLENTE', 'PENDENTE', 'PARCIAL', 'PAGO', 'CANCELADA'] as const).map((s) => (
                         <option key={s} value={s}>{STATUS_LABEL[s]}</option>
                       ))}
@@ -1138,7 +828,7 @@ function MensalidadesContent() {
                       onChange={(e) => setDraftTipo(e.target.value as '' | 'REGULAR' | 'OFICINA')}
                       className="input-base"
                     >
-                      <option value="" disabled>Selecione</option>
+                      <option value="">Todos</option>
                       <option value="REGULAR">Mensalidade</option>
                       <option value="OFICINA">Oficinas</option>
                     </select>
@@ -1151,9 +841,6 @@ function MensalidadesContent() {
                       setDraftStatus('');
                       setDraftTipo('');
                       clearFilters();
-                      setPeriodoInicio(defaultInicio);
-                      setPeriodoFim(defaultFim);
-                      setShowDatePicker(false);
                       setFilterPanelOpen(false);
                     }}
                     className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
@@ -1164,7 +851,6 @@ function MensalidadesContent() {
                     onClick={() => {
                       setStatusFilter(draftStatus);
                       setTipoFilter(draftTipo ?? '');
-                      setShowDatePicker(false);
                       setFilterPanelOpen(false);
                     }}
                     className="rounded-xl bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
@@ -1236,6 +922,48 @@ function MensalidadesContent() {
                   </svg>
                   Cancelar selecionados
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* Período — dropdown dedicado */}
+          <div ref={periodoRef} className="relative">
+            <button
+              onClick={() => setShowDatePicker((v) => !v)}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all ${
+                periodoInicio !== defaultInicio || periodoFim !== defaultFim
+                  ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/20 dark:text-brand-300'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-800 dark:border-slate-700 dark:bg-transparent dark:text-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              <span className="whitespace-nowrap">
+                {fmtBR(periodoInicio)} → {fmtBR(periodoFim)}
+              </span>
+              {(periodoInicio !== defaultInicio || periodoFim !== defaultFim) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPeriodoInicio(defaultInicio); setPeriodoFim(defaultFim); }}
+                  className="ml-0.5 text-brand-400 hover:text-brand-600 dark:text-brand-500 dark:hover:text-brand-300"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              )}
+            </button>
+
+            {showDatePicker && (
+              <div className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-stone-200 bg-white shadow-2xl dark:border-slate-700/60 dark:bg-[#0c0e14]">
+                <CalendarRangePicker
+                  inline
+                  initialInicio={periodoInicio}
+                  initialFim={periodoFim}
+                  onApply={(ini, fim) => { setPeriodoInicio(ini); setPeriodoFim(fim); setShowDatePicker(false); }}
+                  onClose={() => setShowDatePicker(false)}
+                  showShortcuts
+                />
               </div>
             )}
           </div>
@@ -1502,63 +1230,6 @@ function MensalidadesContent() {
         </div>
       )}
 
-      {/* ── Barra flutuante de ações em lote ── */}
-      {someSelected && (
-        <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-5 py-3 shadow-2xl dark:border-slate-700 dark:bg-[#0c0e14]">
-            <span className="text-sm font-semibold text-stone-700 dark:text-slate-200">
-              {selected.size} selecionado{selected.size !== 1 ? 's' : ''}
-            </span>
-            <div className="h-4 w-px bg-stone-200 dark:bg-slate-700" />
-            {canAtendente && allPagaveis && (
-              <button
-                onClick={() => { setServerError(null); abrirProximoDaFila(selectedItems, selectedItems.length); }}
-                className="rounded-xl bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
-              >
-                Pagar {selected.size}
-              </button>
-            )}
-            {canGerente && allEstornaveis && (
-              <button
-                onClick={abrirBulkEstornar}
-                className="rounded-xl bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
-              >
-                Estornar {selected.size}
-              </button>
-            )}
-            {canGerente && allCancelaveis && (
-              <button
-                onClick={() => {
-                  setServerError(null);
-                  setBulkCancelarIndividual(false);
-                  setBulkCancelarMotivos({});
-                  setBulkCancelarMotivoGlobal('');
-                  setBulkCancelarItems(selectedItems.map((m) => ({
-                    id: m.id,
-                    nome: m.aluno.nome,
-                    ref: `${String(m.mesReferencia).padStart(2,'0')}/${m.anoReferencia}`,
-                  })));
-                }}
-                className="rounded-xl bg-crimson-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-crimson-600"
-              >
-                Cancelar {selected.size}
-              </button>
-            )}
-            {!allPagaveis && !allEstornaveis && !allCancelaveis && (
-              <span className="text-xs text-stone-400 dark:text-slate-500">Selecione itens com o mesmo status para ações em lote</span>
-            )}
-            <button
-              onClick={() => setSelected(new Set())}
-              className="ml-1 rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-white/[0.1]"
-              title="Limpar seleção"
-            >
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
 
 
       {/* Modal: Cancelar em lote */}

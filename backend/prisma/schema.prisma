@@ -51,6 +51,11 @@ enum MensalidadeTipo {
   OFICINA
 }
 
+enum AutorizacaoTipo {
+  PERMANENTE
+  TEMPORARIA
+}
+
 enum TransacaoTipo {
   ENTRADA
   SAIDA
@@ -125,15 +130,17 @@ model Filial {
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
-  organization Organization          @relation(fields: [organizationId], references: [id])
-  usuarios     UserFilial[]
-  alunos       Aluno[]
-  matriculas   Matricula[]
-  mensalidades Mensalidade[]
-  transacoes   Transacao[]
-  categorias   CategoriaFinanceira[]
-  auditLogs    AuditLog[]
-  oficinas     Oficina[]
+  organization      Organization          @relation(fields: [organizationId], references: [id])
+  usuarios          UserFilial[]
+  alunos            Aluno[]
+  matriculas        Matricula[]
+  mensalidades      Mensalidade[]
+  transacoes        Transacao[]
+  categorias        CategoriaFinanceira[]
+  auditLogs         AuditLog[]
+  oficinas          Oficina[]
+  autorizacoes      AutorizacaoRetirada[]
+  registrosRetirada RegistroRetirada[]
 
   @@unique([cnpj, organizationId])
   @@map("filiais")
@@ -183,12 +190,14 @@ model Aluno {
   updatedAt                DateTime    @updatedAt
   deletedAt                DateTime?
 
-  filial            Filial             @relation(fields: [filialId], references: [id])
-  responsaveis      AlunoResponsavel[]
-  matriculas        Matricula[]
-  mensalidades      Mensalidade[]
-  fichaMedica       FichaMedica?
+  filial             Filial               @relation(fields: [filialId], references: [id])
+  responsaveis       AlunoResponsavel[]
+  matriculas         Matricula[]
+  mensalidades       Mensalidade[]
+  fichaMedica        FichaMedica?
   oficinasMatriculas MatriculaOficina[]
+  autorizacoes       AutorizacaoRetirada[]
+  registrosRetirada  RegistroRetirada[]
 
   @@index([filialId, status])
   @@map("alunos")
@@ -375,6 +384,49 @@ model MatriculaOficina {
   @@index([turmaId])
   @@index([alunoId])
   @@map("matriculas_oficinas")
+}
+
+model AutorizacaoRetirada {
+  id            String          @id @default(uuid())
+  alunoId       String
+  filialId      String
+  nome          String
+  cpf           String
+  relacao       String?
+  fotoUrl       String?
+  tipo          AutorizacaoTipo
+  dataInicio    DateTime?
+  dataFim       DateTime?
+  horarioInicio String?
+  horarioFim    String?
+  ativo         Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  aluno  Aluno  @relation(fields: [alunoId], references: [id])
+  filial Filial @relation(fields: [filialId], references: [id])
+
+  @@index([alunoId])
+  @@index([filialId, cpf])
+  @@map("autorizacoes_retirada")
+}
+
+model RegistroRetirada {
+  id              String          @id @default(uuid())
+  alunoId         String
+  filialId        String
+  autorizacaoId   String?
+  nomeAutorizado  String
+  cpfAutorizado   String
+  tipoAutorizacao AutorizacaoTipo
+  createdAt       DateTime        @default(now())
+
+  aluno  Aluno  @relation(fields: [alunoId], references: [id])
+  filial Filial @relation(fields: [filialId], references: [id])
+
+  @@index([alunoId, createdAt(sort: Desc)])
+  @@index([filialId, createdAt(sort: Desc)])
+  @@map("registros_retirada")
 }
 
 model AuditLog {

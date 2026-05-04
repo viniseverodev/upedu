@@ -2,8 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/components/ui/Toast';
 
 interface Oficina {
   id: string;
@@ -23,6 +25,15 @@ function formatCurrency(val: number) {
 export default function OficinasPage() {
   const [search, setSearch] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('ATIVAS');
+  const { toast, showToast, hideToast } = useToast();
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem('oficina-removida');
+    if (msg) {
+      sessionStorage.removeItem('oficina-removida');
+      showToast('Oficina removida', msg);
+    }
+  }, [showToast]);
 
   const { data: oficinas = [], isLoading } = useQuery<Oficina[]>({
     queryKey: ['oficinas'],
@@ -183,6 +194,8 @@ export default function OficinasPage() {
           ))}
         </div>
       )}
+
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }

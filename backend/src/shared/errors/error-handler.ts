@@ -22,10 +22,17 @@ export function errorHandler(
 
   // Erros de validação Zod — tanto via .parse() manual quanto via fastify-type-provider-zod
   if (error instanceof ZodError) {
+    // Expõe a mensagem do primeiro erro de forma legível ao usuário
+    const first = error.issues[0];
+    const message = first.message;
+
     reply.status(422).send({
       error: 'VALIDATION_ERROR',
-      message: 'Dados inválidos',
-      details: error.issues,
+      message,
+      details: error.issues.map((i) => ({
+        field: i.path.join('.'),
+        message: i.message,
+      })),
     });
     return;
   }
